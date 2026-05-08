@@ -1974,6 +1974,10 @@ function renderAthleteAntro(a,catId,teamId){
       <div class="form-field"><label>Muslo medial</label><input type="number" id="af-thigh" step="0.1" placeholder="9"></div>
       <div class="form-field"><label>Pantorrilla</label><input type="number" id="af-calf" step="0.1" placeholder="6"></div>
     </div>
+    <div class="form-grid-2" style="margin-top:8px;">
+      <div class="form-field"><label>Σ Pliegues (mm) <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" id="af-skinfoldSum" step="0.1"></div>
+      <div class="form-field"><label>IMC <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" id="af-bmiManual" step="0.1"></div>
+    </div>
     <div class="form-section-label">Perímetros (cm)</div>
     <div class="form-grid-3">
       <div class="form-field"><label>Brazo relajado</label><input type="number" id="af-pArmR" step="0.1"></div>
@@ -2010,10 +2014,9 @@ function renderAthleteAntro(a,catId,teamId){
     const prev=evals[i+1]?evals[i+1][1]:null;
     const sf=ev.skinfolds||{};const pe=ev.perimeters||{};
     const vals=[sf.triceps,sf.subscapular,sf.supraspinal,sf.abdominal,sf.thigh,sf.calf].filter(v=>v!=null);
-    const suma6=vals.length>0?Math.round(vals.reduce((a,b)=>a+b,0)*10)/10:null;
+    const suma6=ev.skinfoldSum!=null?ev.skinfoldSum:(vals.length>0?Math.round(vals.reduce((a,b)=>a+b,0)*10)/10:null);
     const prevVals=prev?.skinfolds?[prev.skinfolds.triceps,prev.skinfolds.subscapular,prev.skinfolds.supraspinal,prev.skinfolds.abdominal,prev.skinfolds.thigh,prev.skinfolds.calf].filter(v=>v!=null):[];
-    const prevS6=prevVals.length>0?prevVals.reduce((a,b)=>a+b,0):null;
-    const icc=pe.waist&&pe.hips?(pe.waist/pe.hips).toFixed(3):null;
+    const prevS6=prev?.skinfoldSum!=null?prev.skinfoldSum:(prevVals.length>0?prevVals.reduce((a,b)=>a+b,0):null);
     const madip=ev.masaAdip??null,mmusc=ev.masaMusc??null,mosea=ev.masaOsea??null;
     const zadip=ev.zAdip??null,zmusc=ev.zMusc??null;
     const morphoEvals=Object.values(a.morphology||{}).sort((x,y)=>(y.date||'').localeCompare(x.date||''));
@@ -2034,9 +2037,9 @@ function renderAthleteAntro(a,catId,teamId){
         <span style="font-size:11px;color:var(--text3);">${th.label}</span>
         <button class="eval-del" data-action="delevalantro" data-evid="${id}">Eliminar</button>
       </div>
-      ${suma6!==null?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-        <div><span style="font-size:12px;color:var(--text2);">Σ6 pliegues</span><span style="font-size:22px;font-weight:700;color:${suma6<th.s6p?'#86efac':'#fca5a5'};margin-left:6px;">${suma6}</span><span style="font-size:12px;color:var(--text3);"> mm</span>${deltaHtml(suma6,prevS6)}<span style="margin-left:4px;">${checkIcon(suma6<th.s6p)}</span></div>
-        ${icc?`<div style="font-size:12px;color:var(--text2);margin-left:auto;">ICC <strong style="color:var(--text);">${icc}</strong></div>`:''}
+      ${suma6!==null||ev.bmiManual!=null?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+        ${suma6!==null?`<div><span style="font-size:12px;color:var(--text2);">Σ6 pliegues</span><span style="font-size:22px;font-weight:700;color:${suma6<th.s6p?'#86efac':'#fca5a5'};margin-left:6px;">${suma6}</span><span style="font-size:12px;color:var(--text3);"> mm</span>${deltaHtml(suma6,prevS6)}<span style="margin-left:4px;">${checkIcon(suma6<th.s6p)}</span></div>`:''}
+        ${ev.bmiManual!=null?`<div style="font-size:12px;color:var(--text2);margin-left:auto;">IMC <strong style="color:var(--text);">${ev.bmiManual}</strong></div>`:''}
       </div>`:''}
       ${hasFraction?`<div style="background:var(--bg2);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
         <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Fraccionamiento D. Kerr</div>
@@ -2224,7 +2227,6 @@ function exportAthletePDF(){
   const pc=(la.zAdip!=null&&la.zMusc!=null)?perfColor(la.zAdip,la.zMusc,parseFloat(zdiff),th):null;
   const rsi=lt.djHeight&&lt.djTc?((lt.djHeight/100)/(lt.djTc/1000)).toFixed(2):'—';
   const az=acwrZone(met.acwr);
-  const imc=lm.weight&&lm.height?(lm.weight/Math.pow(lm.height/100,2)).toFixed(1):'—';
   const pAdip=la.masaAdip&&lm.weight?(la.masaAdip/lm.weight*100).toFixed(1):null;
   const pMusc=la.masaMusc&&lm.weight?(la.masaMusc/lm.weight*100).toFixed(1):null;
   const row=(l,v)=>`<tr><td style="padding:5px 8px;color:#555;font-size:13px;">${l}</td><td style="padding:5px 8px;font-weight:600;font-size:13px;">${v||'—'}</td></tr>`;
@@ -2255,7 +2257,7 @@ function exportAthletePDF(){
     ${lm.weight?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lm.weight}</div><div style="font-size:11px;color:#999;">kg</div></td>`:''}
     ${lm.height?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lm.height}</div><div style="font-size:11px;color:#999;">cm</div></td>`:''}
     ${lm.wingspan?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lm.wingspan}</div><div style="font-size:11px;color:#999;">enverg.</div></td>`:''}
-    ${imc!=='—'?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${imc}</div><div style="font-size:11px;color:#999;">IMC</div></td>`:''}
+
   </tr></table></div>`:''}
   ${sfVals.length>0||la.zAdip!=null?`<div class="card" style="margin-bottom:14px;"><div class="card-title">Composición corporal — ${fmtDate(la.date)} · ${th.label}</div><table>
     ${sec('Pliegues ISAK')}${sfVals.length>0?row('Σ6 pliegues',suma6+' mm'+(suma6!=='—'&&parseFloat(suma6)<th.s6p?' ✓':' ✗')):''}
@@ -2269,7 +2271,7 @@ function exportAthletePDF(){
     ${la.zMusc!=null?row('Z muscular',(la.zMusc>0?'+':'')+la.zMusc+(la.zMusc>th.zmuscle?' ✓':' ✗')):''}
     ${zdiff!=='—'?row('Diferencia Z',(parseFloat(zdiff)>0?'+':'')+zdiff+' — '+(pc?.label||'')):''}
   </table></div>`:''}
-  ${lt.cmj!=null||lt.sj!=null||rsi!=='—'?`<div class="card" style="margin-bottom:14px;"><div class="card-title">Tests de salto — ${fmtDate(lt.date)}</div><table><tr>
+  ${lt.cmj!=null||lt.sj!=null||lt.abk!=null||rsi!=='—'?`<div class="card" style="margin-bottom:14px;"><div class="card-title">Tests de salto — ${fmtDate(lt.date)}</div><table><tr>
     ${lt.sj!=null?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lt.sj}</div><div style="font-size:11px;color:#999;">SJ (cm)</div></td>`:''}
     ${lt.cmj!=null?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lt.cmj}</div><div style="font-size:11px;color:#999;">CMJ (cm)</div></td>`:''}
     ${lt.abk!=null?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lt.abk}</div><div style="font-size:11px;color:#999;">ABK (cm)</div></td>`:''}
@@ -2711,9 +2713,9 @@ async function handleAction(e){
       skinfolds:{triceps:g('af-tri'),subscapular:g('af-sub'),supraspinal:g('af-sup'),abdominal:g('af-abd'),thigh:g('af-thigh'),calf:g('af-calf')},
       perimeters:{armR:g('af-pArmR'),armF:g('af-pArmF'),forearm:g('af-pFore'),chest:g('af-pChest'),waist:g('af-pWaist'),hips:g('af-pHips'),thighU:g('af-pThighU'),thighM:g('af-pThighM'),calf:g('af-pCalf')},
       diameters:{biacr:g('af-dBiacr'),chestT:g('af-dChest'),biili:g('af-dBiili'),humer:g('af-dHum'),femor:g('af-dFem')},
-      masaAdip:g('af-madipkg'),masaMusc:g('af-mmuskg'),masaOsea:g('af-moseakg'),zAdip:g('af-zadip'),zMusc:g('af-zmusc')};
+      masaAdip:g('af-madipkg'),masaMusc:g('af-mmuskg'),masaOsea:g('af-moseakg'),zAdip:g('af-zadip'),zMusc:g('af-zmusc'),skinfoldSum:g('af-skinfoldSum'),bmiManual:g('af-bmiManual')};
     ['skinfolds','perimeters','diameters'].forEach(sec=>{Object.keys(ev[sec]).forEach(k=>{if(ev[sec][k]===null)delete ev[sec][k];});});
-    ['masaAdip','masaMusc','masaOsea','zAdip','zMusc'].forEach(k=>{if(ev[k]===null)delete ev[k];});
+    ['masaAdip','masaMusc','masaOsea','zAdip','zMusc','skinfoldSum','bmiManual'].forEach(k=>{if(ev[k]===null)delete ev[k];});
     ath.anthropometry[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);render();
   }
   else if(a==='savetestsform'){
