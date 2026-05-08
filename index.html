@@ -268,6 +268,8 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   /* Header: ocultar logo en desktop, el sidebar ya hace esa función */
   #header-logo{display:none}
   .header-info{padding-left:0}
+  .nxs-pd{background:var(--bg-3);border:1px solid var(--line);border-radius:4px;color:var(--fg-3);font-size:10px;font-weight:500;padding:2px 6px;cursor:pointer;font-family:var(--font-ui);transition:background .15s,color .15s,border-color .15s;}
+  .nxs-pd.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
 }
 @keyframes nx-pulse{0%,100%{opacity:.35}50%{opacity:.8}}
 </style>
@@ -331,7 +333,7 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 <div id="nx-stats-bar">
   <div class="nx-stat-card"><div class="nx-stat-val" id="nxs-teams">—</div><div class="nx-stat-lbl">Equipos activos</div></div>
   <div class="nx-stat-card"><div class="nx-stat-val" id="nxs-players">—</div><div class="nx-stat-lbl">Jugadores</div></div>
-  <div class="nx-stat-card"><div class="nx-stat-val" id="nxs-att">—</div><div class="nx-stat-lbl">Asistencia prom.</div></div>
+  <div class="nx-stat-card"><div class="nx-stat-val" id="nxs-att">—</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;"><div class="nx-stat-lbl" style="margin-top:0">Asistencia prom.</div><div style="display:flex;gap:3px;"><button class="nxs-pd active" data-days="7" onclick="S.statsPeriod=7;updateStatsBar()">7d</button><button class="nxs-pd" data-days="30" onclick="S.statsPeriod=30;updateStatsBar()">30d</button></div></div></div>
   <div class="nx-stat-card"><div class="nx-stat-val" id="nxs-sessions">—</div><div class="nx-stat-lbl">Sesiones hoy</div></div>
 </div>
 <script>
@@ -421,7 +423,7 @@ let S = {
   loadFilter:'7d', loadFrom:'', loadTo:'',
   athletes:{}, athleteKey:null, athleteTab:'perfil', athleteForm:null, editingEvalId:null,
   prevView:'home', prevTeamId:null, prevCat:null,
-  lastCatTid:null, lastCatCid:null,
+  lastCatTid:null, lastCatCid:null, statsPeriod:7,
   searchQuery:'',
   // Team/category forms
   editingTeamId:null, editingCatId:null,
@@ -633,7 +635,7 @@ async function loadAll() {
 
     setSyncBar('ok');
   } catch(e) {
-    console.error(e); setSyncBar('error');
+    console.error(e); setSyncBar('error','Error al cargar los datos');
   }
   updateHeader();
   render();
@@ -687,7 +689,7 @@ function updateStatsBar() {
   let playerCount = 0;
   Object.values(S.teams).forEach(t=>Object.values(t.categories||{}).forEach(c=>{playerCount+=(c.players||[]).length;}));
   let totP=0,totAll=0;
-  for(let i=0;i<7;i++){
+  for(let i=0;i<(S.statsPeriod||7);i++){
     const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);
     const ds=d.toISOString().split('T')[0];
     Object.values(S.teams).forEach(t=>Object.values(t.categories||{}).forEach(c=>{
@@ -705,6 +707,7 @@ function updateStatsBar() {
   if(ge('nxs-sessions')) ge('nxs-sessions').textContent=sessToday||'—';
   const su=ge('nx-sidebar-user');
   if(su){const n=S.userProfile?.nombre?S.userProfile.nombre:(currentUser?.displayName||currentUser?.email?.split('@')[0]||'—');su.textContent=n;}
+  document.querySelectorAll('.nxs-pd').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.days)===(S.statsPeriod||7)));
 }
 
 function syncSidebarNav() {
@@ -1930,28 +1933,32 @@ function renderRoster(){
 function openSearch(){S.prevView=S.view;S.prevTeamId=S.teamId;S.prevCat=S.cat;S.view='search';S.searchQuery='';render();setTimeout(()=>{const i=document.getElementById('search-main');if(i){i.focus();i.setSelectionRange(999,999);}},50);}
 function filterSearch(q){S.searchQuery=q;const el=document.getElementById('search-results');if(!el)return;el.innerHTML=renderSearchResults(q);el.querySelectorAll('[data-action]').forEach(e=>e.addEventListener('click',handleAction));}
 function renderSearchResults(q){
-  const ql=(q||'').toLowerCase();let results=[];
+  const ql=(q||'').toLowerCase();let html='',hasAny=false;
+  if(ql){
+    Object.entries(S.teams).forEach(([tid,t])=>{
+      if(t.name.toLowerCase().includes(ql)){hasAny=true;html+=`<button class="search-result" data-action="openteam" data-tid="${tid}"><span class="s-dot" style="background:var(--accent);"></span><span class="s-name">${t.name}</span><div style="text-align:right;"><span class="s-cat" style="background:var(--accent-soft);color:var(--accent);">Equipo</span><div style="font-size:10px;color:var(--text3);margin-top:2px;">${t.sport||''}</div></div><span style="font-size:12px;color:var(--text3);">Ver →</span></button>`;}
+      Object.entries(t.categories||{}).forEach(([cid,c])=>{
+        const color=c.color||CAT_PALETTE[0];
+        if(c.name.toLowerCase().includes(ql)){hasAny=true;html+=`<button class="search-result" data-action="opencat" data-tid="${tid}" data-cid="${cid}"><span class="s-dot" style="background:${color};"></span><span class="s-name">${c.name}</span><div style="text-align:right;"><span class="s-cat" style="background:${color}22;color:${color};">Categoría</span><div style="font-size:10px;color:var(--text3);margin-top:2px;">${t.name}</div></div><span style="font-size:12px;color:var(--text3);">Ver →</span></button>`;}
+      });
+    });
+  }
   Object.entries(S.teams).forEach(([tid,t])=>{
     Object.entries(t.categories||{}).forEach(([cid,c])=>{
+      const color=c.color||CAT_PALETTE[0];
       const players=Array.isArray(c.players)?c.players:Object.values(c.players||[]);
       players.forEach(p=>{
-        if(!ql||p.name.toLowerCase().includes(ql))
-          results.push({tid,cid,pid:p.id,name:p.name,catName:c.name,teamName:t.name,color:c.color||CAT_PALETTE[0]});
+        if(!ql||p.name.toLowerCase().includes(ql)){hasAny=true;html+=`<button class="search-result" data-action="openathlete" data-tid="${tid}" data-cid="${cid}" data-pid="${p.id}"><span class="s-dot" style="background:${color};"></span><span class="s-name">${p.name}</span><div style="text-align:right;"><span class="s-cat" style="background:${color}22;color:${color};">${c.name}</span><div style="font-size:10px;color:var(--text3);margin-top:2px;">${t.name}</div></div><span style="font-size:12px;color:var(--text3);">Ficha →</span></button>`;}
       });
     });
   });
-  if(!results.length)return`<div class="empty-state">${ql?`Sin resultados para "${q}"`:'Escribí para buscar...'}</div>`;
-  return results.map(r=>`<button class="search-result" data-action="openathlete" data-tid="${r.tid}" data-cid="${r.cid}" data-pid="${r.pid}">
-    <span class="s-dot" style="background:${r.color};"></span>
-    <span class="s-name">${r.name}</span>
-    <div style="text-align:right;"><span class="s-cat" style="background:${r.color}22;color:${r.color};">${r.catName}</span><div style="font-size:10px;color:var(--text3);margin-top:2px;">${r.teamName}</div></div>
-    <span style="font-size:12px;color:var(--text3);">Ficha →</span>
-  </button>`).join('');
+  if(!hasAny)return`<div class="empty-state">${ql?`Sin resultados para "${q}"`:'Escribí para buscar...'}</div>`;
+  return html;
 }
 function renderSearch(){
   return`<div class="search-header">
     <button class="back-btn" data-action="home" style="flex-shrink:0;">⌂ Inicio</button>
-    <input type="text" id="search-main" class="search-input-main" placeholder="Buscar jugador..." oninput="filterSearch(this.value)">
+    <input type="text" id="search-main" class="search-input-main" placeholder="Buscar jugador, equipo o categoría..." oninput="filterSearch(this.value)">
     <button class="search-cancel" data-action="cancelsearch">Cancelar</button>
   </div>
   <div class="wrap" id="search-results">${renderSearchResults('')}</div>`;
@@ -2516,13 +2523,13 @@ async function handleAction(e){
       licencia:document.getElementById('pf-licencia')?.value.trim()||''
     };
     setSyncBar('saving');
-    try{await db.ref(`users/${currentUser.uid}/profile`).set(S.userProfile);setSyncBar('ok');}catch(e){setSyncBar('error');}
+    try{await db.ref(`users/${currentUser.uid}/profile`).set(S.userProfile);setSyncBar('ok');}catch(e){setSyncBar('error','Error al guardar el perfil');}
     render();
   }
   // NAVIGATION
   if(a==='home'){S.view='home';S.teamFormMode=null;S.catFormMode=null;render();}
   else if(a==='openteam'){S.teamId=el.dataset.tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
-  else if(a==='opencat'){S.cat=el.dataset.cid;S.lastCatTid=S.teamId;S.lastCatCid=S.cat;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
+  else if(a==='opencat'){if(el.dataset.tid)S.teamId=el.dataset.tid;S.cat=el.dataset.cid;S.lastCatTid=S.teamId;S.lastCatCid=S.cat;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
   else if(a==='backtoTeam'){S.view='team';S.catFormMode=null;S.teamFormMode=null;render();}
   else if(a==='backfromathlete'){
     if(S.prevView==='search'){S.view='search';render();}
@@ -2695,7 +2702,7 @@ async function handleAction(e){
       setSyncBar('ok');
     } catch(e) {
       console.error('Error saving team:',e);
-      setSyncBar('error');
+      setSyncBar('error','Error al crear el equipo');
       // Data stays in memory so the session works; will retry on next loadAll
     }
   }
@@ -2708,7 +2715,7 @@ async function handleAction(e){
     if(S.pendingLogo){S.teams[tid].logo=S.pendingLogo; S.pendingLogo=null;}
     // Close form immediately
     S.teamFormMode=null; S.editingTeamId=null; render();
-    try { await persistTeam(tid); } catch(e){ setSyncBar('error'); }
+    try { await persistTeam(tid); } catch(e){ setSyncBar('error','Error al guardar el equipo'); }
   }
   else if(a==='deleteteam'){
     const tid=el.dataset.tid;
@@ -2721,7 +2728,7 @@ async function handleAction(e){
     try {
       await db.ref(`teams/${tid}`).remove();
       await db.ref(`users/${currentUser.uid}/memberships/${tid}`).remove();
-    } catch(e){ console.error('Error deleting team:',e); setSyncBar('error'); }
+    } catch(e){ console.error('Error deleting team:',e); setSyncBar('error','Error al eliminar el equipo'); }
   }
   else if(a==='leaveteam'){
     const tid=el.dataset.tid;
@@ -2735,7 +2742,7 @@ async function handleAction(e){
       await db.ref(`users/${currentUser.uid}/memberships/${tid}`).remove();
       await db.ref(`teams/${tid}/memberIndex/${currentUser.uid}`).remove();
       await db.ref(`teams/${tid}/memberPermissions/${currentUser.uid}`).remove();
-    }catch(e){console.error('Error leaving team:',e);setSyncBar('error');}
+    }catch(e){console.error('Error leaving team:',e);setSyncBar('error','Error al salir del equipo');}
   }
   // CATEGORY MANAGEMENT
   else if(a==='newcat'){S.catFormMode='new';S.editingCatId=null;render();}
@@ -2749,7 +2756,7 @@ async function handleAction(e){
     if(!S.teams[S.teamId].categories)S.teams[S.teamId].categories={};
     S.teams[S.teamId].categories[cid]={name,color:CAT_PALETTE[colorIdx],players:[],attendance:{},sessions:{}};
     S.catFormMode=null; render();
-    try { await persistTeam(S.teamId); } catch(e){ setSyncBar('error'); }
+    try { await persistTeam(S.teamId); } catch(e){ setSyncBar('error','Error al crear la categoría'); }
   }
   else if(a==='saveeditcat'){
     const name=document.getElementById('cf-name')?.value.trim();
@@ -2757,7 +2764,7 @@ async function handleAction(e){
     const cid=S.editingCatId;
     if(S.teams[S.teamId].categories[cid])S.teams[S.teamId].categories[cid].name=name;
     S.catFormMode=null; S.editingCatId=null; render();
-    try { await persistTeam(S.teamId); } catch(e){ setSyncBar('error'); }
+    try { await persistTeam(S.teamId); } catch(e){ setSyncBar('error','Error al guardar la categoría'); }
   }
   else if(a==='deletecat'){
     const tid=S.teamId;const cid=el.dataset.cid;
@@ -2775,7 +2782,7 @@ async function handleAction(e){
     try{
       await db.ref(`teams/${tid}/categories/${cid}`).remove();
       await Promise.all(athleteKeys.map(k=>db.ref(`teams/${tid}/athletes/${k}`).remove()));
-    }catch(e){console.error('Error deleting cat:',e);setSyncBar('error');}
+    }catch(e){console.error('Error deleting cat:',e);setSyncBar('error','Error al eliminar la categoría');}
   }
   // ATHLETE
   else if(a==='openathlete'){
