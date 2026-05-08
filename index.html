@@ -343,7 +343,7 @@ let S = {
   wellnessDraft:{}, wellnessExpanded:{}, sessionSub:'load', rpeMode:'team',
   reportSub:'players', confirmDel:null, editId:null,
   loadFilter:'7d', loadFrom:'', loadTo:'',
-  athletes:{}, athleteKey:null, athleteTab:'perfil', athleteForm:null,
+  athletes:{}, athleteKey:null, athleteTab:'perfil', athleteForm:null, editingEvalId:null,
   prevView:'home', prevTeamId:null, prevCat:null,
   searchQuery:'',
   // Team/category forms
@@ -1928,15 +1928,17 @@ function renderAthletePerfil(a,tid,cid,pid){
 
 function renderAthleteMorfo(a){
   const evals=Object.entries(a.morphology||{}).sort((x,y)=>y[0].localeCompare(x[0]));
+  const editEv=S.editingEvalId?(a.morphology||{})[S.editingEvalId]:null;
+  const _mV=(k)=>editEv?.[k]!=null?editEv[k]:'';
   const formHtml=S.athleteForm==='morfo'?`<div class="form-card">
-    <div class="form-card-title">Nueva evaluación morfológica <button class="sm-btn" data-action="cancelathleteform">✕</button></div>
+    <div class="form-card-title">${editEv?'Editar':'Nueva'} evaluación morfológica <button class="sm-btn" data-action="cancelathleteform">✕</button></div>
     <div class="form-grid-2">
-      <div class="form-field"><label>Fecha</label><input type="date" id="af-date" value="${TODAY}"></div>
-      <div class="form-field"><label>Peso (kg)</label><input type="number" id="af-weight" placeholder="85.5" step="0.1"></div>
-      <div class="form-field"><label>Talla (cm)</label><input type="number" id="af-height" placeholder="190" step="0.1"></div>
-      <div class="form-field"><label>Talla sentado</label><input type="number" id="af-sittingH" placeholder="100" step="0.1"></div>
-      <div class="form-field"><label>Envergadura (cm)</label><input type="number" id="af-wingspan" placeholder="193" step="0.1"></div>
-      <div class="form-field"><label>Alcance máx. (cm)</label><input type="number" id="af-reach" placeholder="242" step="0.1"></div>
+      <div class="form-field"><label>Fecha</label><input type="date" id="af-date" value="${editEv?.date||TODAY}"></div>
+      <div class="form-field"><label>Peso (kg)</label><input type="number" id="af-weight" placeholder="85.5" step="0.1" value="${_mV('weight')}"></div>
+      <div class="form-field"><label>Talla (cm)</label><input type="number" id="af-height" placeholder="190" step="0.1" value="${_mV('height')}"></div>
+      <div class="form-field"><label>Talla sentado</label><input type="number" id="af-sittingH" placeholder="100" step="0.1" value="${_mV('sittingH')}"></div>
+      <div class="form-field"><label>Envergadura (cm)</label><input type="number" id="af-wingspan" placeholder="193" step="0.1" value="${_mV('wingspan')}"></div>
+      <div class="form-field"><label>Alcance máx. (cm)</label><input type="number" id="af-reach" placeholder="242" step="0.1" value="${_mV('reach')}"></div>
     </div>
     <div class="form-row"><button class="save-btn" style="width:100%;" data-action="savemorfoform">Guardar</button></div>
   </div>`:`<button class="save-btn" style="width:100%;margin-bottom:12px;background:var(--bg2);color:var(--text);border:1px solid var(--border);" data-action="newmorfo">+ Nueva evaluación morfológica</button>`;
@@ -1944,7 +1946,7 @@ function renderAthleteMorfo(a){
     const prev=evals[i+1]?evals[i+1][1]:null;
     const imc=ev.weight&&ev.height?(ev.weight/Math.pow(ev.height/100,2)).toFixed(1):null;
     return`<div class="eval-card">
-      <div class="eval-top"><span class="eval-date">${fmtDate(ev.date||id.slice(0,10))}</span><button class="eval-del" data-action="delevalmorpho" data-evid="${id}">Eliminar</button></div>
+      <div class="eval-top"><span class="eval-date">${fmtDate(ev.date||id.slice(0,10))}</span><button class="sm-btn" style="margin-left:auto;margin-right:4px;" data-action="editevalmorfo" data-evid="${id}">Editar</button><button class="eval-del" data-action="delevalmorpho" data-evid="${id}">Eliminar</button></div>
       <div class="eval-grid">
         ${ev.weight?`<div class="eval-cell"><div class="eval-cell-label">Peso (kg)</div><div class="eval-cell-val">${ev.weight}</div>${deltaHtml(ev.weight,prev?.weight)}</div>`:''}
         ${ev.height?`<div class="eval-cell"><div class="eval-cell-label">Talla (cm)</div><div class="eval-cell-val">${ev.height}</div>${deltaHtml(ev.height,prev?.height)}</div>`:''}
@@ -1962,51 +1964,56 @@ function renderAthleteAntro(a,catId,teamId){
   const cid=catId||S.cat, tid=teamId||S.teamId;
   const th=getThresholds(cid,tid);
   const evals=Object.entries(a.anthropometry||{}).sort((x,y)=>y[0].localeCompare(x[0]));
+  const editAntro=S.editingEvalId&&S.athleteForm==='antro'?(a.anthropometry||{})[S.editingEvalId]:null;
+  const _sf=(k)=>editAntro?.skinfolds?.[k]!=null?editAntro.skinfolds[k]:'';
+  const _pe=(k)=>editAntro?.perimeters?.[k]!=null?editAntro.perimeters[k]:'';
+  const _di=(k)=>editAntro?.diameters?.[k]!=null?editAntro.diameters[k]:'';
+  const _aV=(k)=>editAntro?.[k]!=null?editAntro[k]:'';
   const formHtml=S.athleteForm==='antro'?`<div class="form-card">
-    <div class="form-card-title">Nueva evaluación ISAK <button class="sm-btn" data-action="cancelathleteform">✕</button></div>
-    <div class="form-field" style="margin-bottom:8px;"><label>Fecha</label><input type="date" id="af-date" value="${TODAY}"></div>
+    <div class="form-card-title">${editAntro?'Editar':'Nueva'} evaluación ISAK <button class="sm-btn" data-action="cancelathleteform">✕</button></div>
+    <div class="form-field" style="margin-bottom:8px;"><label>Fecha</label><input type="date" id="af-date" value="${editAntro?.date||TODAY}"></div>
     <div class="form-section-label">Pliegues cutáneos (mm)</div>
     <div class="form-grid-3">
-      <div class="form-field"><label>Tríceps</label><input type="number" id="af-tri" step="0.1" placeholder="6"></div>
-      <div class="form-field"><label>Subescapular</label><input type="number" id="af-sub" step="0.1" placeholder="6.5"></div>
-      <div class="form-field"><label>Supraespinal</label><input type="number" id="af-sup" step="0.1" placeholder="6"></div>
-      <div class="form-field"><label>Abdominal</label><input type="number" id="af-abd" step="0.1" placeholder="14"></div>
-      <div class="form-field"><label>Muslo medial</label><input type="number" id="af-thigh" step="0.1" placeholder="9"></div>
-      <div class="form-field"><label>Pantorrilla</label><input type="number" id="af-calf" step="0.1" placeholder="6"></div>
+      <div class="form-field"><label>Tríceps</label><input type="number" id="af-tri" step="0.1" placeholder="6" value="${_sf('triceps')}"></div>
+      <div class="form-field"><label>Subescapular</label><input type="number" id="af-sub" step="0.1" placeholder="6.5" value="${_sf('subscapular')}"></div>
+      <div class="form-field"><label>Supraespinal</label><input type="number" id="af-sup" step="0.1" placeholder="6" value="${_sf('supraspinal')}"></div>
+      <div class="form-field"><label>Abdominal</label><input type="number" id="af-abd" step="0.1" placeholder="14" value="${_sf('abdominal')}"></div>
+      <div class="form-field"><label>Muslo medial</label><input type="number" id="af-thigh" step="0.1" placeholder="9" value="${_sf('thigh')}"></div>
+      <div class="form-field"><label>Pantorrilla</label><input type="number" id="af-calf" step="0.1" placeholder="6" value="${_sf('calf')}"></div>
     </div>
     <div class="form-grid-2" style="margin-top:8px;">
-      <div class="form-field"><label>Σ Pliegues (mm) <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" id="af-skinfoldSum" step="0.1"></div>
-      <div class="form-field"><label>IMC <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" id="af-bmiManual" step="0.1"></div>
+      <div class="form-field"><label>Σ Pliegues (mm) <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" id="af-skinfoldSum" step="0.1" value="${_aV('skinfoldSum')}"></div>
+      <div class="form-field"><label>IMC <span style="font-size:10px;color:var(--text3);">(manual)</span></label><input type="number" id="af-bmiManual" step="0.1" value="${_aV('bmiManual')}"></div>
     </div>
     <div class="form-section-label">Perímetros (cm)</div>
     <div class="form-grid-3">
-      <div class="form-field"><label>Brazo relajado</label><input type="number" id="af-pArmR" step="0.1"></div>
-      <div class="form-field"><label>Brazo flex.</label><input type="number" id="af-pArmF" step="0.1"></div>
-      <div class="form-field"><label>Antebrazo</label><input type="number" id="af-pFore" step="0.1"></div>
-      <div class="form-field"><label>Tórax</label><input type="number" id="af-pChest" step="0.1"></div>
-      <div class="form-field"><label>Cintura</label><input type="number" id="af-pWaist" step="0.1"></div>
-      <div class="form-field"><label>Cadera</label><input type="number" id="af-pHips" step="0.1"></div>
-      <div class="form-field"><label>Muslo (máx.)</label><input type="number" id="af-pThighU" step="0.1"></div>
-      <div class="form-field"><label>Muslo medial</label><input type="number" id="af-pThighM" step="0.1"></div>
-      <div class="form-field"><label>Pantorrilla</label><input type="number" id="af-pCalf" step="0.1"></div>
+      <div class="form-field"><label>Brazo relajado</label><input type="number" id="af-pArmR" step="0.1" value="${_pe('armR')}"></div>
+      <div class="form-field"><label>Brazo flex.</label><input type="number" id="af-pArmF" step="0.1" value="${_pe('armF')}"></div>
+      <div class="form-field"><label>Antebrazo</label><input type="number" id="af-pFore" step="0.1" value="${_pe('forearm')}"></div>
+      <div class="form-field"><label>Tórax</label><input type="number" id="af-pChest" step="0.1" value="${_pe('chest')}"></div>
+      <div class="form-field"><label>Cintura</label><input type="number" id="af-pWaist" step="0.1" value="${_pe('waist')}"></div>
+      <div class="form-field"><label>Cadera</label><input type="number" id="af-pHips" step="0.1" value="${_pe('hips')}"></div>
+      <div class="form-field"><label>Muslo (máx.)</label><input type="number" id="af-pThighU" step="0.1" value="${_pe('thighU')}"></div>
+      <div class="form-field"><label>Muslo medial</label><input type="number" id="af-pThighM" step="0.1" value="${_pe('thighM')}"></div>
+      <div class="form-field"><label>Pantorrilla</label><input type="number" id="af-pCalf" step="0.1" value="${_pe('calf')}"></div>
     </div>
     <div class="form-section-label">Diámetros (cm)</div>
     <div class="form-grid-3">
-      <div class="form-field"><label>Biacromial</label><input type="number" id="af-dBiacr" step="0.1"></div>
-      <div class="form-field"><label>Tórax transv.</label><input type="number" id="af-dChest" step="0.1"></div>
-      <div class="form-field"><label>Bi-iliocrest.</label><input type="number" id="af-dBiili" step="0.1"></div>
-      <div class="form-field"><label>Humeral</label><input type="number" id="af-dHum" step="0.1"></div>
-      <div class="form-field"><label>Femoral</label><input type="number" id="af-dFem" step="0.1"></div>
+      <div class="form-field"><label>Biacromial</label><input type="number" id="af-dBiacr" step="0.1" value="${_di('biacr')}"></div>
+      <div class="form-field"><label>Tórax transv.</label><input type="number" id="af-dChest" step="0.1" value="${_di('chest')}"></div>
+      <div class="form-field"><label>Bi-iliocrest.</label><input type="number" id="af-dBiili" step="0.1" value="${_di('biili')}"></div>
+      <div class="form-field"><label>Humeral</label><input type="number" id="af-dHum" step="0.1" value="${_di('hum')}"></div>
+      <div class="form-field"><label>Femoral</label><input type="number" id="af-dFem" step="0.1" value="${_di('fem')}"></div>
     </div>
     <div class="form-section-label">Fraccionamiento D. Kerr</div>
     <div class="form-grid-3">
-      <div class="form-field"><label>M. adiposa (kg)</label><input type="number" id="af-madipkg" step="0.01"></div>
-      <div class="form-field"><label>M. muscular (kg)</label><input type="number" id="af-mmuskg" step="0.01"></div>
-      <div class="form-field"><label>M. ósea (kg)</label><input type="number" id="af-moseakg" step="0.01"></div>
+      <div class="form-field"><label>M. adiposa (kg)</label><input type="number" id="af-madipkg" step="0.01" value="${_aV('masaAdip')}"></div>
+      <div class="form-field"><label>M. muscular (kg)</label><input type="number" id="af-mmuskg" step="0.01" value="${_aV('masaMusc')}"></div>
+      <div class="form-field"><label>M. ósea (kg)</label><input type="number" id="af-moseakg" step="0.01" value="${_aV('masaOsea')}"></div>
     </div>
     <div class="form-grid-2" style="margin-top:8px;">
-      <div class="form-field"><label>Z-score adiposa</label><input type="number" id="af-zadip" step="0.01"></div>
-      <div class="form-field"><label>Z-score muscular</label><input type="number" id="af-zmusc" step="0.01"></div>
+      <div class="form-field"><label>Z-score adiposa</label><input type="number" id="af-zadip" step="0.01" value="${_aV('zAdip')}"></div>
+      <div class="form-field"><label>Z-score muscular</label><input type="number" id="af-zmusc" step="0.01" value="${_aV('zMusc')}"></div>
     </div>
     <div class="form-row"><button class="save-btn" style="width:100%;" data-action="saveantroform">Guardar</button></div>
   </div>`:`<button class="save-btn" style="width:100%;margin-bottom:12px;background:var(--bg2);color:var(--text);border:1px solid var(--border);" data-action="newantro">+ Nueva evaluación ISAK</button>`;
@@ -2035,7 +2042,7 @@ function renderAthleteAntro(a,catId,teamId){
       <div class="eval-top">
         <span class="eval-date">${fmtDate(ev.date||id.slice(0,10))}</span>
         <span style="font-size:11px;color:var(--text3);">${th.label}</span>
-        <button class="eval-del" data-action="delevalantro" data-evid="${id}">Eliminar</button>
+        <button class="sm-btn" style="margin-left:auto;margin-right:4px;" data-action="editevalantro" data-evid="${id}">Editar</button><button class="eval-del" data-action="delevalantro" data-evid="${id}">Eliminar</button>
       </div>
       ${suma6!==null||ev.bmiManual!=null?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
         ${suma6!==null?`<div><span style="font-size:12px;color:var(--text2);">Σ6 pliegues</span><span style="font-size:22px;font-weight:700;color:${suma6<th.s6p?'#86efac':'#fca5a5'};margin-left:6px;">${suma6}</span><span style="font-size:12px;color:var(--text3);"> mm</span>${deltaHtml(suma6,prevS6)}<span style="margin-left:4px;">${checkIcon(suma6<th.s6p)}</span></div>`:''}
@@ -2076,24 +2083,26 @@ function renderAthleteAntro(a,catId,teamId){
 
 function renderAthleteTests(a){
   const evals=Object.entries(a.jumpTests||{}).sort((x,y)=>y[0].localeCompare(x[0]));
+  const editJump=S.editingEvalId&&S.athleteForm==='tests'?(a.jumpTests||{})[S.editingEvalId]:null;
+  const _jV=(k)=>editJump?.[k]!=null?editJump[k]:'';
   const formHtml=S.athleteForm==='tests'?`<div class="form-card">
-    <div class="form-card-title">Nueva evaluación de salto <button class="sm-btn" data-action="cancelathleteform">✕</button></div>
-    <div class="form-field" style="margin-bottom:8px;"><label>Fecha</label><input type="date" id="af-date" value="${TODAY}"></div>
+    <div class="form-card-title">${editJump?'Editar':'Nueva'} evaluación de salto <button class="sm-btn" data-action="cancelathleteform">✕</button></div>
+    <div class="form-field" style="margin-bottom:8px;"><label>Fecha</label><input type="date" id="af-date" value="${editJump?.date||TODAY}"></div>
     <div class="form-section-label">Saltos (cm)</div>
     <div class="form-grid-3">
-      <div class="form-field"><label>SJ (cm)</label><input type="number" id="af-sj" step="0.1" placeholder="35.0"></div>
-      <div class="form-field"><label>CMJ (cm)</label><input type="number" id="af-cmj" step="0.1" placeholder="38.0"></div>
-      <div class="form-field"><label>ABK (cm)</label><input type="number" id="af-abk" step="0.1" placeholder="42.0"></div>
-      <div class="form-field"><label>ABK Der. (cm)</label><input type="number" id="af-abkr" step="0.1" placeholder="44.0"></div>
-      <div class="form-field"><label>ABK Izq. (cm)</label><input type="number" id="af-abkl" step="0.1" placeholder="43.0"></div>
+      <div class="form-field"><label>SJ (cm)</label><input type="number" id="af-sj" step="0.1" placeholder="35.0" value="${_jV('sj')}"></div>
+      <div class="form-field"><label>CMJ (cm)</label><input type="number" id="af-cmj" step="0.1" placeholder="38.0" value="${_jV('cmj')}"></div>
+      <div class="form-field"><label>ABK (cm)</label><input type="number" id="af-abk" step="0.1" placeholder="42.0" value="${_jV('abk')}"></div>
+      <div class="form-field"><label>ABK Der. (cm)</label><input type="number" id="af-abkr" step="0.1" placeholder="44.0" value="${_jV('abkRight')}"></div>
+      <div class="form-field"><label>ABK Izq. (cm)</label><input type="number" id="af-abkl" step="0.1" placeholder="43.0" value="${_jV('abkLeft')}"></div>
     </div>
     <div class="form-section-label">Drop Jump</div>
     <div class="form-grid-3">
-      <div class="form-field"><label>Altura DJ (cm)</label><input type="number" id="af-djh" step="0.1" placeholder="36.0"></div>
-      <div class="form-field"><label>TC (ms)</label><input type="number" id="af-djtc" step="1" placeholder="180"></div>
+      <div class="form-field"><label>Altura DJ (cm)</label><input type="number" id="af-djh" step="0.1" placeholder="36.0" value="${_jV('djHeight')}"></div>
+      <div class="form-field"><label>TC (ms)</label><input type="number" id="af-djtc" step="1" placeholder="180" value="${_jV('djTc')}"></div>
       <div class="form-field"><label>RSI (auto)</label><input type="text" id="af-rsi-preview" readonly style="background:var(--bg3);color:var(--text3);" placeholder="—"></div>
     </div>
-    <div class="form-field" style="margin-top:8px;"><label>Notas</label><input type="text" id="af-notes" placeholder="Condiciones, observaciones..."></div>
+    <div class="form-field" style="margin-top:8px;"><label>Notas</label><input type="text" id="af-notes" placeholder="Condiciones, observaciones..." value="${_jV('notes')}"></div>
     <div class="form-row"><button class="save-btn" style="width:100%;" data-action="savetestsform">Guardar</button></div>
   </div>`:`<div><p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Evaluación de salto: SJ, CMJ, ABK y DJ.</p><button class="save-btn" style="width:100%;margin-bottom:12px;background:var(--bg2);color:var(--text);border:1px solid var(--border);" data-action="newtests">+ Nueva evaluación de salto</button></div>`;
   const cards=evals.map(([id,ev],i)=>{
@@ -2101,7 +2110,7 @@ function renderAthleteTests(a){
     const rsi=ev.djHeight&&ev.djTc?Math.round((ev.djHeight/100)/(ev.djTc/1000)*100)/100:null;
     const rz=rsiZone(rsi);
     return`<div class="eval-card">
-      <div class="eval-top"><span class="eval-date">${fmtDate(ev.date||id.slice(0,10))}</span><button class="eval-del" data-action="delevaltests" data-evid="${id}">Eliminar</button></div>
+      <div class="eval-top"><span class="eval-date">${fmtDate(ev.date||id.slice(0,10))}</span><button class="sm-btn" style="margin-left:auto;margin-right:4px;" data-action="editevaltests" data-evid="${id}">Editar</button><button class="eval-del" data-action="delevaltests" data-evid="${id}">Eliminar</button></div>
       <div class="jump-grid">
         ${ev.sj!=null?`<div class="jump-cell"><div class="jump-lbl">SJ</div><div class="jump-val">${ev.sj}</div><div class="jump-unit">cm${deltaHtml(ev.sj,prev?.sj)}</div></div>`:'<div></div>'}
         ${ev.cmj!=null?`<div class="jump-cell"><div class="jump-lbl">CMJ</div><div class="jump-val">${ev.cmj}</div><div class="jump-unit">cm${deltaHtml(ev.cmj,prev?.cmj)}</div></div>`:'<div></div>'}
@@ -2117,26 +2126,28 @@ function renderAthleteTests(a){
   const fmsEvals=Object.entries(a.fmsTests||{}).sort((x,y)=>y[0].localeCompare(x[0]));
   const minBi=(l,r)=>(l!=null&&r!=null)?Math.min(l,r):l!=null?l:r!=null?r:null;
   const fmsInfo=(ev)=>{const s=[ev.deepSquat,minBi(ev.hurdleL,ev.hurdleR),minBi(ev.lungeL,ev.lungeR),minBi(ev.shoulderL,ev.shoulderR),minBi(ev.aslrL,ev.aslrR),ev.trunkStab,minBi(ev.rotaryL,ev.rotaryR)];const valid=s.filter(v=>v!=null);return{sum:valid.reduce((a,b)=>a+b,0),completed:valid.length,maxPossible:valid.length*3};};
-  const fsel=(id)=>`<select id="${id}" style="width:100%;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;"><option value="">—</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>`;
+  const editFms=S.editingEvalId&&S.athleteForm==='fms'?(a.fmsTests||{})[S.editingEvalId]:null;
+  const _fV=(k)=>editFms?.[k]!=null?editFms[k]:'';
+  const fsel=(id,val='')=>`<select id="${id}" style="width:100%;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;">${['','0','1','2','3'].map(n=>`<option value="${n}"${String(val)===n?' selected':''}>${n===''?'—':n}</option>`).join('')}</select>`;
   const fmsFormHtml=S.athleteForm==='fms'?`<div class="form-card">
-    <div class="form-card-title">Nueva evaluación FMS <button class="sm-btn" data-action="cancelathleteform">✕</button></div>
-    <div class="form-field" style="margin-bottom:8px;"><label>Fecha</label><input type="date" id="fms-date" value="${TODAY}"></div>
+    <div class="form-card-title">${editFms?'Editar':'Nueva'} evaluación FMS <button class="sm-btn" data-action="cancelathleteform">✕</button></div>
+    <div class="form-field" style="margin-bottom:8px;"><label>Fecha</label><input type="date" id="fms-date" value="${editFms?.date||TODAY}"></div>
     <div class="form-section-label">Movimientos (0–3)</div>
     <div class="form-grid-2" style="margin-bottom:6px;">
-      <div class="form-field"><label>Deep Squat</label>${fsel('fms-ds')}</div>
-      <div class="form-field"><label>Trunk Stability PU</label>${fsel('fms-ts')}</div>
+      <div class="form-field"><label>Deep Squat</label>${fsel('fms-ds',_fV('deepSquat'))}</div>
+      <div class="form-field"><label>Trunk Stability PU</label>${fsel('fms-ts',_fV('trunkStab'))}</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 64px 64px;gap:4px 8px;align-items:center;margin-bottom:8px;">
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Bilateral (Izq./Der. → mínimo)</div>
       <div style="font-size:10px;color:var(--text3);text-align:center;">Izq.</div>
       <div style="font-size:10px;color:var(--text3);text-align:center;">Der.</div>
-      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;">Hurdle Step</div><div>${fsel('fms-hsl')}</div><div>${fsel('fms-hsr')}</div>
-      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;">Inline Lunge</div><div>${fsel('fms-lul')}</div><div>${fsel('fms-lur')}</div>
-      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;">Shoulder Mobility</div><div>${fsel('fms-sml')}</div><div>${fsel('fms-smr')}</div>
-      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;">ASLR</div><div>${fsel('fms-asl')}</div><div>${fsel('fms-asr')}</div>
-      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;">Rotary Stability</div><div>${fsel('fms-rsl')}</div><div>${fsel('fms-rsr')}</div>
+      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;">Hurdle Step</div><div>${fsel('fms-hsl',_fV('hurdleL'))}</div><div>${fsel('fms-hsr',_fV('hurdleR'))}</div>
+      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;">Inline Lunge</div><div>${fsel('fms-lul',_fV('lungeL'))}</div><div>${fsel('fms-lur',_fV('lungeR'))}</div>
+      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;">Shoulder Mobility</div><div>${fsel('fms-sml',_fV('shoulderL'))}</div><div>${fsel('fms-smr',_fV('shoulderR'))}</div>
+      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;">ASLR</div><div>${fsel('fms-asl',_fV('aslrL'))}</div><div>${fsel('fms-asr',_fV('aslrR'))}</div>
+      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;">Rotary Stability</div><div>${fsel('fms-rsl',_fV('rotaryL'))}</div><div>${fsel('fms-rsr',_fV('rotaryR'))}</div>
     </div>
-    <div class="form-field" style="margin-top:4px;"><label>Notas</label><input type="text" id="fms-notes" placeholder="Observaciones..."></div>
+    <div class="form-field" style="margin-top:4px;"><label>Notas</label><input type="text" id="fms-notes" placeholder="Observaciones..." value="${_fV('notes')}"></div>
     <div class="form-row"><button class="save-btn" style="width:100%;" data-action="savefmsform">Guardar</button></div>
   </div>`:`<button class="save-btn" style="width:100%;margin-bottom:12px;background:var(--bg2);color:var(--text);border:1px solid var(--border);" data-action="newfmseval">+ Nueva evaluación FMS</button>`;
   const fmsCards=fmsEvals.map(([id,ev])=>{
@@ -2145,7 +2156,7 @@ function renderAthleteTests(a){
     const mv=(l,v)=>v!=null?`<span style="font-size:12px;color:var(--text2);margin-right:8px;">${l}: <strong style="color:var(--text);">${v}</strong></span>`:'';
     const mvBi=(l,vl,vr)=>(vl!=null||vr!=null)?`<span style="font-size:12px;color:var(--text2);margin-right:8px;">${l}: <strong style="color:var(--text);">${vl??'—'}/${vr??'—'}</strong><span style="font-size:10px;color:var(--text3);"> min:${minBi(vl,vr)??'—'}</span></span>`:'';
     return`<div class="eval-card">
-      <div class="eval-top"><span class="eval-date">${fmtDate(ev.date||id.slice(0,10))}</span><button class="eval-del" data-action="delevalfms" data-evid="${id}">Eliminar</button></div>
+      <div class="eval-top"><span class="eval-date">${fmtDate(ev.date||id.slice(0,10))}</span><button class="sm-btn" style="margin-left:auto;margin-right:4px;" data-action="editevalfms" data-evid="${id}">Editar</button><button class="eval-del" data-action="delevalfms" data-evid="${id}">Eliminar</button></div>
       <div style="margin-bottom:8px;">${badge}</div>
       <div style="line-height:2;flex-wrap:wrap;">${mv('Deep Squat',ev.deepSquat)}${mv('Trunk Stab.',ev.trunkStab)}${mvBi('Hurdle',ev.hurdleL,ev.hurdleR)}${mvBi('Lunge',ev.lungeL,ev.lungeR)}${mvBi('Shoulder',ev.shoulderL,ev.shoulderR)}${mvBi('ASLR',ev.aslrL,ev.aslrR)}${mvBi('Rotary',ev.rotaryL,ev.rotaryR)}</div>
       ${ev.notes?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${ev.notes}</div>`:''}
@@ -2666,7 +2677,7 @@ async function handleAction(e){
   else if(a==='newantro'){S.athleteForm='antro';render();}
   else if(a==='newtests'){S.athleteForm='tests';render();}
   else if(a==='newfmseval'){S.athleteForm='fms';render();}
-  else if(a==='cancelathleteform'){S.athleteForm=null;render();}
+  else if(a==='cancelathleteform'){S.athleteForm=null;S.editingEvalId=null;render();}
   else if(a==='starttransfer'){S.athleteForm='transfer';render();}
   else if(a==='saveperfilform'){
     const [tid,cid,pid]=S.athleteKey.split('__');
@@ -2700,14 +2711,14 @@ async function handleAction(e){
     S.teamId=newTid;S.cat=newCid;S.athleteKey=newKey;S.athleteForm=null;render();
   }
   else if(a==='savemorfoform'){
-    const ath=getAthlete(S.athleteKey);const id=Date.now().toString();
+    const ath=getAthlete(S.athleteKey);const id=S.editingEvalId||Date.now().toString();S.editingEvalId=null;
     const g=k=>{const v=parseFloat(document.getElementById(k)?.value);return isNaN(v)?null:v;};
     const ev={date:document.getElementById('af-date')?.value||TODAY,weight:g('af-weight'),height:g('af-height'),sittingH:g('af-sittingH'),wingspan:g('af-wingspan'),reach:g('af-reach')};
     Object.keys(ev).forEach(k=>{if(ev[k]===null)delete ev[k];});
     ath.morphology[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);render();
   }
   else if(a==='saveantroform'){
-    const ath=getAthlete(S.athleteKey);const id=Date.now().toString();
+    const ath=getAthlete(S.athleteKey);const id=S.editingEvalId||Date.now().toString();S.editingEvalId=null;
     const g=k=>{const v=parseFloat(document.getElementById(k)?.value);return isNaN(v)?null:v;};
     const ev={date:document.getElementById('af-date')?.value||TODAY,
       skinfolds:{triceps:g('af-tri'),subscapular:g('af-sub'),supraspinal:g('af-sup'),abdominal:g('af-abd'),thigh:g('af-thigh'),calf:g('af-calf')},
@@ -2719,7 +2730,7 @@ async function handleAction(e){
     ath.anthropometry[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);render();
   }
   else if(a==='savetestsform'){
-    const ath=getAthlete(S.athleteKey);const id=Date.now().toString();
+    const ath=getAthlete(S.athleteKey);const id=S.editingEvalId||Date.now().toString();S.editingEvalId=null;
     const g=k=>{const v=parseFloat(document.getElementById(k)?.value);return isNaN(v)?null:v;};
     const ev={date:document.getElementById('af-date')?.value||TODAY,sj:g('af-sj'),cmj:g('af-cmj'),abk:g('af-abk'),abkRight:g('af-abkr'),abkLeft:g('af-abkl'),djHeight:g('af-djh'),djTc:g('af-djtc'),notes:document.getElementById('af-notes')?.value||''};
     Object.keys(ev).forEach(k=>{if(ev[k]===null||ev[k]==='')delete ev[k];});
@@ -2729,13 +2740,17 @@ async function handleAction(e){
   else if(a==='delevalantro'){if(confirm('¿Eliminar?')){const ath=getAthlete(S.athleteKey);delete ath.anthropometry[el.dataset.evid];await saveAthlete(S.athleteKey);render();}}
   else if(a==='delevaltests'){if(confirm('¿Eliminar?')){const ath=getAthlete(S.athleteKey);delete ath.jumpTests[el.dataset.evid];await saveAthlete(S.athleteKey);render();}}
   else if(a==='savefmsform'){
-    const ath=getAthlete(S.athleteKey);const id=Date.now().toString();
+    const ath=getAthlete(S.athleteKey);const id=S.editingEvalId||Date.now().toString();S.editingEvalId=null;
     const gi=k=>{const v=parseInt(document.getElementById(k)?.value);return isNaN(v)?null:v;};
     const ev={date:document.getElementById('fms-date')?.value||TODAY,deepSquat:gi('fms-ds'),hurdleL:gi('fms-hsl'),hurdleR:gi('fms-hsr'),lungeL:gi('fms-lul'),lungeR:gi('fms-lur'),shoulderL:gi('fms-sml'),shoulderR:gi('fms-smr'),aslrL:gi('fms-asl'),aslrR:gi('fms-asr'),trunkStab:gi('fms-ts'),rotaryL:gi('fms-rsl'),rotaryR:gi('fms-rsr'),notes:document.getElementById('fms-notes')?.value||''};
     Object.keys(ev).forEach(k=>{if(ev[k]===null||ev[k]==='')delete ev[k];});
     ath.fmsTests[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);render();
   }
   else if(a==='delevalfms'){if(confirm('¿Eliminar?')){const ath=getAthlete(S.athleteKey);delete ath.fmsTests[el.dataset.evid];await saveAthlete(S.athleteKey);render();}}
+  else if(a==='editevalmorfo'){S.athleteForm='morfo';S.editingEvalId=el.dataset.evid;render();}
+  else if(a==='editevalantro'){S.athleteForm='antro';S.editingEvalId=el.dataset.evid;render();}
+  else if(a==='editevaltests'){S.athleteForm='tests';S.editingEvalId=el.dataset.evid;render();}
+  else if(a==='editevalfms'){S.athleteForm='fms';S.editingEvalId=el.dataset.evid;render();}
   // LOAD FILTER
   else if(a==='loadfilter'){S.loadFilter=el.dataset.val;if(el.dataset.val!=='custom'){S.loadFrom='';S.loadTo='';}render();}
   else if(a==='applycustomfilter'){S.loadFrom=document.getElementById('load-from')?.value||TODAY;S.loadTo=document.getElementById('load-to')?.value||TODAY;render();}
