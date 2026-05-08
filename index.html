@@ -670,6 +670,45 @@ function updateHeader() {
       : (currentUser?.displayName || currentUser?.email?.split('@')[0] || '');
     nameEl.textContent = displayName;
   }
+  updateStatsBar();
+  syncSidebarNav();
+}
+
+function updateStatsBar() {
+  const teamCount = Object.values(S.teams).filter(t=>!t._legacyPending).length;
+  let playerCount = 0;
+  Object.values(S.teams).forEach(t=>Object.values(t.categories||{}).forEach(c=>{playerCount+=(c.players||[]).length;}));
+  let totP=0,totAll=0;
+  for(let i=0;i<7;i++){
+    const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);
+    const ds=d.toISOString().split('T')[0];
+    Object.values(S.teams).forEach(t=>Object.values(t.categories||{}).forEach(c=>{
+      const da=(c.attendance||{})[ds]||{};
+      (c.players||[]).forEach(p=>{const s=da[p.id];if(s==='P'||s==='A'){totAll++;if(s==='P')totP++;}});
+    }));
+  }
+  const attStr=totAll>0?Math.round(totP/totAll*100)+'%':'—';
+  let sessToday=0;
+  Object.values(S.teams).forEach(t=>Object.values(t.categories||{}).forEach(c=>{if((c.sessions||{})[TODAY])sessToday++;}));
+  const ge=id=>document.getElementById(id);
+  if(ge('nxs-teams'))    ge('nxs-teams').textContent   =teamCount||'—';
+  if(ge('nxs-players'))  ge('nxs-players').textContent =playerCount||'—';
+  if(ge('nxs-att'))      ge('nxs-att').textContent     =attStr;
+  if(ge('nxs-sessions')) ge('nxs-sessions').textContent=sessToday||'—';
+  const su=ge('nx-sidebar-user');
+  if(su){const n=S.userProfile?.nombre?S.userProfile.nombre:(currentUser?.displayName||currentUser?.email?.split('@')[0]||'—');su.textContent=n;}
+}
+
+function syncSidebarNav() {
+  const items=document.querySelectorAll('.nx-nav-item');
+  if(!items.length)return;
+  items.forEach(n=>n.classList.remove('nx-nav-active'));
+  let active;
+  if(S.accessPanel)              active=document.querySelector('[data-view="access"]');
+  else if(S.view==='cat'&&S.tab==='reports') active=document.querySelector('[data-tab="reports"]');
+  else if(S.view==='cat')        active=document.querySelector('[data-tab="attend"]');
+  else                           active=document.querySelector('[data-view="home"]');
+  if(active)active.classList.add('nx-nav-active');
 }
 
 function handleHeaderLogoClick() {
