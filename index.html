@@ -314,11 +314,11 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
     <span class="nx-sidebar-title">Nexus</span>
   </div>
   <nav class="nx-sidebar-nav">
-    <button class="nx-nav-item nx-nav-active"><span class="nx-nav-icon">🏠</span>Inicio</button>
-    <button class="nx-nav-item"><span class="nx-nav-icon">📅</span>Hoy</button>
-    <button class="nx-nav-item"><span class="nx-nav-icon">📊</span>Reportes</button>
-    <button class="nx-nav-item"><span class="nx-nav-icon">🗓</span>Calendario</button>
-    <button class="nx-nav-item"><span class="nx-nav-icon">👥</span>Permisos</button>
+    <button class="nx-nav-item nx-nav-active" data-view="home"><span class="nx-nav-icon">🏠</span>Inicio</button>
+    <button class="nx-nav-item" data-tab="attend"><span class="nx-nav-icon">📅</span>Hoy</button>
+    <button class="nx-nav-item" data-tab="reports"><span class="nx-nav-icon">📊</span>Reportes</button>
+    <button class="nx-nav-item" data-view="calendar" disabled style="opacity:.4;cursor:not-allowed"><span class="nx-nav-icon">🗓</span>Calendario</button>
+    <button class="nx-nav-item" data-view="access"><span class="nx-nav-icon">👥</span>Permisos</button>
   </nav>
   <div class="nx-sidebar-footer">
     <div class="nx-sidebar-dot"></div>
@@ -331,6 +331,22 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   <div class="nx-stat-card"><div class="nx-stat-val" id="nxs-att">—</div><div class="nx-stat-lbl">Asistencia prom.</div></div>
   <div class="nx-stat-card"><div class="nx-stat-val" id="nxs-sessions">—</div><div class="nx-stat-lbl">Sesiones hoy</div></div>
 </div>
+<script>
+(function(){
+  var nav=document.querySelector('.nx-sidebar-nav');
+  nav.addEventListener('click',function(e){
+    var btn=e.target.closest('[data-view],[data-tab]');
+    if(!btn)return;
+    nav.querySelectorAll('.nx-nav-item').forEach(function(n){n.classList.remove('nx-nav-active');});
+    btn.classList.add('nx-nav-active');
+    var view=btn.dataset.view,tab=btn.dataset.tab;
+    if(view==='home'){S.view='home';S.teamFormMode=null;S.catFormMode=null;render();}
+    else if(tab==='attend'){S.tab='attend';if(S.view==='cat')loadSession();render();}
+    else if(tab==='reports'){S.tab='reports';render();}
+    else if(view==='access'){S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};if(S.accessPanel&&S.teamId)loadTeamMembers(S.teamId);render();}
+  });
+})();
+</script>
 
 <div id="app-screen">
   <div class="header">
