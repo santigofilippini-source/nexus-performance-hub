@@ -1509,7 +1509,7 @@ function renderCatForm(){
     <div class="form-field" style="margin-bottom:8px;"><label>Nombre</label><input type="text" id="cf-name" value="${isEdit?(c.name||''):''}" placeholder="Ej: U16A, Sub-20, Primera División"></div>
     <div style="font-size:11px;color:var(--text3);margin-top:4px;">💡 Si el nombre contiene U14, U16 o U18, los umbrales antropométricos se detectan automáticamente como Menores.</div>
     <div class="form-row">
-      ${isEdit?`<button class="sm-btn" style="color:#fca5a5;border-color:#991b1b;" data-action="deletecat" data-cid="${cid}">Eliminar</button>`:''}
+      ${isEdit&&isOwner()?`<button class="sm-btn" style="color:#fca5a5;border-color:#991b1b;" data-action="deletecat" data-cid="${cid}">Eliminar categoría</button>`:''}
       <button class="save-btn" style="flex:1;background:#059669;" data-action="${isEdit?'saveeditcat':'savenewcat'}">${isEdit?'Guardar':'Crear categoría'}</button>
     </div>
   </div>`;
@@ -2629,12 +2629,22 @@ async function handleAction(e){
     try { await persistTeam(S.teamId); } catch(e){ setSyncBar('error'); }
   }
   else if(a==='deletecat'){
-    const cid=el.dataset.cid;const catName=S.teams[S.teamId]?.categories?.[cid]?.name||'esta categoría';
-    if(!confirm(`¿Eliminar "${catName}"? Se perderán todos sus datos.`))return;
-    await db.ref(`teams/${S.teamId}/categories/${cid}`).remove();
-    delete S.teams[S.teamId].categories[cid];
+    const tid=S.teamId;const cid=el.dataset.cid;
+    if(!isOwner(tid)){alert('Solo el dueño puede eliminar categorías.');return;}
+    const catName=S.teams[tid]?.categories?.[cid]?.name||'esta categoría';
+    if(!confirm(`¿Eliminar "${catName}"? Se perderán todos sus datos (asistencia, sesiones, atletas).`))return;
+    // Optimistic update
+    const prefix=`${tid}__${cid}__`;
+    const athleteKeys=Object.keys(S.athletes).filter(k=>k.startsWith(prefix));
+    athleteKeys.forEach(k=>delete S.athletes[k]);
+    delete S.teams[tid].categories[cid];
     if(S.cat===cid)S.cat=null;
     S.catFormMode=null;S.editingCatId=null;render();
+    // Firebase cleanup
+    try{
+      await db.ref(`teams/${tid}/categories/${cid}`).remove();
+      await Promise.all(athleteKeys.map(k=>db.ref(`teams/${tid}/athletes/${k}`).remove()));
+    }catch(e){console.error('Error deleting cat:',e);setSyncBar('error');}
   }
   // ATHLETE
   else if(a==='openathlete'){
