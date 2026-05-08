@@ -270,6 +270,22 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .header-info{padding-left:0}
   .nxs-pd{background:var(--bg-3);border:1px solid var(--line);border-radius:4px;color:var(--fg-3);font-size:10px;font-weight:500;padding:2px 6px;cursor:pointer;font-family:var(--font-ui);transition:background .15s,color .15s,border-color .15s;}
   .nxs-pd.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+  /* Sidebar tree */
+  .nx-team-group{margin-bottom:6px;}
+  .nx-team-row{display:flex;align-items:center;border-radius:var(--r-sm);padding-right:4px;}
+  .nx-team-row:hover{background:var(--bg-3);}
+  .nx-team-hdr{flex:1;display:flex;align-items:center;gap:8px;padding:6px 4px 6px 10px;font-size:10px;font-weight:600;color:var(--fg-3);background:transparent;border:none;cursor:pointer;text-align:left;font-family:var(--font-ui);letter-spacing:.06em;text-transform:uppercase;min-width:0;overflow:hidden;}
+  .nx-team-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .nx-team-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .nx-perms-btn{background:none;border:none;cursor:pointer;font-size:11px;padding:3px 5px;border-radius:4px;color:var(--fg-3);flex-shrink:0;opacity:0;line-height:1;transition:opacity .15s,background .15s;}
+  .nx-team-row:hover .nx-perms-btn{opacity:1;}
+  .nx-perms-btn:hover{background:var(--accent-soft);color:var(--accent);}
+  .nx-cat-item{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 22px;border-radius:var(--r-sm);font-size:13px;font-weight:400;color:var(--fg-2);background:transparent;border:none;cursor:pointer;width:100%;text-align:left;font-family:var(--font-ui);transition:background .12s,color .12s;line-height:1.4;}
+  .nx-cat-item:hover{background:var(--bg-3);color:var(--fg-1);}
+  .nx-cat-item.nx-cat-active{background:var(--accent-soft);color:var(--accent);font-weight:500;}
+  .nx-cat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .nx-new-team-btn{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-sm);font-size:12px;color:var(--fg-3);background:transparent;border:1px dashed var(--line);cursor:pointer;width:100%;text-align:left;font-family:var(--font-ui);margin-top:8px;transition:background .12s,color .12s,border-color .12s;}
+  .nx-new-team-btn:hover{background:var(--bg-3);color:var(--fg-1);border-color:var(--line-strong);}
 }
 @keyframes nx-pulse{0%,100%{opacity:.35}50%{opacity:.8}}
 </style>
@@ -319,12 +335,7 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
     <div class="logo-badge" style="background:var(--accent);flex-shrink:0">N</div>
     <span class="nx-sidebar-title">Nexus</span>
   </div>
-  <nav class="nx-sidebar-nav">
-    <button class="nx-nav-item nx-nav-active" data-view="home"><span class="nx-nav-icon">🏠</span>Inicio</button>
-    <button class="nx-nav-item" data-tab="attend"><span class="nx-nav-icon">📅</span>Hoy</button>
-    <button class="nx-nav-item" data-tab="reports"><span class="nx-nav-icon">📊</span>Reportes</button>
-    <button class="nx-nav-item" data-view="access"><span class="nx-nav-icon">👥</span>Permisos</button>
-  </nav>
+  <nav class="nx-sidebar-nav" id="nx-sidebar-nav"></nav>
   <div class="nx-sidebar-footer">
     <div class="nx-sidebar-dot"></div>
     <span id="nx-sidebar-user">—</span>
@@ -336,28 +347,6 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   <div class="nx-stat-card"><div class="nx-stat-val" id="nxs-att">—</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;"><div class="nx-stat-lbl" style="margin-top:0">Asistencia prom.</div><div style="display:flex;gap:3px;"><button class="nxs-pd active" data-days="7" onclick="S.statsPeriod=7;updateStatsBar()">7d</button><button class="nxs-pd" data-days="30" onclick="S.statsPeriod=30;updateStatsBar()">30d</button></div></div></div>
   <div class="nx-stat-card"><div class="nx-stat-val" id="nxs-sessions">—</div><div class="nx-stat-lbl">Sesiones hoy</div></div>
 </div>
-<script>
-(function(){
-  var nav=document.querySelector('.nx-sidebar-nav');
-  nav.addEventListener('click',function(e){
-    var btn=e.target.closest('[data-view],[data-tab]');
-    if(!btn)return;
-    nav.querySelectorAll('.nx-nav-item').forEach(function(n){n.classList.remove('nx-nav-active');});
-    btn.classList.add('nx-nav-active');
-    var view=btn.dataset.view,tab=btn.dataset.tab;
-    if(view==='home'){S.view='home';S.teamFormMode=null;S.catFormMode=null;render();}
-    else if(tab==='attend'){
-      if(S.view==='cat'){S.tab='attend';loadSession();render();}
-      else if(S.lastCatTid&&S.lastCatCid){S.teamId=S.lastCatTid;S.cat=S.lastCatCid;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
-    }
-    else if(tab==='reports'){
-      if(S.view==='cat'){S.tab='reports';render();}
-      else if(S.lastCatTid&&S.lastCatCid){S.teamId=S.lastCatTid;S.cat=S.lastCatCid;S.view='cat';S.tab='reports';S.date=TODAY;loadSession();render();}
-    }
-    else if(view==='access'){S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};if(S.accessPanel&&S.teamId)loadTeamMembers(S.teamId);render();}
-  });
-})();
-</script>
 
 <div id="app-screen">
   <div class="header">
@@ -681,7 +670,7 @@ function updateHeader() {
     nameEl.textContent = displayName;
   }
   updateStatsBar();
-  syncSidebarNav();
+  updateSidebarNav();
 }
 
 function updateStatsBar() {
@@ -710,16 +699,29 @@ function updateStatsBar() {
   document.querySelectorAll('.nxs-pd').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.days)===(S.statsPeriod||7)));
 }
 
-function syncSidebarNav() {
-  const items=document.querySelectorAll('.nx-nav-item');
-  if(!items.length)return;
-  items.forEach(n=>n.classList.remove('nx-nav-active'));
-  let active;
-  if(S.accessPanel)              active=document.querySelector('[data-view="access"]');
-  else if(S.view==='cat'&&S.tab==='reports') active=document.querySelector('[data-tab="reports"]');
-  else if(S.view==='cat')        active=document.querySelector('[data-tab="attend"]');
-  else                           active=document.querySelector('[data-view="home"]');
-  if(active)active.classList.add('nx-nav-active');
+function sidebarOpenTeam(tid){S.teamId=tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
+function sidebarOpenCat(tid,cid){S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
+function sidebarToggleAccess(tid){S.teamId=tid;S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};if(S.accessPanel)loadTeamMembers(tid);render();}
+function updateSidebarNav(){
+  const nav=document.getElementById('nx-sidebar-nav');
+  if(!nav)return;
+  const tids=Object.keys(S.teams).filter(tid=>!S.teams[tid]?._legacyPending);
+  if(!tids.length){nav.innerHTML='<div style="padding:8px 12px;font-size:12px;color:var(--fg-3);">Sin equipos aún</div>';return;}
+  let h='';
+  tids.forEach(tid=>{
+    const t=S.teams[tid];
+    const isOwn=myRole(tid)==='owner';
+    const cats=Object.entries(t.categories||{}).filter(([cid])=>canView(tid,cid));
+    const dotColor=cats[0]?.[1]?.color||'var(--accent)';
+    h+=`<div class="nx-team-group"><div class="nx-team-row"><button class="nx-team-hdr" onclick="sidebarOpenTeam('${tid}')"><span class="nx-team-dot" style="background:${dotColor}"></span><span class="nx-team-name">${t.name}</span></button>${isOwn?`<button class="nx-perms-btn" onclick="sidebarToggleAccess('${tid}')" title="Gestionar acceso">👥</button>`:''}</div>`;
+    cats.forEach(([cid,c])=>{
+      const active=S.view==='cat'&&S.teamId===tid&&S.cat===cid;
+      h+=`<button class="nx-cat-item${active?' nx-cat-active':''}" onclick="sidebarOpenCat('${tid}','${cid}')"><span class="nx-cat-dot" style="background:${c.color||'var(--accent)'}"></span>${c.name}</button>`;
+    });
+    h+='</div>';
+  });
+  h+=`<button class="nx-new-team-btn" onclick="S.view='home';S.teamFormMode='new';S.editingTeamId=null;render()">+ Nuevo equipo</button>`;
+  nav.innerHTML=h;
 }
 
 function handleHeaderLogoClick() {
