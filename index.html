@@ -269,6 +269,7 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   #header-logo{display:none}
   .header-info{padding-left:0}
 }
+@keyframes nx-pulse{0%,100%{opacity:.35}50%{opacity:.8}}
 </style>
 </head>
 <body>
@@ -320,7 +321,6 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
     <button class="nx-nav-item nx-nav-active" data-view="home"><span class="nx-nav-icon">🏠</span>Inicio</button>
     <button class="nx-nav-item" data-tab="attend"><span class="nx-nav-icon">📅</span>Hoy</button>
     <button class="nx-nav-item" data-tab="reports"><span class="nx-nav-icon">📊</span>Reportes</button>
-    <button class="nx-nav-item" data-view="calendar" disabled style="opacity:.4;cursor:not-allowed"><span class="nx-nav-icon">🗓</span>Calendario</button>
     <button class="nx-nav-item" data-view="access"><span class="nx-nav-icon">👥</span>Permisos</button>
   </nav>
   <div class="nx-sidebar-footer">
@@ -344,8 +344,14 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
     btn.classList.add('nx-nav-active');
     var view=btn.dataset.view,tab=btn.dataset.tab;
     if(view==='home'){S.view='home';S.teamFormMode=null;S.catFormMode=null;render();}
-    else if(tab==='attend'){S.tab='attend';if(S.view==='cat')loadSession();render();}
-    else if(tab==='reports'){S.tab='reports';render();}
+    else if(tab==='attend'){
+      if(S.view==='cat'){S.tab='attend';loadSession();render();}
+      else if(S.lastCatTid&&S.lastCatCid){S.teamId=S.lastCatTid;S.cat=S.lastCatCid;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
+    }
+    else if(tab==='reports'){
+      if(S.view==='cat'){S.tab='reports';render();}
+      else if(S.lastCatTid&&S.lastCatCid){S.teamId=S.lastCatTid;S.cat=S.lastCatCid;S.view='cat';S.tab='reports';S.date=TODAY;loadSession();render();}
+    }
     else if(view==='access'){S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};if(S.accessPanel&&S.teamId)loadTeamMembers(S.teamId);render();}
   });
 })();
@@ -415,6 +421,7 @@ let S = {
   loadFilter:'7d', loadFrom:'', loadTo:'',
   athletes:{}, athleteKey:null, athleteTab:'perfil', athleteForm:null, editingEvalId:null,
   prevView:'home', prevTeamId:null, prevCat:null,
+  lastCatTid:null, lastCatCid:null,
   searchQuery:'',
   // Team/category forms
   editingTeamId:null, editingCatId:null,
@@ -486,6 +493,7 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app-screen').style.display='block';
     document.getElementById('user-name').textContent=user.displayName||user.email.split('@')[0];
+    document.getElementById('app-body').innerHTML='<div style="padding:24px 16px;display:flex;flex-direction:column;gap:12px;"><div style="height:14px;background:var(--bg-3);border-radius:6px;width:30%;animation:nx-pulse 1.4s ease-in-out infinite;"></div><div style="height:80px;background:var(--bg-3);border-radius:12px;animation:nx-pulse 1.4s ease-in-out infinite;"></div><div style="height:80px;background:var(--bg-3);border-radius:12px;animation:nx-pulse 1.4s ease-in-out infinite;opacity:.7;"></div><div style="height:80px;background:var(--bg-3);border-radius:12px;animation:nx-pulse 1.4s ease-in-out infinite;opacity:.5;"></div></div>';
     await loadAll();
     // After loading, check for pending invite
     if(S.pendingInvite){
@@ -2514,7 +2522,7 @@ async function handleAction(e){
   // NAVIGATION
   if(a==='home'){S.view='home';S.teamFormMode=null;S.catFormMode=null;render();}
   else if(a==='openteam'){S.teamId=el.dataset.tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
-  else if(a==='opencat'){S.cat=el.dataset.cid;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
+  else if(a==='opencat'){S.cat=el.dataset.cid;S.lastCatTid=S.teamId;S.lastCatCid=S.cat;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
   else if(a==='backtoTeam'){S.view='team';S.catFormMode=null;S.teamFormMode=null;render();}
   else if(a==='backfromathlete'){
     if(S.prevView==='search'){S.view='search';render();}
