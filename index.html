@@ -84,13 +84,11 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:#111
 .status-btn{width:36px;height:36px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font);border:1px solid var(--border);background:transparent;color:var(--text3)}
 .status-btn.active-p{background:#052e16;color:#86efac;border-color:#166534}
 .status-btn.active-a{background:#2d0a0a;color:#fca5a5;border-color:#991b1b}
-.status-btn.active-j{background:#1c1400;color:#fcd34d;border-color:#92400e}
 .save-row{margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .save-counts{flex:1;display:flex;gap:5px;flex-wrap:wrap}
 .count-chip{font-size:12px;padding:3px 9px;border-radius:20px}
 .chip-p{background:#052e16;color:#86efac}
 .chip-a{background:#2d0a0a;color:#fca5a5}
-.chip-j{background:#1c1400;color:#fcd34d}
 /* RPE */
 .sub-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .dur-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
@@ -324,7 +322,7 @@ const W_KEYS   = ['sleep','fatigue','soreness','stress','mood'];
 const W_ICONS  = {sleep:'😴',fatigue:'⚡',soreness:'🤕',stress:'🧘',mood:'😊'};
 const W_LABELS = {sleep:'Sueño',fatigue:'Energía',soreness:'Dolor musc.',stress:'Estrés',mood:'Ánimo'};
 const SESSION_TYPES=[{id:'practica',label:'Práctica',icon:'🏃'},{id:'partido',label:'Partido',icon:'⚽'},{id:'libre',label:'Día libre',icon:'😴'},{id:'recuperacion',label:'Recuperación',icon:'🔄'}];
-const JUST_REASONS=[{id:'lesion',label:'Lesión',icon:'🤕'},{id:'enfermedad',label:'Enfermedad',icon:'🤒'},{id:'personal',label:'Personal',icon:'👤'},{id:'viaje',label:'Viaje',icon:'✈️'},{id:'otro',label:'Otro',icon:'📝'}];
+const ABSENCE_REASONS=[{id:'lesion',label:'Lesión',icon:'🤕'},{id:'illness',label:'Enfermedad',icon:'🤒'},{id:'other',label:'Otro',icon:'📝'}];
 const W_TIPS   = {
   sleep:['Muy malo','Malo','Regular','Bueno','Excelente'],
   fatigue:['Agotado','Muy cansado','Normal','Bien','Lleno de energía'],
@@ -339,7 +337,7 @@ let currentUser = null;
 let S = {
   view:'home', teams:{}, teamId:null, cat:null,
   tab:'attend', date:TODAY,
-  sess:{}, justReasons:{}, sessionDraft:{duration:'',teamRPE:null,playerRPE:{},sessionType:null},
+  sess:{}, absenceReasons:{}, sessionDraft:{duration:'',teamRPE:null,playerRPE:{},sessionType:null},
   wellnessDraft:{}, wellnessExpanded:{}, sessionSub:'load', rpeMode:'team',
   reportSub:'players', confirmDel:null, editId:null,
   loadFilter:'7d', loadFrom:'', loadTo:'',
@@ -1187,7 +1185,7 @@ function perfColor(zA,zM,diff,th){
 // ── Load calculations ─────────────────────────────────────────
 function playerLoadOnDate(cd,pid,dateStr){
   const att=cd.attendance[dateStr]?.[pid];
-  if(att!=='P'&&att!=='J')return 0;
+  if(att!=='P')return 0;
   const sess=cd.sessions?.[dateStr];
   if(!sess||!sess.duration)return 0;
   const rpe=(sess.playerRPE&&sess.playerRPE[pid]!=null)?sess.playerRPE[pid]:sess.teamRPE;
@@ -1246,12 +1244,12 @@ function loadsWindowRange(cd,pid,from,to){
 function getStats(players,attendance){
   const dates=Object.keys(attendance).sort();
   return players.map(p=>{
-    let P=0,A=0,J=0,total=0;
-    dates.forEach(d=>{const s=attendance[d]?.[p.id];if(s){total++;if(s==='P')P++;else if(s==='A')A++;else if(s==='J')J++;}});
-    const pct=total>0?Math.round((P+J)/total*100):null;
+    let P=0,A=0,total=0;
+    dates.forEach(d=>{const s=attendance[d]?.[p.id];if(s==='P'||s==='A'||s==='J'){total++;if(s==='P')P++;else A++;}});
+    const pct=total>0?Math.round(P/total*100):null;
     let consec=0;
-    for(let i=dates.length-1;i>=0;i--){const s=attendance[dates[i]]?.[p.id];if(s==='A')consec++;else if(s)break;}
-    return{...p,P,A,J,total,pct,consec};
+    for(let i=dates.length-1;i>=0;i--){const s=attendance[dates[i]]?.[p.id];if(s==='A'||s==='J')consec++;else if(s)break;}
+    return{...p,P,A,total,pct,consec};
   }).sort((a,b)=>(a.pct??101)-(b.pct??101));
 }
 function getMonthly(players,attendance){
@@ -1260,7 +1258,7 @@ function getMonthly(players,attendance){
   dates.forEach(d=>{const m=d.slice(0,7);if(!mm[m])mm[m]=[];mm[m].push(d);});
   return Object.entries(mm).sort().map(([month,mDates])=>{
     let tP=0,tT=0;
-    mDates.forEach(d=>players.forEach(p=>{const s=attendance[d]?.[p.id];if(s){tT++;if(s==='P'||s==='J')tP++;}}));
+    mDates.forEach(d=>players.forEach(p=>{const s=attendance[d]?.[p.id];if(s==='P'||s==='A'||s==='J'){tT++;if(s==='P')tP++;}}));
     return{month,sessions:mDates.length,avgPct:tT>0?Math.round(tP/tT*100):null};
   });
 }
@@ -1269,7 +1267,7 @@ function getMonthly(players,attendance){
 function loadSession(){
   const cd=getCat();
   const ex=cd.attendance[S.date];
-  if(ex){const{justReasons:_jr,..._rest}=ex;S.sess={..._rest};S.justReasons={...(_jr||{})};}else{S.sess={};S.justReasons={};cd.players.forEach(p=>{S.sess[p.id]='P';});}
+  if(ex){const{absenceReasons:_ar,justReasons:_jr,..._rest}=ex;S.sess={..._rest};S.absenceReasons={...(_ar||{})};}else{S.sess={};S.absenceReasons={};cd.players.forEach(p=>{S.sess[p.id]='P';});}
 }
 function loadSessionDraft(){
   const cd=getCat();
@@ -1281,7 +1279,7 @@ function loadSessionDraft(){
   S.wellnessExpanded={};
 }
 async function saveAttendance(){
-  const _jr=Object.fromEntries(Object.entries(S.justReasons).filter(([k])=>S.sess[k]==='J'));getCat().attendance[S.date]={...S.sess,...(Object.keys(_jr).length?{justReasons:_jr}:{})};
+  const _ar=Object.fromEntries(Object.entries(S.absenceReasons).filter(([k])=>S.sess[k]==='A'));getCat().attendance[S.date]={...S.sess,...(Object.keys(_ar).length?{absenceReasons:_ar}:{})};
   await persistCat();render();
   const msg=document.getElementById('save-msg');
   if(msg){msg.textContent='✓ Guardado';setTimeout(()=>{if(msg)msg.textContent='';},2500);}
@@ -1528,18 +1526,18 @@ function renderCat(){
 function renderAttend(){
   const cd=getCat();
   const editable=canEdit();
-  const _jrStyle='font-size:10px;padding:2px 7px;border-radius:12px;cursor:pointer;border:.5px solid #92400e;font-weight:500;';
+  const _arStyle='font-size:11px;padding:3px 10px;border-radius:12px;cursor:pointer;border:.5px solid var(--border);font-weight:500;';
   const rows=cd.players.map(p=>{
     const cur=S.sess[p.id];
-    const reason=S.justReasons[p.id]||null;
-    const reasonDef=reason?JUST_REASONS.find(r=>r.id===reason):null;
-    const btns=['P','A','J'].map(s=>`<button class="status-btn${cur===s?` active-${s.toLowerCase()}`:''}" ${editable?`data-action="setstatus" data-pid="${p.id}" data-status="${s}"`:'disabled style="cursor:default;"'}>${s}${s==='J'&&reasonDef&&cur==='J'?` <span style="font-size:9px;">${reasonDef.icon}</span>`:''}</button>`).join('');
-    const reasonRow=cur==='J'&&editable?`<div style="display:flex;gap:4px;flex-wrap:wrap;padding:3px 0 6px 0;">${JUST_REASONS.map(r=>`<button style="${_jrStyle}background:${reason===r.id?'#92400e':'var(--bg2)'};color:${reason===r.id?'#fcd34d':'var(--text3)'};" data-action="setjustreason" data-pid="${p.id}" data-reason="${r.id}">${r.icon} ${r.label}</button>`).join('')}</div>`:cur==='J'&&reasonDef?`<div style="padding:0 0 4px 0;"><span style="${_jrStyle}background:#1c1400;color:#fcd34d;">${reasonDef.icon} ${reasonDef.label}</span></div>`:'';
+    const reason=S.absenceReasons[p.id]||null;
+    const reasonDef=reason?ABSENCE_REASONS.find(r=>r.id===reason):null;
+    const btns=['P','A'].map(s=>`<button class="status-btn${cur===s?` active-${s.toLowerCase()}`:''}" ${editable?`data-action="setstatus" data-pid="${p.id}" data-status="${s}"`:'disabled style="cursor:default;"'}>${s}</button>`).join('');
+    const reasonRow=cur==='A'&&editable?`<div style="display:flex;gap:4px;flex-wrap:wrap;padding:3px 0 6px 12px;">${ABSENCE_REASONS.map(r=>`<button style="${_arStyle}background:${reason===r.id?'#2d0a0a':'var(--bg2)'};color:${reason===r.id?'#fca5a5':'var(--text3)'};" data-action="setabsencereason" data-pid="${p.id}" data-reason="${r.id}">${r.icon} ${r.label}</button>`).join('')}</div>`:cur==='A'&&reasonDef?`<div style="padding:0 0 4px 12px;"><span style="${_arStyle}background:#2d0a0a;color:#fca5a5;">${reasonDef.icon} ${reasonDef.label}</span></div>`:'';
     return`<div class="player-row"><span class="player-name">${p.name}</span><div class="status-group">${btns}</div></div>${reasonRow}`;
   }).join('');
-  const counts={P:0,A:0,J:0};
+  const counts={P:0,A:0};
   Object.values(S.sess).forEach(v=>{if(counts[v]!==undefined)counts[v]++;});
-  const chips=['P','A','J'].filter(s=>counts[s]>0).map(s=>`<span class="count-chip chip-${s.toLowerCase()}">${counts[s]} ${s}</span>`).join('');
+  const chips=['P','A'].filter(s=>counts[s]>0).map(s=>`<span class="count-chip chip-${s.toLowerCase()}">${counts[s]} ${s}</span>`).join('');
   const _stDef=SESSION_TYPES.find(t=>t.id===(cd.sessions?.[S.date]?.sessionType));
   const _stBadge=_stDef?`<div style="text-align:center;font-size:12px;color:var(--text2);margin-bottom:8px;padding:4px 10px;background:var(--bg2);border-radius:8px;border:1px solid var(--border);">${_stDef.icon} ${_stDef.label}</div>`:'';
   return`${!editable?`<div class="readonly-banner">👁 Modo lectura — no podés editar asistencia en esta categoría.</div>`:''}
@@ -1610,9 +1608,9 @@ function renderIndividualRPE(){
   const cd=getCat(),att=cd.attendance[S.date]||{},dur=parseInt(S.sessionDraft.duration)||0;
   return`<div class="rpe-section"><div class="rpe-title">RPE por jugador</div>
   ${cd.players.map(p=>{
-    const status=att[p.id],isPresent=status==='P'||status==='J';
+    const status=att[p.id],isPresent=status==='P';
     const rpeVal=S.sessionDraft.playerRPE[p.id]??null;
-    if(!isPresent)return`<div class="p-rpe-row" style="opacity:.45;"><div class="p-rpe-top"><span class="p-rpe-name">${p.name}</span><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#2d0a0a;color:#fca5a5;">${status==='A'?'Ausente':'Sin registro'}</span></div></div>`;
+    if(!isPresent){const abReason=att.absenceReasons?.[p.id];const abDef=abReason?ABSENCE_REASONS.find(r=>r.id===abReason):null;return`<div class="p-rpe-row" style="opacity:.4;pointer-events:none;"><div class="p-rpe-top"><span class="p-rpe-name">${p.name}</span><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#2d0a0a;color:#fca5a5;">${status==='A'?(abDef?abDef.icon+' '+abDef.label:'Ausente'):'Sin registro'}</span></div></div>`;}
     const btns=Array.from({length:11},(_,i)=>`<button class="rpe-btn${rpeVal===i?' sel':''}" style="background:${rpeVal===i?RPE_BG[i]:'var(--bg2)'};color:${rpeVal===i?RPE_FG[i]:'var(--text3)'};height:36px;font-size:12px;" data-action="playerrpe" data-pid="${p.id}" data-rpe="${i}">${i}</button>`).join('');
     return`<div class="p-rpe-row">
       <div class="p-rpe-top"><span class="p-rpe-name">${p.name}</span>${rpeVal!==null?`<span style="font-size:12px;color:${RPE_BG[rpeVal]};font-weight:600;">RPE${rpeVal}${dur?' · '+(rpeVal*dur)+'UA':''}</span>`:''}</div>
@@ -1751,15 +1749,15 @@ function renderReports(){
   const alertCount=stats.filter(s=>s.consec>=ALERT_N).length;
   let content='';
   if(S.reportSub==='players'){
-    const jrCounts={};cd.players.forEach(p=>{const rc={};Object.values(cd.attendance).forEach(d=>{if(d?.[p.id]==='J'&&d?.justReasons?.[p.id]){const r=d.justReasons[p.id];rc[r]=(rc[r]||0)+1;}});jrCounts[p.id]=rc;});
-    const _jrBadge='font-size:10px;padding:2px 7px;border-radius:12px;background:#1c1400;color:#fcd34d;border:.5px solid #92400e;font-weight:500;';
+    const arCounts={};cd.players.forEach(p=>{const rc={};Object.values(cd.attendance).forEach(d=>{if(d?.[p.id]==='A'&&d?.absenceReasons?.[p.id]){const r=d.absenceReasons[p.id];rc[r]=(rc[r]||0)+1;}});arCounts[p.id]=rc;});
+    const _arBadge='font-size:10px;padding:2px 7px;border-radius:12px;background:#2d0a0a;color:#fca5a5;border:.5px solid #991b1b;font-weight:500;';
     content=!stats.length?`<div class="empty-state">Sin jugadores.</div>`:stats.map(p=>{
       const bar=p.pct!==null?`<div class="pbar"><div class="pbar-fill" style="width:${p.pct}%;background:${p.pct>=75?'#22c55e':p.pct>=50?'#f59e0b':'#ef4444'};"></div></div>`:'';
-      const rc=jrCounts[p.id]||{};const rcKeys=Object.keys(rc);
-      const reasonBadges=rcKeys.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${rcKeys.map(k=>{const rd=JUST_REASONS.find(r=>r.id===k);return rd?`<span style="${_jrBadge}">${rd.icon} ${rd.label} ×${rc[k]}</span>`:''}).join('')}</div>`:'';
+      const rc=arCounts[p.id]||{};const rcKeys=Object.keys(rc);
+      const reasonBadges=rcKeys.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${rcKeys.map(k=>{const rd=ABSENCE_REASONS.find(r=>r.id===k);return rd?`<span style="${_arBadge}">${rd.icon} ${rd.label} ×${rc[k]}</span>`:''}).join('')}</div>`:'';
       return`<div class="report-row">
         <div class="rep-top"><span class="rep-name">${p.name}</span>${pctBadge(p.pct)}</div>
-        <div class="rep-detail"><span>${p.P} P</span><span>${p.A} A</span><span>${p.J} J</span><span>${p.total} ses.</span>${p.consec>=ALERT_N?`<span style="color:#fca5a5;font-weight:500;">⚠ ${p.consec} aus.</span>`:''}</div>
+        <div class="rep-detail"><span>${p.P} P</span><span>${p.A} A</span><span>${p.total} ses.</span>${p.consec>=ALERT_N?`<span style="color:#fca5a5;font-weight:500;">⚠ ${p.consec} aus.</span>`:''}</div>
         ${reasonBadges}
         ${bar}
       </div>`;
@@ -2296,7 +2294,7 @@ function exportAthletePDF(){
 
 function exportCategoryCSV(){
   const cd=getCat();const stats=getStats(cd.players,cd.attendance);
-  const rows=[['Jugador','Equipo','Categoría','Posición','Nacimiento','Edad','P','A','J','Total','%Asist','ACWR','Zona ACWR','CA (7d)','CC (4s)','Monotonía','Strain','Wellness','Peso kg','Talla cm','Σ6 pliegues','Z adiposa','Z muscular','Dif Z','Masa adip kg','Masa musc kg','SJ cm','CMJ cm','ABK cm','RSI']];
+  const rows=[['Jugador','Equipo','Categoría','Posición','Nacimiento','Edad','P','A','Total','%Asist','ACWR','Zona ACWR','CA (7d)','CC (4s)','Monotonía','Strain','Wellness','Peso kg','Talla cm','Σ6 pliegues','Z adiposa','Z muscular','Dif Z','Masa adip kg','Masa musc kg','SJ cm','CMJ cm','ABK cm','RSI']];
   stats.forEach(pl=>{
     const key=athleteKey(S.teamId,S.cat,pl.id);
     const a=S.athletes[key]||{};const pers=a.personal||{};
@@ -2311,7 +2309,7 @@ function exportCategoryCSV(){
     const zdiff=(la.zAdip!=null&&la.zMusc!=null)?(la.zMusc-la.zAdip).toFixed(2):'';
     const rsi=lt.djHeight&&lt.djTc?((lt.djHeight/100)/(lt.djTc/1000)).toFixed(2):'';
     const age=calcAge(pers.birthdate);
-    rows.push([pl.name,getTeam().name||'',getCatName(),'',pers.position||'',pers.birthdate||'',age!=null?age:'',pl.P,pl.A,pl.J,pl.total,pl.pct!=null?pl.pct:'',met.acwr!=null?met.acwr:'',met.acwr!=null?az.label:'',met.ac,met.cc,met.monotony||'',met.strain||'',met.wellAvg||'',lm.weight||'',lm.height||'',suma6,la.zAdip!=null?la.zAdip:'',la.zMusc!=null?la.zMusc:'',zdiff,la.masaAdip!=null?la.masaAdip:'',la.masaMusc!=null?la.masaMusc:'',lt.sj!=null?lt.sj:'',lt.cmj!=null?lt.cmj:'',lt.abk!=null?lt.abk:'',rsi]);
+    rows.push([pl.name,getTeam().name||'',getCatName(),'',pers.position||'',pers.birthdate||'',age!=null?age:'',pl.P,pl.A,pl.total,pl.pct!=null?pl.pct:'',met.acwr!=null?met.acwr:'',met.acwr!=null?az.label:'',met.ac,met.cc,met.monotony||'',met.strain||'',met.wellAvg||'',lm.weight||'',lm.height||'',suma6,la.zAdip!=null?la.zAdip:'',la.zMusc!=null?la.zMusc:'',zdiff,la.masaAdip!=null?la.masaAdip:'',la.masaMusc!=null?la.masaMusc:'',lt.sj!=null?lt.sj:'',lt.cmj!=null?lt.cmj:'',lt.abk!=null?lt.abk:'',rsi]);
   });
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
@@ -2421,8 +2419,8 @@ async function handleAction(e){
   else if(a==='sessiontype'){S.sessionDraft.sessionType=el.dataset.type;render();}
   else if(a==='cancelsearch'){S.view=S.prevView||'home';S.teamId=S.prevTeamId||S.teamId;render();}
   // ATTENDANCE
-  else if(a==='setstatus'){S.sess[el.dataset.pid]=el.dataset.status;if(el.dataset.status!=='J')delete S.justReasons[el.dataset.pid];render();}
-  else if(a==='setjustreason'){S.justReasons[el.dataset.pid]=el.dataset.reason;render();}
+  else if(a==='setstatus'){S.sess[el.dataset.pid]=el.dataset.status;if(el.dataset.status!=='A')delete S.absenceReasons[el.dataset.pid];render();}
+  else if(a==='setabsencereason'){S.absenceReasons[el.dataset.pid]=el.dataset.reason;render();}
   else if(a==='allp'){getCat().players.forEach(p=>S.sess[p.id]='P');render();}
   else if(a==='alla'){getCat().players.forEach(p=>S.sess[p.id]='A');render();}
   else if(a==='prevday'){const d=new Date(S.date+'T12:00:00');d.setDate(d.getDate()-1);S.date=d.toISOString().split('T')[0];loadSession();if(S.tab==='session')loadSessionDraft();render();}
