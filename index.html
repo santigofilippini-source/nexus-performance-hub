@@ -381,6 +381,61 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 .q-att-toggle .b.on.a{background:var(--bad-soft);color:var(--bad);box-shadow:inset 0 0 0 1px rgba(255,77,94,.3);}
 .q-att-toggle .b.on.l{background:var(--info-soft);color:var(--info);box-shadow:inset 0 0 0 1px rgba(107,184,255,.3);}
 .q-att-toggle .b.on.j{background:rgba(168,85,247,.14);color:#C9A6FF;box-shadow:inset 0 0 0 1px rgba(168,85,247,.3);}
+/* ── Cards & Stats (session / metrics) ─────────────────── */
+.q-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.q-stat{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-3);padding:14px 16px;position:relative;overflow:hidden;}
+.q-stat__row{display:flex;align-items:center;justify-content:space-between;}
+.q-stat__label{font-size:11px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+.q-stat__ic{width:24px;height:24px;border-radius:var(--r-1);background:var(--bg-3);color:var(--text-1);display:grid;place-items:center;}
+.q-stat__val{font-family:var(--font-mono);font-size:28px;font-weight:500;letter-spacing:-.03em;color:var(--text-0);margin-top:6px;line-height:1;}
+.q-stat__val .u{font-size:14px;color:var(--text-2);margin-left:4px;}
+.q-stat__sub{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2);}
+.q-stat__delta{font-family:var(--font-mono);font-size:11px;font-weight:500;padding:2px 6px;border-radius:var(--r-1);}
+.q-stat__delta.up{background:var(--ok-soft);color:var(--ok);}
+.q-stat__delta.down{background:var(--bad-soft);color:var(--bad);}
+.q-stat__delta.flat{background:var(--bg-3);color:var(--text-1);}
+.q-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-3);overflow:hidden;margin-bottom:12px;}
+.q-card__h{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:var(--bg-1);}
+.q-card__h h3{font-size:13px;font-weight:600;color:var(--text-0);margin:0;letter-spacing:-.005em;}
+.q-card__h .meta{font:500 11px var(--font-mono);color:var(--text-2);}
+.q-card__b{padding:16px;}
+.q-iconbtn{width:28px;height:28px;display:grid;place-items:center;background:transparent;border:1px solid transparent;color:var(--text-1);border-radius:var(--r-1);cursor:pointer;}
+.q-iconbtn:hover{background:var(--bg-3);color:var(--text-0);}
+/* ── Session ────────────────────────────────────────────── */
+.q-sess-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.q-sess-type-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.q-sess-type-btn{height:28px;padding:0 10px;background:transparent;border:1px solid var(--line);border-radius:var(--r-2);font:500 12px var(--font-ui);color:var(--text-2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .12s,border-color .12s,color .12s;}
+.q-sess-type-btn:hover{background:var(--bg-3);color:var(--text-0);}
+.q-sess-type-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+.q-dur-row{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--bg-1);border-top:1px solid var(--line);}
+.q-dur-row label{font-size:12px;color:var(--text-2);font-weight:500;}
+.q-dur-input{width:72px;padding:6px 10px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);color:var(--text-0);font:500 14px var(--font-mono);text-align:center;outline:none;}
+.q-dur-input:focus{border-color:var(--accent);}
+.q-rpe-grid{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.q-rpe-btn{width:38px;height:38px;border:1px solid var(--line);border-radius:var(--r-2);background:var(--bg-3);color:var(--text-2);font:600 14px var(--font-mono);cursor:pointer;display:grid;place-items:center;transition:background .12s,color .12s,border-color .12s;}
+.q-rpe-btn:hover{background:var(--bg-4);color:var(--text-0);}
+.q-rpe-btn.sel{border-color:currentColor;}
+.q-ind-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);}
+.q-ind-row:last-child{border-bottom:0;}
+.q-ind-row.absent{opacity:.4;pointer-events:none;}
+.q-ind-ath{display:flex;align-items:center;gap:10px;}
+.q-ind-ath .av{width:26px;height:26px;border-radius:50%;background:var(--bg-4);display:grid;place-items:center;font:600 10px var(--font-ui);color:var(--text-1);flex-shrink:0;}
+.q-ind-ath .nm{font-weight:500;font-size:13px;color:var(--text-0);}
+.q-ind-rpe{display:flex;gap:3px;}
+.q-ind-rpe .b{width:28px;height:28px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--bg-3);color:var(--text-2);font:600 12px var(--font-mono);cursor:pointer;display:grid;place-items:center;}
+.q-ind-rpe .b:hover{background:var(--bg-4);color:var(--text-0);}
+.q-ind-rpe .b.sel{border-color:currentColor;}
+.q-well-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);cursor:pointer;}
+.q-well-row:last-child{border-bottom:0;}
+.q-well-row:hover{background:var(--bg-3);}
+.q-well-head{display:flex;align-items:center;gap:10px;}
+.q-well-expand{padding:12px 16px;border-top:1px solid var(--line);background:var(--bg-1);}
+.q-well-item{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.q-well-item:last-child{margin-bottom:0;}
+.q-well-item .wkey{font-size:12px;color:var(--text-2);width:110px;flex-shrink:0;}
+.q-well-item .wopts{display:flex;gap:4px;}
+.q-well-item .wb{width:32px;height:28px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--bg-3);color:var(--text-2);font:600 12px var(--font-mono);cursor:pointer;display:grid;place-items:center;}
+.q-well-item .wb.wsel{color:#fff;}
 </style>
 </head>
 <body>
@@ -1874,93 +1929,145 @@ function renderAttend(){
 
 // ── SESSION ───────────────────────────────────────────────────
 function renderSession(){
-  return`<div class="date-row">
-    <button class="arrow-btn" data-action="prevday">‹</button>
-    <input type="date" value="${S.date}" max="${TODAY}" id="date-input">
-    <button class="arrow-btn" data-action="nextday" ${S.date>=TODAY?"disabled style='opacity:.3;'":''}> › </button>
-  </div>
-  <div class="sub-tabs">
-    <button class="sub-tab${S.sessionSub==='load'?' active':''}" data-action="sessionsub" data-sub="load">📊 Carga RPE</button>
-    <button class="sub-tab${S.sessionSub==='wellness'?' active':''}" data-action="sessionsub" data-sub="wellness">🌡️ Wellness</button>
+  const svg=(d)=>`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+  const dateObj=new Date(S.date+'T12:00:00');
+  const dayNames=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+  const monthNames=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const dateStr=`${dayNames[dateObj.getDay()]} ${String(dateObj.getDate()).padStart(2,'0')} ${monthNames[dateObj.getMonth()]}`;
+  return`<div class="q-att-head">
+    <div class="q-date">
+      <button class="q-date__btn" data-action="prevday">${svg('m15 6-6 6 6 6')}</button>
+      <div class="q-date__main">
+        <span class="d">${dateStr}</span>
+        <span class="dow"><input type="date" value="${S.date}" max="${TODAY}" id="date-input"></span>
+      </div>
+      <button class="q-date__btn" data-action="nextday" ${S.date>=TODAY?'disabled':''}>${svg('m9 6 6 6-6 6')}</button>
+    </div>
+    <div class="q-att-toggle" style="margin-left:auto;">
+      <button class="b${S.sessionSub==='load'?' on p':''}" data-action="sessionsub" data-sub="load">Carga RPE</button>
+      <button class="b${S.sessionSub==='wellness'?' on p':''}" data-action="sessionsub" data-sub="wellness">Wellness</button>
+    </div>
   </div>
   ${S.sessionSub==='load'?renderSessionLoad():renderSessionWellness()}`;
 }
 function renderSessionLoad(){
-  const sd=S.sessionDraft,ex=getCat().sessions?.[S.date];
-  const durVal=sd.duration||'';
-  const hasLoad=ex&&ex.duration&&(ex.teamRPE!=null||Object.keys(ex.playerRPE||{}).length);
+  const sd=S.sessionDraft,cd=getCat(),ex=cd.sessions?.[S.date]||{};
   const editable=canEdit();
+  const dur=parseInt(sd.duration)||0;
   const stVal=sd.sessionType;const stDef=stVal?SESSION_TYPES.find(t=>t.id===stVal):null;
-  const stBtns=SESSION_TYPES.map(t=>`<button class="rpe-mode-btn${stVal===t.id?' active':''}" data-action="sessiontype" data-type="${t.id}">${t.icon} ${t.label}</button>`).join('');
-  const stRow=editable?`<div class="rpe-mode-row" style="flex-wrap:wrap;gap:5px;margin-bottom:12px;">${stBtns}</div>`:(stDef?`<div style="font-size:13px;color:var(--text2);margin-bottom:10px;">${stDef.icon} ${stDef.label}</div>`:'');
-  return`${!editable?`<div class="readonly-banner">👁 Modo lectura — no podés editar sesiones en esta categoría.</div>`:''}
-  ${stRow}
-  <div class="dur-row">
-    <span style="font-size:13px;color:var(--text2);">⏱ Duración</span>
-    <input type="number" id="dur-input" value="${durVal}" placeholder="90" min="1" max="300" ${editable?'':' disabled'}>
-    <span style="font-size:13px;color:var(--text3);">min</span>
+  const convocados=cd.players.filter(p=>S.sess[p.id]==='P'||S.sess[p.id]==='T').length;
+  const teamRpe=sd.teamRPE;
+  const indRpeVals=Object.values(sd.playerRPE||{});
+  const avgIndRpe=indRpeVals.length>0?Math.round(indRpeVals.reduce((a,b)=>a+b,0)/indRpeVals.length*10)/10:null;
+  const rpeDisplay=teamRpe!==null?teamRpe:avgIndRpe;
+  const loadEst=rpeDisplay!==null&&dur?Math.round(rpeDisplay*dur):null;
+  const hasLoad=ex.duration&&(ex.teamRPE!=null||Object.keys(ex.playerRPE||{}).length);
+  const stBtns=SESSION_TYPES.map(t=>`<button class="q-sess-type-btn${stVal===t.id?' active':''}" ${editable?`data-action="sessiontype" data-type="${t.id}"`:'disabled'}>${t.icon} ${t.label}</button>`).join('');
+  return`${!editable?`<div class="readonly-banner" style="margin-bottom:12px;">👁 Modo lectura — no podés editar sesiones en esta categoría.</div>`:''}
+  <div class="q-att-summary" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px;">
+    <div class="cell featured">
+      <span class="lbl">Duración</span>
+      <span class="v">${dur||'—'}<span class="pct">${dur?' min':''}</span></span>
+      <span class="sub">${stDef?stDef.icon+' '+stDef.label:'Sin tipo'}</span>
+    </div>
+    <div class="cell">
+      <span class="lbl">Carga estimada</span>
+      <span class="v" style="color:var(--accent);">${loadEst!==null?loadEst:'—'}<span class="pct">${loadEst?' UA':''}</span></span>
+      <span class="sub">${dur&&rpeDisplay!==null?dur+'min × RPE'+rpeDisplay:'—'}</span>
+    </div>
+    <div class="cell">
+      <span class="lbl">RPE</span>
+      <span class="v">${rpeDisplay!==null?rpeDisplay:'—'}<span class="pct">${rpeDisplay!==null?' /10':''}</span></span>
+      <span class="sub">${S.rpeMode==='team'?'Equipo':'Individual'}</span>
+    </div>
+    <div class="cell">
+      <span class="lbl">Convocados</span>
+      <span class="v" style="color:var(--ok);">${convocados}</span>
+      <span class="sub">${cd.players.length} en plantel</span>
+    </div>
   </div>
-  ${editable?`<div class="rpe-mode-row">
-    <button class="rpe-mode-btn${S.rpeMode==='team'?' active':''}" data-action="rpemode" data-mode="team">RPE Equipo</button>
-    <button class="rpe-mode-btn${S.rpeMode==='individual'?' active':''}" data-action="rpemode" data-mode="individual">RPE Individual</button>
-  </div>`:''}
-  ${S.rpeMode==='team'?renderTeamRPE():renderIndividualRPE()}
-  ${editable?`<button class="save-btn" style="width:100%;margin-top:4px;" data-action="savesession">Guardar sesión</button>`:''}
-  <span id="sess-save-msg" style="display:block;text-align:center;font-size:13px;color:#86efac;font-weight:500;margin-top:6px;min-height:20px;"></span>
-  ${hasLoad?`<div style="text-align:center;font-size:11px;color:var(--text3);margin-top:4px;">✓ Guardado · ${stDef?stDef.icon+' '+stDef.label+' · ':''}${ex.duration}min · RPE ${ex.teamRPE!=null?ex.teamRPE+' (equipo)':'individual'}</div>`:''}`;
+  <div class="q-card">
+    <div class="q-card__h">
+      <h3>Tipo de sesión · Duración</h3>
+      ${hasLoad?`<span class="meta">✓ Guardado · ${ex.duration}min · RPE ${ex.teamRPE!=null?ex.teamRPE+' (equipo)':'individual'}</span>`:'<span class="meta">Sin guardar</span>'}
+    </div>
+    <div class="q-card__b" style="padding:12px 16px;">
+      <div class="q-sess-type-row">${stBtns}</div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--text-2);font-weight:500;">Duración</span>
+          <input type="number" id="dur-input" value="${sd.duration||''}" placeholder="90" min="1" max="300" class="q-dur-input" ${editable?'':'disabled'}>
+          <span style="font-size:12px;color:var(--text-2);">min</span>
+        </div>
+        ${editable?`<div class="q-att-toggle" style="margin-left:auto;">
+          <button class="b${S.rpeMode==='team'?' on p':''}" data-action="rpemode" data-mode="team">Equipo</button>
+          <button class="b${S.rpeMode==='individual'?' on p':''}" data-action="rpemode" data-mode="individual">Individual</button>
+        </div>`:''}
+      </div>
+    </div>
+    ${S.rpeMode==='team'?renderTeamRPE():renderIndividualRPE()}
+    ${editable?`<div style="padding:12px 16px;border-top:1px solid var(--line);">
+      <button class="q-btn q-btn--primary" style="width:100%;" data-action="savesession">Guardar sesión</button>
+      <span id="sess-save-msg" style="display:block;text-align:center;font-size:12px;color:var(--ok);font-weight:500;margin-top:6px;min-height:18px;"></span>
+    </div>`:''}
+  </div>`;
 }
 function renderTeamRPE(){
   const val=S.sessionDraft.teamRPE,dur=parseInt(S.sessionDraft.duration)||0;
-  const btns=Array.from({length:11},(_,i)=>`<button class="rpe-btn${val===i?' sel':''}" style="background:${val===i?RPE_BG[i]:'var(--bg2)'};color:${val===i?RPE_FG[i]:'var(--text3)'};" data-action="teamrpe" data-rpe="${i}">${i}</button>`).join('');
-  return`<div class="rpe-section">
-    <div class="rpe-title">Percepción del esfuerzo — CR-10</div>
-    <div class="rpe-picker">${btns}</div>
-    <div class="rpe-label-box" style="background:${val!==null?RPE_BG[val]+'22':'transparent'};color:${val!==null?RPE_BG[val]:'var(--text3)'};">${val!==null?RPE_LABELS[val]:'Seleccioná el RPE del equipo'}</div>
-    ${val!==null&&dur?`<div class="load-est">Carga estimada: <strong>${val*dur} UA</strong> · ${dur}min × RPE${val}</div>`:''}
+  const editable=canEdit();
+  const btns=Array.from({length:11},(_,i)=>`<button class="q-rpe-btn${val===i?' sel':''}"${val===i?` style="background:${RPE_BG[i]}22;color:${RPE_BG[i]};border-color:${RPE_BG[i]};"`:''}${editable?` data-action="teamrpe" data-rpe="${i}"`:' disabled'}>${i}</button>`).join('');
+  return`<div style="padding:14px 16px;border-top:1px solid var(--line);">
+    <div style="font-size:11px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:10px;">Percepción del esfuerzo (CR-10)</div>
+    <div class="q-rpe-grid">${btns}</div>
+    ${val!==null?`<div style="margin-top:10px;padding:8px 12px;border-radius:var(--r-2);background:${RPE_BG[val]}18;color:${RPE_BG[val]};font-size:13px;font-weight:500;">${RPE_LABELS[val]}${dur?` · <span style="font-family:var(--font-mono);">${val*dur} UA</span>`:''}</div>`:`<div style="margin-top:10px;font-size:12px;color:var(--text-2);">Seleccioná el RPE del equipo</div>`}
   </div>`;
 }
 function renderIndividualRPE(){
   const cd=getCat(),att=cd.attendance[S.date]||{},dur=parseInt(S.sessionDraft.duration)||0;
-  return`<div class="rpe-section"><div class="rpe-title">RPE por jugador</div>
-  ${cd.players.map(p=>{
-    const status=att[p.id],isPresent=status==='P'||status==='T';
-    const rpeVal=S.sessionDraft.playerRPE[p.id]??null;
-    if(!isPresent){const stateLabel={A:'Ausente',L:'Lesión',J:'Justificado'};return`<div class="p-rpe-row" style="opacity:.4;pointer-events:none;"><div class="p-rpe-top"><span class="p-rpe-name">${p.name}</span><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#2d0a0a;color:#fca5a5;">${stateLabel[status]||'Sin registro'}</span></div></div>`;}
-    const btns=Array.from({length:11},(_,i)=>`<button class="rpe-btn${rpeVal===i?' sel':''}" style="background:${rpeVal===i?RPE_BG[i]:'var(--bg2)'};color:${rpeVal===i?RPE_FG[i]:'var(--text3)'};height:36px;font-size:12px;" data-action="playerrpe" data-pid="${p.id}" data-rpe="${i}">${i}</button>`).join('');
-    return`<div class="p-rpe-row">
-      <div class="p-rpe-top"><span class="p-rpe-name">${p.name}</span>${rpeVal!==null?`<span style="font-size:12px;color:${RPE_BG[rpeVal]};font-weight:600;">RPE${rpeVal}${dur?' · '+(rpeVal*dur)+'UA':''}</span>`:''}</div>
-      <div class="rpe-picker">${btns}</div>
-      ${rpeVal!==null?`<div style="font-size:11px;color:${RPE_BG[rpeVal]};text-align:center;margin-top:4px;">${RPE_LABELS[rpeVal]}</div>`:''}
-    </div>`;
-  }).join('')}</div>`;
+  const editable=canEdit();
+  return`<div style="border-top:1px solid var(--line);">
+    <div style="padding:8px 16px;background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;">RPE por jugador</div>
+    ${cd.players.map(p=>{
+      const status=att[p.id],isPresent=status==='P'||status==='T';
+      const rpeVal=S.sessionDraft.playerRPE[p.id]??null;
+      const initials=p.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
+      if(!isPresent){const stateLabel={A:'Ausente',L:'Lesión',J:'Justificado'};return`<div class="q-ind-row absent"><div class="q-ind-ath"><span class="av">${initials}</span><span class="nm">${p.name}</span></div><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bad-soft);color:var(--bad);">${stateLabel[status]||'Sin registro'}</span></div>`;}
+      const btns=Array.from({length:11},(_,i)=>`<button class="b${rpeVal===i?' sel':''}"${rpeVal===i?` style="background:${RPE_BG[i]}22;color:${RPE_BG[i]};border-color:${RPE_BG[i]};"`:''}${editable?` data-action="playerrpe" data-pid="${p.id}" data-rpe="${i}"`:' disabled'}>${i}</button>`).join('');
+      return`<div class="q-ind-row">
+        <div class="q-ind-ath"><span class="av">${initials}</span><span class="nm">${p.name}</span></div>
+        <div class="q-ind-rpe">${btns}</div>
+        <span style="font-size:12px;font-family:var(--font-mono);color:${rpeVal!==null?RPE_BG[rpeVal]:'var(--text-2)'};min-width:64px;text-align:right;">${rpeVal!==null?`RPE ${rpeVal}${dur?' · '+rpeVal*dur+' UA':''}`:''}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 function renderSessionWellness(){
-  const cd=getCat();
-  return`<div class="section-label">Wellness pre-sesión — ${fmtDate(S.date)}</div>
-  ${cd.players.map(p=>{
-    const w=S.wellnessDraft[p.id];
-    const hasAll=w&&W_KEYS.every(k=>w[k]!=null);
-    const avgScore=w?W_KEYS.reduce((a,k)=>a+(w[k]||0),0)/W_KEYS.length:null;
-    const dotColor=avgScore===null?'#475569':W_COLORS[Math.round(clamp(avgScore,1,5))-1];
-    const expanded=!!S.wellnessExpanded[p.id];
-    const wellItems=W_KEYS.map(k=>{
-      const v=w?.[k]??null;
-      const opts=[1,2,3,4,5].map(n=>{
-        const sel=v===n,wc=wellColor(n);
-        return`<button class="well-btn${sel?' w-sel':''}" style="border-color:${wc};${sel?`background:${wc};color:#fff;`:`color:${wc};`}" data-action="wellness" data-pid="${p.id}" data-key="${k}" data-val="${n}">${n}</button>`;
+  const cd=getCat(),editable=canEdit();
+  return`<div class="q-card">
+    <div class="q-card__h"><h3>Wellness pre-sesión</h3><span class="meta">${fmtDate(S.date)}</span></div>
+    ${cd.players.map(p=>{
+      const w=S.wellnessDraft[p.id];
+      const hasAll=w&&W_KEYS.every(k=>w[k]!=null);
+      const avgScore=w?W_KEYS.reduce((a,k)=>a+(w[k]||0),0)/W_KEYS.length:null;
+      const dotColor=avgScore===null?'var(--text-2)':W_COLORS[Math.round(clamp(avgScore,1,5))-1];
+      const expanded=!!S.wellnessExpanded[p.id];
+      const initials=p.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
+      const wellItems=W_KEYS.map(k=>{
+        const v=w?.[k]??null;
+        const opts=[1,2,3,4,5].map(n=>{const sel=v===n;const nc=wellColor(n);return`<button class="wb${sel?' wsel':''}" style="${sel?`background:${nc};border-color:${nc};color:#fff;`:`border-color:${nc};color:${nc};`}" data-action="wellness" data-pid="${p.id}" data-key="${k}" data-val="${n}">${n}</button>`;}).join('');
+        return`<div class="q-well-item"><span class="wkey">${W_ICONS[k]} ${W_LABELS[k]}</span><div class="wopts">${opts}</div>${v!==null?`<span style="font-size:11px;color:var(--text-2);margin-left:8px;">${W_TIPS[k][v-1]}</span>`:''}</div>`;
       }).join('');
-      return`<div class="well-item"><span class="well-key">${W_ICONS[k]} ${W_LABELS[k]}</span><div class="well-opts">${opts}</div>${v!==null?`<span class="well-tip">${W_TIPS[k][v-1]}</span>`:''}</div>`;
-    }).join('');
-    return`<div class="well-player-row" data-action="togglewellness" data-pid="${p.id}">
-      <div class="well-player-top">
-        <span class="well-status-dot" style="background:${dotColor};"></span>
-        <span style="flex:1;font-size:14px;color:var(--text);">${p.name}</span>
-        ${hasAll?`<span style="font-size:12px;color:${dotColor};font-weight:600;">${avgScore.toFixed(1)}/5</span>`:`<span style="font-size:11px;color:var(--text3);">${w?'Parcial':'Sin registro'}</span>`}
-        <span style="font-size:11px;color:var(--text3);margin-left:4px;">${expanded?'▲':'▼'}</span>
+      return`<div class="q-well-row" data-action="togglewellness" data-pid="${p.id}">
+        <div class="q-well-head">
+          <span style="width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0;display:inline-block;"></span>
+          <span style="width:26px;height:26px;border-radius:50%;background:var(--bg-4);display:grid;place-items:center;font:600 10px var(--font-ui);color:var(--text-1);flex-shrink:0;">${initials}</span>
+          <span style="font-weight:500;font-size:13px;">${p.name}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">${hasAll?`<span style="font-size:12px;color:${dotColor};font-weight:600;font-family:var(--font-mono);">${avgScore.toFixed(1)}/5</span>`:`<span style="font-size:11px;color:var(--text-2);">${w?'Parcial':'Sin registro'}</span>`}<span style="font-size:11px;color:var(--text-3);">${expanded?'▲':'▼'}</span></div>
       </div>
-      ${expanded?`<div class="well-expand">${wellItems}<button class="save-btn" style="width:100%;margin-top:10px;padding:8px;font-size:13px;" data-action="savesession">Guardar wellness</button></div>`:''}
-    </div>`;
-  }).join('')}`;
+      ${expanded?`<div class="q-well-expand">${wellItems}${editable?`<button class="q-btn q-btn--primary" style="width:100%;margin-top:12px;" data-action="savesession">Guardar wellness</button>`:''}</div>`:''}`
+    }).join('')}
+  </div>`;
 }
 
 // ── METRICS ───────────────────────────────────────────────────
