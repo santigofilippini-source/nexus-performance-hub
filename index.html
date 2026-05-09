@@ -563,7 +563,7 @@ let S = {
   tab:'attend', date:TODAY,
   sess:{}, absenceReasons:{}, sessionDraft:{duration:'',teamRPE:null,playerRPE:{},sessionType:null},
   wellnessDraft:{}, wellnessExpanded:{}, sessionSub:'load', rpeMode:'team',
-  reportSub:'players', confirmDel:null, editId:null,
+  reportSub:'semanal', reportWeekOffset:0, confirmDel:null, editId:null,
   loadFilter:'7d', loadFrom:'', loadTo:'',
   athletes:{}, athleteKey:null, athleteTab:'perfil', athleteForm:null, editingEvalId:null,
   prevView:'home', prevTeamId:null, prevCat:null,
@@ -2160,47 +2160,201 @@ function renderMetrics(){
 function renderReports(){
   const cd=getCat();
   const stats=getStats(cd.players,cd.attendance);
+  const weekOffset=S.reportWeekOffset||0;
+  // Week bounds (Mon–Sun)
+  const monDate=new Date(TODAY+'T12:00:00');
+  const dow=monDate.getDay();
+  monDate.setDate(monDate.getDate()+(dow===0?-6:1-dow)+weekOffset*7);
+  const weekStart=monDate.toISOString().split('T')[0];
+  const weekDays=Array.from({length:7},(_,i)=>{const d=new Date(monDate);d.setDate(d.getDate()+i);return d.toISOString().split('T')[0];});
+  const weekEnd=weekDays[6];
+  const DAY_LBL=['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+  // Daily metrics
+  const daily=weekDays.map((ds,di)=>{
+    const dayAtt=cd.attendance[ds]||{};
+    const present=cd.players.filter(p=>{const s=dayAtt[p.id];return s==='P'||s==='T';}).length;
+    const pct=cd.players.length>0?Math.round(present/cd.players.length*100):null;
+    const sess=cd.sessions[ds];
+    return{ds,lbl:DAY_LBL[di],pct,rpe:sess?.teamRPE??null,type:sess?.sessionType??null,hasSess:!!sess?.duration};
+  });
+  // Week KPIs
+  const attDays=daily.filter(d=>d.pct!==null);
+  const weekAtt=attDays.length>0?Math.round(attDays.reduce((a,d)=>a+d.pct,0)/attDays.length):null;
+  const weekLoadAvg=(()=>{const tot=cd.players.reduce((a,p)=>a+weekDays.reduce((b,ds)=>b+playerLoadOnDate(cd,p.id,ds),0),0);return cd.players.length>0?Math.round(tot/cd.players.length):0;})();
+  const rpeDays=daily.filter(d=>d.rpe!==null);
+  const weekRPE=rpeDays.length>0?(Math.round(rpeDays.reduce((a,d)=>a+d.rpe,0)/rpeDays.length*10)/10):null;
+  const allM=cd.players.map(p=>({...calcMetrics(cd,p.id),id:p.id,name:p.name,pos:p.position||''}));
+  const teamACWR=(()=>{const v=allM.filter(m=>m.acwr!==null);return v.length>0?Math.round(v.reduce((a,m)=>a+m.acwr,0)/v.length*100)/100:null;})();
+  const atRisk=allM.filter(m=>(m.acwr!==null&&m.acwr>1.3)||stats.find(s=>s.id===m.id&&s.consec>=ALERT_N)).length;
+  // Week number
+  const weekNum=(()=>{const d=new Date(weekStart+'T12:00:00');d.setDate(d.getDate()+3);const y=d.getFullYear();const s=new Date(y,0,1);return Math.ceil(((d-s)/86400000+s.getDay()+1)/7);})();
+  const isCurrentWeek=weekOffset===0;
+  // Section header
+  const sectionHeader=`<div class="q-section-h" style="margin-bottom:14px;">
+    <div class="q-section-h__l">
+      <div style="font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:4px;">Informe semanal</div>
+      <h2>Semana ${weekNum} · ${fmtDate(weekStart)} — ${fmtDate(weekEnd)}</h2>
+      <p>${daily.filter(d=>d.hasSess).length} sesiones registradas</p>
+    </div>
+    <div class="q-section-h__r">
+      <button class="q-btn q-btn--ghost q-btn--sm" data-action="prevreportweek">← Sem ${weekNum-1}</button>
+      ${!isCurrentWeek?`<button class="q-btn q-btn--ghost q-btn--sm" data-action="nextreportweek">Sem ${weekNum+1} →</button>`:''}
+      <button class="q-btn q-btn--ghost q-btn--sm" data-action="exportcategorycsv">⬇ CSV</button>
+    </div>
+  </div>`;
+  // Alerts banner
   const alertCount=stats.filter(s=>s.consec>=ALERT_N).length;
-  let content='';
-  if(S.reportSub==='players'){
-    const arCounts={};cd.players.forEach(p=>{const rc={};Object.values(cd.attendance).forEach(d=>{if(d?.[p.id]==='A'&&d?.absenceReasons?.[p.id]){const r=d.absenceReasons[p.id];rc[r]=(rc[r]||0)+1;}});arCounts[p.id]=rc;});
-    const _arBadge='font-size:10px;padding:2px 7px;border-radius:12px;background:#2d0a0a;color:#fca5a5;border:.5px solid #991b1b;font-weight:500;';
-    content=!stats.length?`<div class="empty-state">Sin jugadores.</div>`:stats.map(p=>{
-      const bar=p.pct!==null?`<div class="pbar"><div class="pbar-fill" style="width:${p.pct}%;background:${p.pct>=75?'#22c55e':p.pct>=50?'#f59e0b':'#ef4444'};"></div></div>`:'';
+  const alertBanner=alertCount>0?`<div class="alert-banner" style="margin-bottom:14px;"><div class="alert-banner-title">⚠ ${alertCount} jugador${alertCount>1?'es':''} con ${ALERT_N}+ ausencias seguidas</div></div>`:'';
+  // KPI strip
+  const kpiRow=`<div class="q-stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px;">
+    <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Asistencia</span></div><div class="q-stat__val" style="color:${weekAtt!==null?(weekAtt>=85?'var(--ok)':weekAtt>=70?'var(--warn)':'var(--bad)'):'var(--text-0)'};">${weekAtt!==null?weekAtt+'%':'—'}</div><div class="q-stat__sub"><span>semana actual</span></div></div>
+    <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Carga total</span></div><div class="q-stat__val">${weekLoadAvg}<span class="u">UA</span></div><div class="q-stat__sub"><span>promedio plantel</span></div></div>
+    <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">ACWR</span></div><div class="q-stat__val" style="color:${teamACWR!==null?(teamACWR>1.3?'var(--warn)':teamACWR<0.8?'var(--info)':'var(--ok)'):'var(--text-0)'};">${teamACWR!==null?teamACWR:'—'}</div><div class="q-stat__sub"><span>rango 0.8–1.3</span></div></div>
+    <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">RPE medio</span></div><div class="q-stat__val">${weekRPE!==null?weekRPE:'—'}<span class="u">/10</span></div><div class="q-stat__sub"><span>sesiones MC</span></div></div>
+    <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Atletas en riesgo</span></div><div class="q-stat__val" style="color:${atRisk>0?'var(--bad)':'var(--ok)'};">${atRisk}<span class="u">/${cd.players.length}</span></div><div class="q-stat__sub"><span>ACWR &gt;1.3</span></div></div>
+  </div>`;
+  // Sub-tab toggle
+  const currentSub=S.reportSub||'semanal';
+  const subTabs=`<div class="q-att-toggle" style="background:var(--bg-2);margin-bottom:14px;">${[['semanal','Resumen'],['players','Jugadores'],['months','Por mes']].map(([v,l])=>`<button class="b${currentSub===v?' on p':''}" data-action="reportsub" data-sub="${v}" style="height:28px;">${l}</button>`).join('')}</div>`;
+  // ── Semanal tab ──
+  const SESSION_TYPE_ABBR={futbol:'F',fisicoTecnico:'FT',fisico:'T',partido:'P',regenerativo:'R',evaluacion:'E'};
+  const dailyChart=`<div class="q-card" style="margin-bottom:12px;">
+    <div class="q-card__h"><h3>Distribución diaria · Sem ${weekNum}</h3><span class="meta">Asistencia % · RPE</span></div>
+    <div style="padding:16px;">
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;">${daily.map(d=>{
+        const pctH=d.pct!==null?Math.max(4,Math.round(d.pct/100*80)):2;
+        const rpeH=d.rpe!==null?Math.max(3,Math.round(d.rpe/10*80)):0;
+        const pctCol=d.pct!==null?(d.pct>=85?'var(--ok)':d.pct>=70?'var(--warn)':'var(--bad)'):'var(--bg-3)';
+        const typeAbbr=d.type?SESSION_TYPE_ABBR[d.type]||'S':'—';
+        return`<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="font-family:var(--font-mono);font-size:10.5px;font-weight:500;color:${d.pct!==null?(d.pct>=85?'var(--ok)':d.pct>=70?'var(--warn)':'var(--bad)'):'var(--text-3)'};">${d.pct!==null?d.pct+'%':'—'}</div>
+          <div style="height:80px;width:100%;display:flex;align-items:flex-end;gap:2px;">
+            <div style="flex:3;height:${pctH}px;background:${pctCol};border-radius:2px 2px 0 0;opacity:.9;"></div>
+            <div style="flex:2;height:${rpeH}px;background:var(--accent);border-radius:2px 2px 0 0;opacity:.9;"></div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:11px;font-weight:500;color:var(--text-1);">${d.lbl}</div>
+          <div style="font-size:10px;color:var(--text-3);">${typeAbbr}</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-2);">RPE ${d.rpe!==null?d.rpe:'—'}</div>
+        </div>`;
+      }).join('')}</div>
+      <div style="display:flex;gap:16px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:var(--text-2);">
+        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;background:var(--ok);border-radius:2px;flex-shrink:0;"></span>Asistencia (%)</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;background:var(--accent);border-radius:2px;flex-shrink:0;"></span>RPE</span>
+        <span style="font-family:var(--font-mono);">F Fútbol · FT Físico-T · T Físico · P Partido · R Regen.</span>
+      </div>
+    </div>
+  </div>`;
+  // Trend table (last 8 weeks)
+  const trendWeeks=Array.from({length:8},(_,i)=>{
+    const off=weekOffset-7+i;
+    const wm=new Date(TODAY+'T12:00:00');const wd=wm.getDay();wm.setDate(wm.getDate()+(wd===0?-6:1-wd)+off*7);
+    const ws=wm.toISOString().split('T')[0];
+    const wdays=Array.from({length:7},(_,j)=>{const d=new Date(wm);d.setDate(d.getDate()+j);return d.toISOString().split('T')[0];});
+    const wAttVals=wdays.map(ds=>{const da=cd.attendance[ds]||{};const pr=cd.players.filter(p=>{const s=da[p.id];return s==='P'||s==='T';}).length;return cd.players.length>0?pr/cd.players.length*100:null;}).filter(v=>v!==null);
+    const wAtt=wAttVals.length>0?Math.round(wAttVals.reduce((a,b)=>a+b,0)/wAttVals.length):null;
+    const wTot=cd.players.reduce((a,p)=>a+wdays.reduce((b,ds)=>b+playerLoadOnDate(cd,p.id,ds),0),0);
+    const wLoad=cd.players.length>0?Math.round(wTot/cd.players.length):0;
+    const wInj=wdays.reduce((a,ds)=>{const d=cd.attendance[ds]||{};return a+cd.players.filter(p=>d[p.id]==='L').length;},0);
+    const wn=(()=>{const d=new Date(ws+'T12:00:00');d.setDate(d.getDate()+3);const y=d.getFullYear();const s=new Date(y,0,1);return Math.ceil(((d-s)/86400000+s.getDay()+1)/7);})();
+    return{ws,wn,wAtt,wLoad,wInj,isCur:off===0};
+  });
+  const trendTable=`<div class="q-card" style="margin-bottom:12px;">
+    <div class="q-card__h"><h3>Tendencia · 8 semanas</h3></div>
+    <div>
+      <div style="display:grid;grid-template-columns:70px 1fr 80px 60px 60px;gap:8px;padding:9px 16px;background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">
+        <span>Sem.</span><span></span><span style="text-align:right;">Carga UA</span><span style="text-align:right;">Asist.</span><span style="text-align:right;">Lesión</span>
+      </div>
+      ${trendWeeks.map(r=>`<div style="display:grid;grid-template-columns:70px 1fr 80px 60px 60px;gap:8px;padding:8px 16px;border-bottom:1px solid var(--line);background:${r.isCur?'var(--accent-soft)':'transparent'};align-items:center;">
+        <span style="font-family:var(--font-mono);font-size:12px;font-weight:${r.isCur?600:500};color:${r.isCur?'var(--accent)':'var(--text-1)'};">S ${r.wn}${r.isCur?' →':''}</span>
+        <span></span>
+        <span style="font-family:var(--font-mono);font-size:12px;text-align:right;">${r.wLoad>0?r.wLoad.toLocaleString('es-UY'):'—'}</span>
+        <span style="font-family:var(--font-mono);font-size:12px;text-align:right;color:${r.wAtt!==null?(r.wAtt>=85?'var(--ok)':r.wAtt>=70?'var(--warn)':'var(--bad)'):'var(--text-3)'};">${r.wAtt!==null?r.wAtt+'%':'—'}</span>
+        <span style="font-family:var(--font-mono);font-size:12px;text-align:right;color:${r.wInj>0?'var(--bad)':'var(--text-2)'};">${r.wInj||'—'}</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+  // At-risk players card
+  const riskPl=allM.filter(m=>(m.acwr!==null&&m.acwr>1.3)||stats.find(s=>s.id===m.id&&s.consec>=ALERT_N)).slice(0,5);
+  const riskCard=`<div class="q-card" style="margin-bottom:12px;">
+    <div class="q-card__h">
+      <h3>Atletas en riesgo</h3>
+      <span class="meta" style="color:var(--bad);background:var(--bad-soft);padding:2px 8px;border-radius:12px;">${riskPl.length}</span>
+    </div>
+    ${riskPl.length===0?`<div style="padding:14px 16px;font-size:12px;color:var(--text-2);">Sin atletas en riesgo.</div>`:`<div>${riskPl.map((m,i)=>{
+      const ps=stats.find(s=>s.id===m.id);
+      const reasons=[];if(m.acwr!==null&&m.acwr>1.3)reasons.push('ACWR '+m.acwr);if(m.monotony>2)reasons.push('Monotonía '+m.monotony);if(ps&&ps.consec>=ALERT_N)reasons.push(ps.consec+' aus. seguidas');
+      const col=m.acwr>1.5?'var(--bad)':'var(--warn)';
+      const initials=m.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
+      return`<div style="padding:11px 16px;border-bottom:${i<riskPl.length-1?'1px solid var(--line)':'0'};display:flex;gap:10px;align-items:center;">
+        <span style="width:5px;align-self:stretch;border-radius:3px;background:${col};flex-shrink:0;"></span>
+        <span style="width:30px;height:30px;border-radius:6px;background:var(--bg-3);display:grid;place-items:center;font-size:10px;font-weight:600;flex-shrink:0;">${initials}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12.5px;font-weight:500;">${m.name}</div>
+          ${m.pos?`<div style="font-size:10.5px;color:var(--text-2);">${m.pos}</div>`:''}
+          <div style="font-size:11px;color:${col};margin-top:2px;">${reasons.join(' · ')}</div>
+        </div>
+      </div>`;
+    }).join('')}</div>`}
+  </div>`;
+  // Top adherencia card
+  const topPl=[...stats].filter(s=>s.total>0).sort((a,b)=>(b.pct??0)-(a.pct??0)).slice(0,5);
+  const topCard=`<div class="q-card">
+    <div class="q-card__h"><h3>Top adherencia</h3><span class="meta">Mayor asistencia</span></div>
+    <div style="padding:10px 16px;">${topPl.length===0?`<div style="font-size:12px;color:var(--text-2);">Sin datos.</div>`:topPl.map((p,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:${i<topPl.length-1?'1px solid var(--line)':'0'};">
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);width:18px;">0${i+1}</span>
+      <span style="flex:1;font-size:12.5px;">${p.name}</span>
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-2);">${p.P}P · ${p.A}A</span>
+      <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:${p.pct>=85?'var(--ok)':p.pct>=70?'var(--warn)':'var(--bad)'};">${p.pct!==null?p.pct+'%':'—'}</span>
+    </div>`).join('')}</div>
+  </div>`;
+  // ── Jugadores tab ──
+  const arCounts={};cd.players.forEach(p=>{const rc={};Object.values(cd.attendance).forEach(d=>{if(d?.[p.id]==='A'&&d?.absenceReasons?.[p.id]){const r=d.absenceReasons[p.id];rc[r]=(rc[r]||0)+1;}});arCounts[p.id]=rc;});
+  const COL='minmax(0,1fr) 70px 60px 60px 90px 60px';
+  const jugadoresTab=`<div class="q-card">
+    <div style="display:grid;grid-template-columns:${COL};gap:12px;padding:9px 16px;background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">
+      <span>Atleta</span><span>Pres.</span><span>Aus.</span><span>Total</span><span>% Asist.</span><span>Racha</span>
+    </div>
+    ${!stats.length?`<div class="empty-state">Sin jugadores.</div>`:stats.map((p,i)=>{
       const rc=arCounts[p.id]||{};const rcKeys=Object.keys(rc);
+      const _arBadge='font-size:10px;padding:2px 7px;border-radius:12px;background:var(--bad-soft);color:var(--bad);border:.5px solid var(--bad);font-weight:500;';
       const reasonBadges=rcKeys.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${rcKeys.map(k=>{const rd=ABSENCE_REASONS.find(r=>r.id===k);return rd?`<span style="${_arBadge}">${rd.icon} ${rd.label} ×${rc[k]}</span>`:''}).join('')}</div>`:'';
-      return`<div class="report-row">
-        <div class="rep-top"><span class="rep-name">${p.name}</span>${pctBadge(p.pct)}</div>
-        <div class="rep-detail"><span>${p.P} P</span><span>${p.A} A</span><span>${p.total} ses.</span>${p.consec>=ALERT_N?`<span style="color:#fca5a5;font-weight:500;">⚠ ${p.consec} aus.</span>`:''}</div>
+      const pctCol=p.pct!==null?(p.pct>=85?'var(--ok)':p.pct>=70?'var(--warn)':'var(--bad)'):'var(--text-2)';
+      return`<div style="padding:10px 16px;border-bottom:${i<stats.length-1?'1px solid var(--line)':'0'};">
+        <div style="display:grid;grid-template-columns:${COL};gap:12px;align-items:center;">
+          <span style="font-weight:500;font-size:13px;">${p.name}</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--ok);">${p.P}</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--bad);">${p.A}</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);">${p.total}</span>
+          <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${pctCol};">${p.pct!==null?p.pct+'%':'—'}</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:${p.consec>=ALERT_N?'var(--bad)':'var(--text-2)'};">${p.consec>=ALERT_N?'⚠ '+p.consec:'—'}</span>
+        </div>
         ${reasonBadges}
-        ${bar}
+        ${p.pct!==null?`<div style="height:3px;background:var(--bg-3);border-radius:99px;margin-top:6px;"><div style="height:100%;width:${p.pct}%;background:${pctCol};border-radius:99px;"></div></div>`:''}
       </div>`;
-    }).join('');
-  } else if(S.reportSub==='months'){
-    const monthly=getMonthly(cd.players,cd.attendance);
-    content=!monthly.length?`<div class="empty-state">Sin datos.</div>`:monthly.reverse().map(m=>`<div class="report-row">
-      <div class="rep-top"><span class="rep-name">${fmtMonth(m.month)}</span>${pctBadge(m.avgPct)}</div>
-      <div class="rep-detail"><span>${m.sessions} sesiones</span></div>
-      ${m.avgPct!==null?`<div class="pbar"><div class="pbar-fill" style="width:${m.avgPct}%;background:${m.avgPct>=75?'#22c55e':m.avgPct>=50?'#f59e0b':'#ef4444'};"></div></div>`:''}
-    </div>`).join('');
+    }).join('')}
+  </div>`;
+  // ── Por mes tab ──
+  const monthly=getMonthly(cd.players,cd.attendance);
+  const mesesTab=`<div class="q-card">${!monthly.length?`<div class="empty-state">Sin datos.</div>`:monthly.reverse().map((m,i)=>{
+    const pctCol=m.avgPct!==null?(m.avgPct>=85?'var(--ok)':m.avgPct>=70?'var(--warn)':'var(--bad)'):'var(--text-2)';
+    return`<div style="padding:10px 16px;border-bottom:${i<monthly.length-1?'1px solid var(--line)':'0'};display:flex;align-items:center;gap:14px;">
+      <span style="font-size:13px;font-weight:500;flex:1;">${fmtMonth(m.month)}</span>
+      <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);">${m.sessions} ses.</span>
+      <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${pctCol};">${m.avgPct!==null?m.avgPct+'%':'—'}</span>
+      <div style="width:120px;height:4px;background:var(--bg-3);border-radius:99px;flex-shrink:0;"><div style="height:100%;width:${m.avgPct||0}%;background:${pctCol};border-radius:99px;"></div></div>
+    </div>`;
+  }).join('')}</div>`;
+  // Assemble
+  let tabContent='';
+  if(currentSub==='semanal'){
+    tabContent=`<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;"><div>${dailyChart}${trendTable}</div><div>${riskCard}${topCard}</div></div>`;
+  } else if(currentSub==='players'){
+    tabContent=jugadoresTab;
   } else {
-    const allM=cd.players.map(p=>({...calcMetrics(cd,p.id),name:p.name})).sort((a,b)=>(b.acwr||0)-(a.acwr||0));
-    content=!allM.length?`<div class="empty-state">Sin datos.</div>`:allM.map(m=>{
-      const az=acwrZone(m.acwr);
-      return`<div class="report-row">
-        <div class="rep-top"><span class="rep-name">${m.name}</span>${m.acwr!==null?`<span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:20px;background:${az.bg};color:${az.fg};">ACWR ${m.acwr}</span>`:`<span style="font-size:12px;color:var(--text3);">—</span>`}</div>
-        <div class="rep-detail"><span>AC ${m.ac}</span><span>CC ${m.cc}</span><span>Mono. ${m.monotony||'—'}</span><span>Strain ${m.strain||'—'}</span></div>
-      </div>`;
-    }).join('');
+    tabContent=mesesTab;
   }
-  return`${alertCount>0?`<div class="alert-banner"><div class="alert-banner-title">⚠ ${alertCount} jugador${alertCount>1?'es':''} con ${ALERT_N}+ ausencias seguidas</div></div>`:''}
-  <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-    <button class="sm-btn" style="color:#60a5fa;border-color:#1e40af;padding:5px 12px;" data-action="exportcategorycsv">⬇ Exportar CSV</button>
-  </div>
-  <div class="sub-tabs">${[['players','Jugadores'],['months','Por mes'],['loads','Cargas']].map(([t,l])=>`<button class="sub-tab${S.reportSub===t?' active':''}" data-action="reportsub" data-sub="${t}">${l}</button>`).join('')}</div>
-  ${content}`;
+  return sectionHeader+alertBanner+kpiRow+subTabs+tabContent;
 }
-
 // ── ROSTER ────────────────────────────────────────────────────
 function renderRoster(){
   const cd=getCat();
@@ -2841,6 +2995,8 @@ async function handleAction(e){
   }
   else if(a==='tab'){S.tab=el.dataset.tab;if(S.tab==='attend')loadSession();if(S.tab==='session')loadSessionDraft();render();}
   else if(a==='reportsub'){S.reportSub=el.dataset.sub;render();}
+  else if(a==='prevreportweek'){S.reportWeekOffset=(S.reportWeekOffset||0)-1;render();}
+  else if(a==='nextreportweek'){S.reportWeekOffset=(S.reportWeekOffset||0)+1;render();}
   else if(a==='sessionsub'){S.sessionSub=el.dataset.sub;render();}
   else if(a==='rpemode'){S.rpeMode=el.dataset.mode;render();}
   else if(a==='sessiontype'){S.sessionDraft.sessionType=el.dataset.type;render();}
