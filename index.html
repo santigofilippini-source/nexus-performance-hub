@@ -451,6 +451,57 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 .q-well-item .wopts{display:flex;gap:4px;}
 .q-well-item .wb{width:32px;height:28px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--bg-3);color:var(--text-2);font:600 12px var(--font-mono);cursor:pointer;display:grid;place-items:center;}
 .q-well-item .wb.wsel{color:#fff;}
+/* ── MOBILE RESPONSIVE ──────────────────────────────────── */
+#mob-tabbar{display:none}
+@media(max-width:899px){
+  #nx-sidebar,#nx-stats-bar{display:none!important}
+  #app-screen{max-width:100%;margin-left:0}
+  #app-body{padding-bottom:80px}
+  #mob-tabbar{
+    display:flex!important;position:fixed;left:0;right:0;bottom:0;
+    background:var(--bg-1);border-top:1px solid var(--line);
+    padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));
+    justify-content:space-around;z-index:150;
+  }
+  .mob-tab{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;padding:4px 8px;border-radius:8px;min-width:52px;min-height:44px;
+    background:transparent;border:0;cursor:pointer;color:var(--text-2);
+    font-family:var(--font-ui);-webkit-tap-highlight-color:transparent;
+  }
+  .mob-tab svg{flex-shrink:0}
+  .mob-tab span{font-size:10px;font-weight:600;letter-spacing:.02em}
+  .mob-tab.active{color:var(--accent);background:var(--accent-soft)}
+  .header{padding:8px 12px;height:50px;gap:8px}
+  .logout-btn{display:none}
+  .icon-btn{width:36px;height:36px;font-size:14px}
+  .wrap{padding:10px 12px;display:block}
+  .wrap>.team-card,.wrap>.cat-card{margin-bottom:8px}
+  .cat-wrap{padding:12px 14px}
+  .q-section-h{flex-direction:column;align-items:flex-start;gap:8px}
+  .q-section-h__r{align-self:stretch;display:flex;justify-content:flex-end}
+  .q-stats{grid-template-columns:1fr 1fr;gap:8px}
+  .q-stat__val{font-size:22px}
+  .q-att-summary{grid-template-columns:repeat(3,1fr)}
+  .q-att-summary .cell:nth-child(4),.q-att-summary .cell:nth-child(5){border-top:1px solid var(--line)}
+  .q-roster{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .q-roster__head,.q-roster__row{min-width:520px}
+  .q-sess-grid{grid-template-columns:1fr}
+  .q-rpe-grid{flex-wrap:wrap}
+  .q-att-head{flex-wrap:wrap;gap:6px}
+  .q-btn{height:38px;min-height:38px}
+  .q-rpe-btn{width:36px;height:36px}
+  .q-ind-rpe .b{width:30px;height:30px}
+  .q-att-toggle .b{height:30px;min-width:28px}
+  .status-btn{width:44px;height:44px}
+  .q-iconbtn{width:36px;height:36px}
+  .chart-card{padding:12px 10px 8px}
+  .q-search-overlay{padding-top:0;align-items:flex-end}
+  .q-search-modal{width:100%;max-width:100%;border-radius:16px 16px 0 0;max-height:88vh}
+  .q-tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .q-tab{padding:0 10px;font-size:12px;gap:5px;white-space:nowrap}
+  .sub-tabs{flex-wrap:nowrap;overflow-x:auto}
+}
 </style>
 </head>
 <body>
@@ -531,6 +582,13 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   </div>
   <div id="sync-bar" class="sync-bar"><span class="dot-green"></span> Conectado</div>
   <div id="app-body"></div>
+  <nav id="mob-tabbar">
+    <button class="mob-tab" id="mobt-home" onclick="handleMobTab('home')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="M3 11 12 3l9 8M5 10v10h14V10"/></svg><span>Inicio</span></button>
+    <button class="mob-tab" id="mobt-att" onclick="handleMobTab('att')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Asist.</span></button>
+    <button class="mob-tab" id="mobt-ses" onclick="handleMobTab('ses')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="M6.5 6.5 17.5 17.5M6.5 17.5 17.5 6.5M3 12h2m14 0h2M7 8v8m10-8v8"/></svg><span>Sesión</span></button>
+    <button class="mob-tab" id="mobt-met" onclick="handleMobTab('met')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="M3 12 7 8l4 6 4-3 6 8"/></svg><span>Métricas</span></button>
+    <button class="mob-tab" id="mobt-more" onclick="handleMobTab('more')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="M3 6h18M3 12h18M3 18h18"/></svg><span>Más</span></button>
+  </nav>
 </div>
 
 <script>
@@ -1618,6 +1676,33 @@ async function addPlayer(){
   await persistCat();render();
 }
 
+function handleMobTab(tab){
+  if(tab==='home'){S.view='home';S.teamFormMode=null;S.catFormMode=null;render();return;}
+  const catTab={att:'attend',ses:'session',met:'metrics',more:'roster'}[tab];
+  if(!catTab)return;
+  const tid=S.lastCatTid||S.teamId;
+  const cid=S.lastCatCid||S.cat;
+  if(tid&&cid){
+    S.teamId=tid;S.cat=cid;S.view='cat';S.tab=catTab;
+    if(catTab==='attend')loadSession();
+    if(catTab==='session')loadSessionDraft();
+    render();
+  }else{S.view='home';render();}
+}
+function updateMobTabBar(){
+  const isCat=S.view==='cat';
+  const active={
+    home:!isCat&&S.view!=='search'&&S.view!=='athlete',
+    att:isCat&&S.tab==='attend',
+    ses:isCat&&S.tab==='session',
+    met:isCat&&(S.tab==='metrics'||S.tab==='reports'),
+    more:isCat&&S.tab==='roster',
+  };
+  ['home','att','ses','met','more'].forEach(function(k){
+    var el=document.getElementById('mobt-'+k);
+    if(el)el.classList.toggle('active',!!active[k]);
+  });
+}
 // ── Render ────────────────────────────────────────────────────
 function render(){
   const body=document.getElementById('app-body');if(!body)return;
@@ -3034,6 +3119,7 @@ function attachEvents(){
   const djh=document.getElementById('af-djh');
   if(djh)djh.addEventListener('input',updateRsiPreview);
   setTimeout(initCharts,80);
+  updateMobTabBar();
 }
 
 async function handleAction(e){
