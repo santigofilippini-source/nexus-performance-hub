@@ -1659,7 +1659,7 @@ function renderMetrics(){
       ${pill}
     </div>`;
   }).join('');
-  return sectionHeader+kpiRow+barChart+insufficientBanner+alertsBanner+`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><div class="q-card" style="min-width:620px;">${tableHead}${tableRows}</div></div>`;
+  return sectionHeader+kpiRow+barChart+insufficientBanner+alertsBanner+`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><div class="q-card" style="min-width:760px;">${tableHead}${tableRows}</div></div>`;
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
@@ -2336,7 +2336,8 @@ function renderAthleteTests(a){
     if(ltFms.trunkStab!=null&&ltFms.trunkStab<3)flags.push({l:`Trunk Stability = ${ltFms.trunkStab}`,s:'Plank progresiones · dead bug',c:'var(--warn)',i:fi});
     const allScores=[ltFms.deepSquat,ltFms.hurdleL,ltFms.hurdleR,ltFms.lungeL,ltFms.lungeR,ltFms.shoulderL,ltFms.shoulderR,ltFms.aslrL,ltFms.aslrR,ltFms.trunkStab,ltFms.rotaryL,ltFms.rotaryR].filter(v=>v!=null);
     if(!allScores.includes(0))flags.push({l:'Sin dolor en ningún patrón',s:'Habilita carga libre',c:'var(--ok)',i:ci});
-    fmsLatestHtml=`<div style="display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:start;margin-bottom:16px;">
+    const _fmsMob=window.innerWidth<900;
+    fmsLatestHtml=`<div style="display:grid;grid-template-columns:${_fmsMob?'1fr':'180px 1fr'};gap:16px;align-items:start;margin-bottom:16px;">
       <div style="background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:16px 12px;text-align:center;">
         <div style="font-size:9.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:8px;">FMS Score · ${fmtDate(ltFms.date||fmsEvals[0][0].slice(0,10))}</div>
         <div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(${fc} 0 ${pct}deg,var(--bg-3) 0);display:grid;place-items:center;margin:0 auto 12px;position:relative;">

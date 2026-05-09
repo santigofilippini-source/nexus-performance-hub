@@ -471,7 +471,7 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .q-att-summary{grid-template-columns:repeat(3,1fr)}
   .q-att-summary .cell:nth-child(4),.q-att-summary .cell:nth-child(5){border-top:1px solid var(--line)}
   .q-roster{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .q-roster__head,.q-roster__row{min-width:520px}
+  .q-roster__head,.q-roster__row{grid-template-columns:minmax(110px,1fr) 160px 46px 72px 90px;min-width:520px}
   .q-sess-grid{grid-template-columns:1fr}
   .q-rpe-grid{flex-wrap:wrap}
   .q-att-head{flex-wrap:wrap;gap:6px}
