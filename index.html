@@ -323,6 +323,64 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .nx-new-team-btn:hover{background:var(--bg-3);color:var(--fg-1);border-color:var(--line-strong);}
 }
 @keyframes nx-pulse{0%,100%{opacity:.35}50%{opacity:.8}}
+/* ── Category view ──────────────────────────────────────── */
+.q-section-h{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;}
+.q-section-h__l h2{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:0;color:var(--text-0);}
+.q-section-h__l p{margin:2px 0 0;font-size:12px;color:var(--text-2);}
+.q-section-h__r{display:flex;align-items:center;gap:8px;}
+.q-btn{height:32px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;background:var(--bg-3);color:var(--text-0);border:1px solid var(--line-strong);border-radius:var(--r-2);font-size:12.5px;font-weight:500;cursor:pointer;transition:background .12s,border-color .12s,color .12s;font-family:var(--font-ui);}
+.q-btn:hover{background:var(--bg-4);}
+.q-btn--ghost{background:transparent;border-color:var(--line);}
+.q-btn--ghost:hover{background:var(--bg-3);}
+.q-btn--primary{background:var(--accent);color:#1A0A02;border-color:transparent;font-weight:600;}
+.q-btn--primary:hover{background:var(--accent-hover);}
+.q-btn--sm{height:26px;padding:0 8px;font-size:11.5px;gap:5px;}
+.q-tabs{display:flex;align-items:center;border-bottom:1px solid var(--line);margin-bottom:18px;}
+.q-tab{height:38px;padding:0 14px;background:transparent;border:0;color:var(--text-1);font:500 13px var(--font-ui);cursor:pointer;display:inline-flex;align-items:center;gap:7px;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .12s,border-color .12s;}
+.q-tab:hover{color:var(--text-0);}
+.q-tab.active{color:var(--text-0);border-bottom-color:var(--accent);}
+.q-tab .tnum{font:500 10px var(--font-mono);color:var(--text-2);background:var(--bg-3);padding:1px 5px;border-radius:var(--r-1);}
+.q-tab.active .tnum{color:var(--accent);background:var(--accent-soft);}
+.cat-wrap{padding:16px 20px;}
+.q-att-head{display:flex;gap:8px;align-items:center;margin-bottom:14px;}
+.q-date{display:flex;align-items:center;gap:4px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);padding:4px;}
+.q-date__btn{width:26px;height:26px;display:grid;place-items:center;background:transparent;border:0;color:var(--text-1);border-radius:var(--r-1);cursor:pointer;}
+.q-date__btn:hover{background:var(--bg-3);color:var(--text-0);}
+.q-date__btn:disabled{opacity:.3;cursor:default;}
+.q-date__main{padding:0 10px;display:flex;flex-direction:column;align-items:center;line-height:1.1;gap:2px;}
+.q-date__main .d{font:500 13px var(--font-mono);color:var(--text-0);letter-spacing:-.02em;}
+.q-date__main .dow input{background:transparent;border:0;color:var(--text-2);font:500 10px var(--font-mono);text-transform:uppercase;letter-spacing:.05em;width:84px;text-align:center;cursor:pointer;outline:none;}
+.q-att-summary{display:grid;grid-template-columns:repeat(5,1fr);background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-3);margin-bottom:14px;overflow:hidden;}
+.q-att-summary .cell{padding:12px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:3px;}
+.q-att-summary .cell:last-child{border-right:0;}
+.q-att-summary .cell .lbl{font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;display:flex;align-items:center;gap:6px;}
+.q-att-summary .cell .lbl .sw{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.q-att-summary .cell .v{font:500 22px var(--font-mono);letter-spacing:-.03em;color:var(--text-0);}
+.q-att-summary .cell .pct{color:var(--text-2);font-size:12px;margin-left:3px;}
+.q-att-summary .cell .sub{font-size:11px;color:var(--text-2);}
+.q-att-summary .cell.featured{background:linear-gradient(180deg,rgba(255,106,26,.06),transparent);}
+.q-att-summary .cell.featured .v{color:var(--accent);}
+.q-roster{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-3);overflow:hidden;}
+.q-roster__head,.q-roster__row{display:grid;grid-template-columns:minmax(0,1fr) 160px 52px 80px 160px;align-items:center;gap:12px;padding:0 16px;height:44px;}
+.q-roster__head{background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;height:36px;}
+.q-roster__row{border-bottom:1px solid var(--line);transition:background .1s;}
+.q-roster__row:last-child{border-bottom:0;}
+.q-roster__row:hover{background:var(--bg-3);}
+.q-roster__row .ath{display:flex;align-items:center;gap:10px;min-width:0;}
+.q-roster__row .ath .av{width:28px;height:28px;border-radius:50%;background:var(--bg-4);display:grid;place-items:center;font:600 10px var(--font-ui);color:var(--text-1);flex:0 0 auto;}
+.q-roster__row .ath .nm{font-weight:500;color:var(--text-0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.q-roster__row .ath .pos{font-size:11px;color:var(--text-2);margin-left:6px;flex-shrink:0;}
+.q-roster__row .nmono{font:500 13px var(--font-mono);color:var(--text-0);letter-spacing:-.02em;}
+.q-roster__row .nmono.muted{color:var(--text-2);}
+.q-att-toggle{display:inline-flex;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-2);padding:2px;gap:1px;}
+.q-att-toggle .b{height:24px;min-width:26px;padding:0 6px;border:0;background:transparent;font:500 11.5px var(--font-ui);color:var(--text-2);border-radius:var(--r-1);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+.q-att-toggle .b:hover{color:var(--text-0);}
+.q-att-toggle .b:disabled{cursor:default;opacity:.5;}
+.q-att-toggle .b.on.p{background:var(--ok-soft);color:var(--ok);box-shadow:inset 0 0 0 1px rgba(93,224,127,.3);}
+.q-att-toggle .b.on.t{background:var(--warn-soft);color:var(--warn);box-shadow:inset 0 0 0 1px rgba(242,181,68,.3);}
+.q-att-toggle .b.on.a{background:var(--bad-soft);color:var(--bad);box-shadow:inset 0 0 0 1px rgba(255,77,94,.3);}
+.q-att-toggle .b.on.l{background:var(--info-soft);color:var(--info);box-shadow:inset 0 0 0 1px rgba(107,184,255,.3);}
+.q-att-toggle .b.on.j{background:rgba(168,85,247,.14);color:#C9A6FF;box-shadow:inset 0 0 0 1px rgba(168,85,247,.3);}
 </style>
 </head>
 <body>
@@ -725,7 +783,7 @@ function updateStatsBar() {
     const ds=d.toISOString().split('T')[0];
     Object.values(S.teams).forEach(t=>Object.values(t.categories||{}).forEach(c=>{
       const da=(c.attendance||{})[ds]||{};
-      (c.players||[]).forEach(p=>{const s=da[p.id];if(s==='P'||s==='A'){totAll++;if(s==='P')totP++;}});
+      (c.players||[]).forEach(p=>{const s=da[p.id];if(s==='P'||s==='T'||s==='A'||s==='L'||s==='J'){totAll++;if(s==='P'||s==='T')totP++;}});
     }));
   }
   const attStr=totAll>0?Math.round(totP/totAll*100)+'%':'—';
@@ -1429,10 +1487,10 @@ function getStats(players,attendance){
   const dates=Object.keys(attendance).sort();
   return players.map(p=>{
     let P=0,A=0,total=0;
-    dates.forEach(d=>{const s=attendance[d]?.[p.id];if(s==='P'||s==='A'||s==='J'){total++;if(s==='P')P++;else A++;}});
+    dates.forEach(d=>{const s=attendance[d]?.[p.id];if(s==='P'||s==='T'||s==='A'||s==='L'||s==='J'){total++;if(s==='P'||s==='T')P++;else A++;}});
     const pct=total>0?Math.round(P/total*100):null;
     let consec=0;
-    for(let i=dates.length-1;i>=0;i--){const s=attendance[dates[i]]?.[p.id];if(s==='A'||s==='J')consec++;else if(s)break;}
+    for(let i=dates.length-1;i>=0;i--){const s=attendance[dates[i]]?.[p.id];if(s==='A'||s==='L'||s==='J')consec++;else if(s)break;}
     return{...p,P,A,total,pct,consec};
   }).sort((a,b)=>(a.pct??101)-(b.pct??101));
 }
@@ -1442,7 +1500,7 @@ function getMonthly(players,attendance){
   dates.forEach(d=>{const m=d.slice(0,7);if(!mm[m])mm[m]=[];mm[m].push(d);});
   return Object.entries(mm).sort().map(([month,mDates])=>{
     let tP=0,tT=0;
-    mDates.forEach(d=>players.forEach(p=>{const s=attendance[d]?.[p.id];if(s==='P'||s==='A'||s==='J'){tT++;if(s==='P')tP++;}}));
+    mDates.forEach(d=>players.forEach(p=>{const s=attendance[d]?.[p.id];if(s==='P'||s==='T'||s==='A'||s==='L'||s==='J'){tT++;if(s==='P'||s==='T')tP++;}}));
     return{month,sessions:mDates.length,avgPct:tT>0?Math.round(tP/tT*100):null};
   });
 }
@@ -1463,7 +1521,7 @@ function loadSessionDraft(){
   S.wellnessExpanded={};
 }
 async function saveAttendance(){
-  const _ar=Object.fromEntries(Object.entries(S.absenceReasons).filter(([k])=>S.sess[k]==='A'));getCat().attendance[S.date]={...S.sess,...(Object.keys(_ar).length?{absenceReasons:_ar}:{})};
+  getCat().attendance[S.date]={...S.sess};
   await persistCat();render();
   const msg=document.getElementById('save-msg');
   if(msg){msg.textContent='✓ Guardado';setTimeout(()=>{if(msg)msg.textContent='';},2500);}
@@ -1678,57 +1736,139 @@ function renderCatForm(){
 
 // ── CATEGORY VIEW ─────────────────────────────────────────────
 function renderCatHeader(){
-  const c=getCat(); const catName=getCatName(); const color=getCatColor();
+  const c=getCat(); const catName=getCatName();
   const role=myRole();
   const rolePill=role&&role!=='owner'?`<span class="role-pill ${role==='editor'?'role-editor':'role-viewer'}">${role==='editor'?'Editor':'Lector'}</span>`:'';
-  const tabs=[['attend','Asist.'],['session','Sesión'],['metrics','Cargas'],['reports','Reportes'],['roster','Plantel']];
-  return`<div class="sec-header">
-    <button class="back-btn" data-action="backtoTeam">← ${getTeam().name||'Equipo'}</button>
-    <span class="sec-title">${catName}</span>
-    <span style="background:${color}22;color:${color};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">${c.players.length} jug.</span>
-    ${rolePill}
-    ${isOwner()?`<button class="sm-btn" data-action="editcurrentcat">⚙</button>`:''}
-  </div>
-  <div class="tabs">${tabs.map(([t,l])=>`<button class="tab-btn${S.tab===t?' active':''}" data-action="tab" data-tab="${t}">${l}</button>`).join('')}</div>`;
+  const svg=(d)=>`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="${d}"/></svg>`;
+  const tabs=[
+    {id:'attend',label:'Asistencia',icon:'M22 12h-4l-3 9L9 3l-3 9H2',num:c.players.length},
+    {id:'session',label:'Sesión',icon:'M6.5 6.5 17.5 17.5M6.5 17.5 17.5 6.5M3 12h2m14 0h2M7 8v8m10-8v8'},
+    {id:'metrics',label:'Métricas',icon:'M3 12 7 8l4 6 4-3 6 8'},
+    {id:'reports',label:'Reportes',icon:'M4 21V4M4 4h13l-2 4 2 4H4'},
+    {id:'roster',label:'Plantel',icon:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.87M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm7 0a4 4 0 0 1 0 8'},
+  ];
+  return`<div class="cat-wrap" style="padding-bottom:0;">
+    <div class="q-section-h">
+      <div class="q-section-h__l">
+        <h2>${catName} ${rolePill}</h2>
+        <p>${c.players.length} jugadores en plantel${isOwner()?` · <button class="sm-btn" style="padding:1px 7px;font-size:10px;" data-action="editcurrentcat">⚙ Editar</button>`:''}</p>
+      </div>
+      <div class="q-section-h__r">
+        <button class="q-btn q-btn--ghost q-btn--sm" data-action="backtoTeam">${svg('m15 6-6 6 6 6')} ${getTeam().name||'Equipo'}</button>
+        ${canEdit()&&S.tab==='attend'?`<button class="q-btn q-btn--primary q-btn--sm" data-action="save">Guardar asistencia</button>`:''}
+      </div>
+    </div>
+    <div class="q-tabs">
+      ${tabs.map(({id,label,icon,num})=>`<button class="q-tab${S.tab===id?' active':''}" data-action="tab" data-tab="${id}">${svg(icon)}${label}${num!==undefined?`<span class="tnum">${num}</span>`:''}</button>`).join('')}
+    </div>
+  </div>`;
 }
 
 function renderCat(){
   const map={attend:renderAttend,session:renderSession,metrics:renderMetrics,reports:renderReports,roster:renderRoster};
-  return`<div class="wrap">${(map[S.tab]||renderRoster)()}</div>`;
+  return`<div class="cat-wrap" style="padding-top:0;">${(map[S.tab]||renderRoster)()}</div>`;
 }
 
 // ── ATTENDANCE ────────────────────────────────────────────────
 function renderAttend(){
   const cd=getCat();
   const editable=canEdit();
-  const _arStyle='font-size:11px;padding:3px 10px;border-radius:12px;cursor:pointer;border:.5px solid var(--border);font-weight:500;';
+  const svg=(d)=>`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="${d}"/></svg>`;
+
+  // Date display
+  const dateObj=new Date(S.date+'T12:00:00');
+  const dayNames=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+  const monthNames=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const dateStr=`${dayNames[dateObj.getDay()]} ${String(dateObj.getDate()).padStart(2,'0')} ${monthNames[dateObj.getMonth()]}`;
+
+  // Attendance counts (P/T/A/L/J)
+  const counts={P:0,T:0,A:0,L:0,J:0};
+  cd.players.forEach(p=>{const s=S.sess[p.id]||'';if(counts[s]!==undefined)counts[s]++;});
+  const total=cd.players.length;
+  const present=counts.P+counts.T;
+  const pct=total?Math.round(present/total*100):0;
+
+  // Session info for RPE
+  const sessEx=cd.sessions?.[S.date];
+  const stDef=SESSION_TYPES.find(t=>t.id===sessEx?.sessionType);
+
+  // Roster rows
   const rows=cd.players.map(p=>{
-    const cur=S.sess[p.id];
-    const reason=S.absenceReasons[p.id]||null;
-    const reasonDef=reason?ABSENCE_REASONS.find(r=>r.id===reason):null;
-    const btns=['P','A'].map(s=>`<button class="status-btn${cur===s?` active-${s.toLowerCase()}`:''}" ${editable?`data-action="setstatus" data-pid="${p.id}" data-status="${s}"`:'disabled style="cursor:default;"'}>${s}</button>`).join('');
-    const reasonRow=cur==='A'&&editable?`<div style="display:flex;gap:4px;flex-wrap:wrap;padding:3px 0 6px 12px;">${ABSENCE_REASONS.map(r=>`<button style="${_arStyle}background:${reason===r.id?'#2d0a0a':'var(--bg2)'};color:${reason===r.id?'#fca5a5':'var(--text3)'};" data-action="setabsencereason" data-pid="${p.id}" data-reason="${r.id}">${r.icon} ${r.label}</button>`).join('')}</div>`:cur==='A'&&reasonDef?`<div style="padding:0 0 4px 12px;"><span style="${_arStyle}background:#2d0a0a;color:#fca5a5;">${reasonDef.icon} ${reasonDef.label}</span></div>`:'';
-    return`<div class="player-row"><span class="player-name">${p.name}</span><div class="status-group">${btns}</div></div>${reasonRow}`;
+    const cur=S.sess[p.id]||'';
+    const initials=p.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
+    const pos=p.personal?.position||'';
+    const rpeVal=sessEx?.playerRPE?.[p.id]??sessEx?.teamRPE??null;
+    const dur=parseInt(sessEx?.duration)||0;
+    const ua=rpeVal!==null&&dur?rpeVal*dur:null;
+    const toggle=['P','T','A','L','J'].map(s=>`<button class="b ${s.toLowerCase()}${cur===s?' on':''}" ${editable?`data-action="setstatus" data-pid="${p.id}" data-status="${s}"`:'disabled'}>${s}</button>`).join('');
+    return`<div class="q-roster__row">
+      <span class="ath">
+        <span class="av">${initials}</span>
+        <span class="nm">${p.name}</span>
+        ${pos?`<span class="pos">${pos}</span>`:''}
+      </span>
+      <span><div class="q-att-toggle">${toggle}</div></span>
+      <span class="nmono${rpeVal===null?' muted':''}">${rpeVal!==null?rpeVal:'—'}</span>
+      <span class="nmono${ua===null?' muted':''}">${ua!==null?ua+' UA':'—'}</span>
+      <span style="display:flex;gap:6px;justify-content:flex-end;">
+        <button class="q-btn q-btn--ghost q-btn--sm" style="font-size:10.5px;" data-action="openathlete" data-pid="${p.id}">Ficha ${svg('m9 6 6 6-6 6')}</button>
+      </span>
+    </div>`;
   }).join('');
-  const counts={P:0,A:0};
-  Object.values(S.sess).forEach(v=>{if(counts[v]!==undefined)counts[v]++;});
-  const chips=['P','A'].filter(s=>counts[s]>0).map(s=>`<span class="count-chip chip-${s.toLowerCase()}">${counts[s]} ${s}</span>`).join('');
-  const _stDef=SESSION_TYPES.find(t=>t.id===(cd.sessions?.[S.date]?.sessionType));
-  const _stBadge=_stDef?`<div style="text-align:center;font-size:12px;color:var(--text2);margin-bottom:8px;padding:4px 10px;background:var(--bg2);border-radius:8px;border:1px solid var(--border);">${_stDef.icon} ${_stDef.label}</div>`:'';
+
   return`${!editable?`<div class="readonly-banner">👁 Modo lectura — no podés editar asistencia en esta categoría.</div>`:''}
-  <div class="date-row">
-    <button class="arrow-btn" data-action="prevday">‹</button>
-    <input type="date" value="${S.date}" max="${TODAY}" id="date-input">
-    <button class="arrow-btn" data-action="nextday" ${S.date>=TODAY?"disabled style='opacity:.3;'":''}>  › </button>
+  <div class="q-att-head">
+    <div class="q-date">
+      <button class="q-date__btn" data-action="prevday">${svg('m15 6-6 6 6 6')}</button>
+      <div class="q-date__main">
+        <span class="d">${dateStr}</span>
+        <span class="dow"><input type="date" value="${S.date}" max="${TODAY}" id="date-input"></span>
+      </div>
+      <button class="q-date__btn" data-action="nextday" ${S.date>=TODAY?'disabled':''}>${svg('m9 6 6 6-6 6')}</button>
+    </div>
+    ${stDef?`<span style="font-size:12px;color:var(--text-2);padding:4px 8px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);">${stDef.icon} ${stDef.label}</span>`:''}
+    ${editable?`<button class="q-btn q-btn--ghost q-btn--sm" data-action="allp">${svg('M20 6 9 17l-5-5')} Todos presente</button>
+    <button class="q-btn q-btn--ghost q-btn--sm" data-action="alla">${svg('M18 6 6 18M6 6l12 12')} Todos ausente</button>`:''}
+    <span id="save-msg" style="font-size:12px;color:var(--ok);font-weight:500;margin-left:auto;"></span>
   </div>
-  ${_stBadge}
-  ${editable?`<div class="quick-row"><button class="quick-btn quick-p" data-action="allp">Todos Presente</button><button class="quick-btn quick-a" data-action="alla">Todos Ausente</button></div>`:''}
-  ${rows}
-  <div class="save-row">
-    <div class="save-counts">${chips}</div>
-    <span id="save-msg" style="font-size:13px;color:#86efac;font-weight:500;"></span>
-    ${editable?`<button class="save-btn" data-action="save">Guardar</button>`:''}
-  </div>`;
+  <div class="q-att-summary">
+    <div class="cell featured">
+      <span class="lbl"><span class="sw" style="background:var(--accent)"></span>Asistencia</span>
+      <span class="v">${pct}<span class="pct">%</span></span>
+      <span class="sub">${present} / ${total} — obj ≥ 85%</span>
+    </div>
+    <div class="cell">
+      <span class="lbl"><span class="sw" style="background:var(--ok)"></span>Presentes</span>
+      <span class="v" style="color:var(--ok);">${counts.P}</span>
+      <span class="sub">${counts.T>0?counts.T+' tarde':''}</span>
+    </div>
+    <div class="cell">
+      <span class="lbl"><span class="sw" style="background:var(--warn)"></span>Tarde</span>
+      <span class="v" style="color:var(--warn);">${counts.T}</span>
+      <span class="sub">—</span>
+    </div>
+    <div class="cell">
+      <span class="lbl"><span class="sw" style="background:var(--bad)"></span>Ausentes</span>
+      <span class="v" style="color:var(--bad);">${counts.A}</span>
+      <span class="sub">${counts.A>0?'sin justificar':'—'}</span>
+    </div>
+    <div class="cell">
+      <span class="lbl"><span class="sw" style="background:#C9A6FF"></span>Lesión / Just.</span>
+      <span class="v" style="color:#C9A6FF;">${counts.L+counts.J}</span>
+      <span class="sub">${[counts.L?counts.L+' lesión':'',counts.J?counts.J+' just.':''].filter(Boolean).join(' · ')||'—'}</span>
+    </div>
+  </div>
+  <div class="q-roster">
+    <div class="q-roster__head">
+      <span>Atleta</span>
+      <span>Estado</span>
+      <span>RPE</span>
+      <span>Carga</span>
+      <span style="text-align:right;">Acciones</span>
+    </div>
+    ${rows}
+  </div>
+  <div style="font-size:11.5px;color:var(--text-2);margin-top:8px;">${total} atletas · ${editable?'clic en estado para cambiar':'modo lectura'}</div>`;
 }
 
 
@@ -1783,9 +1923,9 @@ function renderIndividualRPE(){
   const cd=getCat(),att=cd.attendance[S.date]||{},dur=parseInt(S.sessionDraft.duration)||0;
   return`<div class="rpe-section"><div class="rpe-title">RPE por jugador</div>
   ${cd.players.map(p=>{
-    const status=att[p.id],isPresent=status==='P';
+    const status=att[p.id],isPresent=status==='P'||status==='T';
     const rpeVal=S.sessionDraft.playerRPE[p.id]??null;
-    if(!isPresent){const abReason=att.absenceReasons?.[p.id];const abDef=abReason?ABSENCE_REASONS.find(r=>r.id===abReason):null;return`<div class="p-rpe-row" style="opacity:.4;pointer-events:none;"><div class="p-rpe-top"><span class="p-rpe-name">${p.name}</span><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#2d0a0a;color:#fca5a5;">${status==='A'?(abDef?abDef.icon+' '+abDef.label:'Ausente'):'Sin registro'}</span></div></div>`;}
+    if(!isPresent){const stateLabel={A:'Ausente',L:'Lesión',J:'Justificado'};return`<div class="p-rpe-row" style="opacity:.4;pointer-events:none;"><div class="p-rpe-top"><span class="p-rpe-name">${p.name}</span><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#2d0a0a;color:#fca5a5;">${stateLabel[status]||'Sin registro'}</span></div></div>`;}
     const btns=Array.from({length:11},(_,i)=>`<button class="rpe-btn${rpeVal===i?' sel':''}" style="background:${rpeVal===i?RPE_BG[i]:'var(--bg2)'};color:${rpeVal===i?RPE_FG[i]:'var(--text3)'};height:36px;font-size:12px;" data-action="playerrpe" data-pid="${p.id}" data-rpe="${i}">${i}</button>`).join('');
     return`<div class="p-rpe-row">
       <div class="p-rpe-top"><span class="p-rpe-name">${p.name}</span>${rpeVal!==null?`<span style="font-size:12px;color:${RPE_BG[rpeVal]};font-weight:600;">RPE${rpeVal}${dur?' · '+(rpeVal*dur)+'UA':''}</span>`:''}</div>
@@ -2607,7 +2747,7 @@ async function handleAction(e){
   else if(a==='sessiontype'){S.sessionDraft.sessionType=el.dataset.type;render();}
   else if(a==='cancelsearch'){S.view=S.prevView||'home';S.teamId=S.prevTeamId||S.teamId;render();}
   // ATTENDANCE
-  else if(a==='setstatus'){S.sess[el.dataset.pid]=el.dataset.status;if(el.dataset.status!=='A')delete S.absenceReasons[el.dataset.pid];render();}
+  else if(a==='setstatus'){S.sess[el.dataset.pid]=el.dataset.status;render();}
   else if(a==='setabsencereason'){S.absenceReasons[el.dataset.pid]=el.dataset.reason;render();}
   else if(a==='allp'){getCat().players.forEach(p=>S.sess[p.id]='P');render();}
   else if(a==='alla'){getCat().players.forEach(p=>S.sess[p.id]='A');render();}
