@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -2074,94 +2074,86 @@ function renderSessionWellness(){
 function renderMetrics(){
   const cd=getCat();
   if(!cd.players.length)return`<div class="empty-state">Sin jugadores en el plantel.</div>`;
+  const allM=cd.players.map(p=>{const m=calcMetrics(cd,p.id);return{...m,id:p.id,name:p.name,pos:p.position||''};});
+  const withData=allM.filter(m=>m.hasData);
+  const acwrStatus=(acwr)=>{
+    if(acwr===null)return null;
+    if(acwr<0.8)return{lbl:'Baja',c:'var(--info)',s:'var(--info-soft)'};
+    if(acwr<=1.3)return{lbl:'Óptima',c:'var(--ok)',s:'var(--ok-soft)'};
+    if(acwr<=1.5)return{lbl:'Elevada',c:'var(--warn)',s:'var(--warn-soft)'};
+    return{lbl:'Pico',c:'var(--bad)',s:'var(--bad-soft)'};
+  };
+  const avgAcwrVals=allM.filter(m=>m.acwr!==null);
+  const avgAcwr=avgAcwrVals.length>0?Math.round(avgAcwrVals.reduce((a,m)=>a+m.acwr,0)/avgAcwrVals.length*100)/100:null;
+  const avgWeekly=withData.length>0?Math.round(withData.reduce((a,m)=>a+m.ac,0)/withData.length):0;
+  const avgMono=withData.length>0?Math.round(withData.reduce((a,m)=>a+m.monotony,0)/withData.length*10)/10:0;
+  const atRisk=allM.filter(m=>m.acwr!==null&&m.acwr>1.3).length;
+  const teamSt=acwrStatus(avgAcwr);
+  const FILTER_OPTS=[['7d','7d'],['1m','28d'],['custom','A medida']];
+  const filterToggle=`<div class="q-att-toggle" style="background:var(--bg-2);">${FILTER_OPTS.map(([v,l])=>`<button class="b${S.loadFilter===v?' on p':''}" data-action="loadfilter" data-val="${v}" style="height:26px;">${l}</button>`).join('')}</div>`;
   const {from,to}=getFilterWindow();
-  const FILTER_OPTS=[['1d','1 día'],['7d','7 días'],['1m','1 mes'],['custom','A medida']];
-  const filterBar=`<div style="margin-bottom:12px;">
-    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
-      ${FILTER_OPTS.map(([v,l])=>`<button class="sub-tab${S.loadFilter===v?' active':''}" data-action="loadfilter" data-val="${v}">${l}</button>`).join('')}
-      <button class="sm-btn" style="margin-left:auto;color:#60a5fa;border-color:#1e40af;" data-action="exportloadspdf">⬇ PDF</button>
+  const filterLabel=S.loadFilter==='7d'?'últimos 7 días':S.loadFilter==='1m'?'últimos 28 días':`${fmtDate(from)}–${fmtDate(to)}`;
+  const sectionHeader=`<div class="q-section-h" style="margin-bottom:14px;">
+    <div class="q-section-h__l"><h2>Métricas · Carga de equipo</h2><p>${withData.length} atletas con datos · ${filterLabel}</p></div>
+    <div class="q-section-h__r">${filterToggle}<button class="q-btn q-btn--ghost q-btn--sm" data-action="exportloadspdf">⬇ Exportar</button></div>
+  </div>`;
+  const kpiRow=`<div class="q-stats">
+    <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Carga semanal prom.</span></div><div class="q-stat__val">${avgWeekly}<span class="u">UA</span></div><div class="q-stat__sub"><span>Promedio del plantel</span></div></div>
+    <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">ACWR equipo</span></div><div class="q-stat__val" style="color:${teamSt?teamSt.c:'var(--text-0)'};">${avgAcwr!==null?avgAcwr:'—'}</div><div class="q-stat__sub"><span class="q-stat__delta flat">${teamSt?teamSt.lbl:'Sin datos'}</span><span>rango 0.8–1.3</span></div></div>
+    <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Monotonía</span></div><div class="q-stat__val">${avgMono||'—'}</div><div class="q-stat__sub"><span>variación del plantel</span></div></div>
+    <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Atletas en riesgo</span></div><div class="q-stat__val" style="color:${atRisk>0?'var(--bad)':'var(--ok)'};">${atRisk}<span class="u">/${allM.length}</span></div><div class="q-stat__sub"><span>ACWR &gt; 1.3</span></div></div>
+  </div>`;
+  const teamDays=Array.from({length:28},(_,i)=>{
+    const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-(27-i));
+    const ds=d.toISOString().split('T')[0];
+    const tot=allM.reduce((a,m)=>a+playerLoadOnDate(cd,m.id,ds),0);
+    return{ds,avg:allM.length>0?Math.round(tot/allM.length):0};
+  });
+  const maxDay=Math.max(...teamDays.map(d=>d.avg),1);
+  const barChart=`<div class="q-card" style="margin-bottom:14px;">
+    <div class="q-card__h"><h3>Carga diaria · 28 días</h3><span class="meta">Promedio del plantel</span></div>
+    <div style="padding:16px;">
+      <div style="display:flex;align-items:flex-end;gap:3px;height:80px;">${teamDays.map(d=>{const pct=d.avg/maxDay;const col=pct>0.85?'var(--bad)':pct>0.65?'var(--warn)':d.avg>0?'var(--accent)':'var(--bg-3)';return`<div style="flex:1;height:${Math.max(d.avg>0?4:2,Math.round(pct*80))}px;background:${col};border-radius:2px 2px 0 0;" title="${d.ds}: ${d.avg} UA"></div>`;}).join('')}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:var(--font-mono);font-size:10px;color:var(--text-2);">
+        <span>${fmtDate(teamDays[0].ds)}</span><span>${fmtDate(teamDays[6].ds)}</span><span>${fmtDate(teamDays[13].ds)}</span><span>${fmtDate(teamDays[20].ds)}</span><span>${fmtDate(teamDays[27].ds)}</span>
+      </div>
     </div>
-    ${S.loadFilter==='custom'?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <div style="font-size:12px;color:var(--text2);">Del</div>
-      <input type="date" id="load-from" value="${S.loadFrom||TODAY}" max="${TODAY}" style="font-size:12px;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-family:var(--font);">
-      <div style="font-size:12px;color:var(--text2);">al</div>
-      <input type="date" id="load-to" value="${S.loadTo||TODAY}" max="${TODAY}" style="font-size:12px;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-family:var(--font);">
-      <button class="save-btn" style="padding:5px 12px;font-size:12px;" data-action="applycustomfilter">Aplicar</button>
-    </div>`:''}
   </div>`;
-  const filterLabel=S.loadFilter==='1d'?'hoy':S.loadFilter==='7d'?'últimos 7 días':S.loadFilter==='1m'?'últimos 30 días':`${fmtDate(from)}–${fmtDate(to)}`;
-  const periodTypes=sessionTypesWindowRange(cd,from,to);
-  const allM=cd.players.map(p=>({...calcMetrics(cd,p.id),id:p.id,name:p.name,periodLoad:calcPeriodLoad(cd,p.id,from,to),periodBars:loadsWindowRange(cd,p.id,from,to)}));
-  const withData=allM.filter(m=>m.hasData||m.periodLoad>0);
-  const acwrRisk=allM.filter(m=>m.acwr!==null&&m.acwr>1.5);
-  const acwrLow=allM.filter(m=>m.acwr!==null&&m.acwr<0.8);
-  const monoHigh=allM.filter(m=>m.monotony>2.0);
-  const legend=`<div style="margin-bottom:12px;"><div class="section-label" style="margin-bottom:6px;">Zonas ACWR</div>
-    <div class="zone-legend">
-      <span class="zone-chip" style="background:#1e293b;color:#94a3b8;">< 0.8 Subcarga</span>
-      <span class="zone-chip" style="background:#052e16;color:#86efac;">0.8–1.3 Óptimo</span>
-      <span class="zone-chip" style="background:#1c1400;color:#fcd34d;">1.3–1.5 Precaución</span>
-      <span class="zone-chip" style="background:#2d0a0a;color:#fca5a5;">> 1.5 Riesgo</span>
-    </div></div>`;
   let sessionDays=0;for(let i=0;i<28;i++){const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);const ds=d.toISOString().split('T')[0];if(cd.sessions[ds]?.duration)sessionDays++;}
-  const insufficientDataBanner=sessionDays<14?`<div class="readonly-banner">⏳ Datos insuficientes — el ACWR requiere al menos 2-3 semanas de historial para ser confiable. Seguí registrando sesiones para obtener valores precisos.</div>`:'';
-  const hasAlerts=acwrRisk.length||acwrLow.length||monoHigh.length;
-  const alertsHtml=hasAlerts?`<div class="alert-banner">
-    <div class="alert-banner-title"><span style="font-size:16px;">⚠</span> Alertas</div>
-    ${acwrRisk.map(m=>`<div style="font-size:12px;">• ${m.name}: ACWR ${m.acwr} — Riesgo sobreentrenamiento</div>`).join('')}
-    ${acwrLow.map(m=>`<div style="font-size:12px;">• ${m.name}: ACWR ${m.acwr} — Subcarga</div>`).join('')}
-    ${monoHigh.map(m=>`<div style="font-size:12px;">• ${m.name}: Monotonía ${m.monotony} — Alta variación</div>`).join('')}
+  const insufficientBanner=sessionDays<14?`<div class="readonly-banner">⏳ Datos insuficientes — el ACWR requiere al menos 2–3 semanas de historial. Seguí registrando sesiones.</div>`:'';
+  const riskPl=allM.filter(m=>m.acwr!==null&&m.acwr>1.5);
+  const lowPl=allM.filter(m=>m.acwr!==null&&m.acwr<0.8);
+  const monoPl=allM.filter(m=>m.monotony>2.0);
+  const alertsBanner=(riskPl.length||lowPl.length||monoPl.length)?`<div class="alert-banner" style="margin-bottom:14px;">
+    <div class="alert-banner-title"><span style="font-size:15px;">⚠</span> Alertas</div>
+    ${riskPl.map(m=>`<div style="font-size:12px;">• ${m.name}: ACWR ${m.acwr} — Riesgo sobreentrenamiento</div>`).join('')}
+    ${lowPl.map(m=>`<div style="font-size:12px;">• ${m.name}: ACWR ${m.acwr} — Subcarga</div>`).join('')}
+    ${monoPl.map(m=>`<div style="font-size:12px;">• ${m.name}: Monotonía ${m.monotony} — Alta</div>`).join('')}
   </div>`:'';
-  if(!withData.length)return filterBar+legend+insufficientDataBanner+`<div class="empty-state">Sin datos de sesión aún.<br>Registrá RPE y duración en la tab <strong>Sesión</strong>.</div>`;
-  const acwrVals=withData.filter(m=>m.acwr!==null);
-  const avgAcwr=acwrVals.length>0?Math.round(acwrVals.reduce((a,m)=>a+m.acwr,0)/acwrVals.length*100)/100:null;
-  const totalPeriod=Math.round(allM.reduce((a,m)=>a+m.periodLoad,0)/Math.max(1,allM.filter(m=>m.periodLoad>0).length));
-  const teamAz=acwrZone(avgAcwr);
-  const teamOverview=`<div class="metric-grid">
-    <div class="metric"><div class="metric-label">Carga período prom.</div><div class="metric-val">${totalPeriod||0} <span style="font-size:12px;color:var(--text2);">UA</span></div></div>
-    ${avgAcwr!==null?`<div class="metric" style="background:${teamAz.bg};border-color:${teamAz.border};"><div class="metric-label">ACWR promedio</div><div class="metric-val" style="color:${teamAz.fg};">${avgAcwr} <span style="font-size:12px;">${teamAz.label}</span></div></div>`:''}
+  if(!withData.length)return sectionHeader+kpiRow+barChart+insufficientBanner+`<div class="empty-state">Sin datos de sesión aún.<br>Registrá RPE y duración en la tab <strong>Sesión</strong>.</div>`;
+  const sorted=[...allM].sort((a,b)=>(b.acwr??-1)-(a.acwr??-1));
+  const COL='minmax(0,1.6fr) 50px 80px 100px 80px 80px 1fr 90px';
+  const tableHead=`<div style="display:grid;grid-template-columns:${COL};gap:14px;padding:10px 16px;background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">
+    <span>Atleta</span><span>Pos</span><span>ACWR</span><span>Carga sem.</span><span>Monotonía</span><span>Strain</span><span>Distribución 7d</span><span>Estado</span>
   </div>`;
-  const cards=allM.map(m=>{
-    const az=acwrZone(m.acwr),mz=monoZone(m.monotony),wz=wellZone(m.wellAvg);
-    const bars=m.periodBars;const maxSpark=Math.max(...bars,1);
-    const sparkTotal=bars.reduce((a,b)=>a+b,0);
-    const sparks=bars.map((v,i)=>{const tp=periodTypes[i]||null;const tDef=SESSION_TYPES.find(t=>t.id===tp);const ttip=tDef?`${tDef.icon} ${tDef.label} · ${v} UA`:`${v} UA`;return`<div class="spark-bar" title="${ttip}" style="height:${Math.max(2,Math.round(v/maxSpark*24))}px;background:${sparkColorByType(v,maxSpark,tp)};flex:1;min-width:0;"></div>`;}).join('');
-    const sparkLbls=bars.map(v=>`<div style="flex:1;min-width:0;font-size:9px;color:var(--text3);text-align:center;line-height:1;">${v>0?v:''}</div>`).join('');
-    const showPeriod=S.loadFilter!=='7d';
-    // Wellness trend: avg last 3d vs avg last 7d
-    let _w3=0,_c3=0,_w7=0,_c7=0;
-    for(let i=0;i<7;i++){const _d=new Date(TODAY+'T12:00:00');_d.setDate(_d.getDate()-i);const _ds=_d.toISOString().split('T')[0];const _w=cd.sessions?.[_ds]?.wellness?.[m.id];if(_w){const _v=W_KEYS.map(k=>_w[k]).filter(v=>v!=null);if(_v.length){const _a=_v.reduce((a,b)=>a+b,0)/_v.length;_w7+=_a;_c7++;if(i<3){_w3+=_a;_c3++;}}}}
-    const _avg3=_c3>0?_w3/_c3:null,_avg7=_c7>0?_w7/_c7:null;
-    const wellTrend=_avg3!==null&&_avg7!==null&&_avg7-_avg3>0.5;
-    // Last wellness entry: find most recent
-    const _sdates=Object.keys(cd.sessions||{}).sort().reverse();
-    let _lastW=null;for(const _ds of _sdates){const _w=cd.sessions[_ds]?.wellness?.[m.id];if(_w&&W_KEYS.some(k=>_w[k]!=null)){_lastW=_w;break;}}
-    const _lowKeys=_lastW?W_KEYS.filter(k=>_lastW[k]!=null&&_lastW[k]<=2):[];
-    const _wStyle='font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#1c1400;color:#fcd34d;border:.5px solid #92400e;';
-    const _wBadges=(wellTrend?[`<span style="${_wStyle}">↓ Wellness</span>`]:[]).concat(_lowKeys.length>=2?[`<span style="${_wStyle}">${_lowKeys.map(k=>W_ICONS[k]+' '+W_LABELS[k]+' '+_lastW[k]).join(' · ')}</span>`]:[]);
-    const wellBadgesHtml=_wBadges.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">${_wBadges.join('')}</div>`:'';
-    return`<div class="metrics-card">
-      <div class="metrics-card-top">
-        <span class="metrics-name">${m.name}</span>
-        ${m.acwr!==null?`<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:${az.bg};color:${az.fg};border:.5px solid ${az.border};">ACWR ${m.acwr}</span>`:'<span style="font-size:11px;color:var(--text3);">Sin datos</span>'}
-      </div>
-      <div class="metrics-row" style="grid-template-columns:repeat(${showPeriod?5:4},1fr);">
-        ${showPeriod?`<div class="m-cell" style="background:var(--bg-1);border:1px solid var(--accent);"><div class="m-cell-label" style="color:#60a5fa;">Período</div><div class="m-cell-val" style="color:#60a5fa;">${m.periodLoad}</div></div>`:''}
-        <div class="m-cell"><div class="m-cell-label">AC (7d)</div><div class="m-cell-val">${m.ac}</div></div>
-        <div class="m-cell"><div class="m-cell-label">CC (4s)</div><div class="m-cell-val">${m.cc}</div></div>
-        <div class="m-cell"><div class="m-cell-label">Mono.</div><div class="m-cell-val" style="color:${mz.fg};">${m.monotony||'—'}</div></div>
-        <div class="m-cell"><div class="m-cell-label">Wellness</div><div class="m-cell-val" style="color:${wz.fg};">${m.wellAvg||'—'}</div></div>
-      </div>
-      ${wellBadgesHtml}
-      <div style="display:flex;align-items:flex-end;gap:${bars.length>15?'1':'2'}px;height:24px;margin-bottom:2px;">${sparks}</div>
-      <div style="display:flex;gap:${bars.length>15?'1':'2'}px;margin-bottom:3px;">${sparkLbls}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div style="font-size:10px;color:var(--text3);">${filterLabel}</div>
-        <div style="font-size:10px;color:var(--text2);font-weight:500;">Total: ${sparkTotal} UA</div>
-      </div>
+  const tableRows=sorted.map((m,i)=>{
+    const st=acwrStatus(m.acwr);
+    const initials=m.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
+    const maxSpark=Math.max(...m.l7,1);
+    const sparks=m.l7.map(v=>{const pct=v/maxSpark;const col=pct>0.85?'var(--bad)':pct>0.65?'var(--warn)':v>0?'var(--accent)':'var(--bg-3)';return`<i style="flex:1;height:${Math.max(v>0?4:2,Math.round(pct*20))}px;max-height:20px;background:${col};border-radius:1px;display:block;"></i>`;}).join('');
+    const pill=st?`<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;background:${st.s};color:${st.c};font-size:11px;font-weight:600;">● ${st.lbl}</span>`:`<span style="font-size:11px;color:var(--text-3);">Sin datos</span>`;
+    return`<div style="display:grid;grid-template-columns:${COL};gap:14px;padding:10px 16px;align-items:center;border-bottom:${i<sorted.length-1?'1px solid var(--line)':'0'};font-size:13px;">
+      <span style="display:flex;align-items:center;gap:10px;"><span style="width:26px;height:26px;border-radius:50%;background:var(--bg-3);display:grid;place-items:center;font-size:10px;font-weight:600;flex-shrink:0;">${initials}</span><span style="font-weight:500;">${m.name}</span></span>
+      <span style="font-size:11px;color:var(--text-2);font-family:var(--font-mono);">${m.pos}</span>
+      <span style="font-family:var(--font-mono);font-size:14px;font-weight:500;color:${st?st.c:'var(--text-2)'};">${m.acwr!==null?m.acwr:'—'}</span>
+      <span style="font-family:var(--font-mono);">${m.ac.toLocaleString('es-UY')}<span style="color:var(--text-2);font-size:11px;"> UA</span></span>
+      <span style="font-family:var(--font-mono);color:${m.monotony>1.8?'var(--warn)':'var(--text-1)'};">${m.monotony||'—'}</span>
+      <span style="font-family:var(--font-mono);">${m.strain.toLocaleString('es-UY')}</span>
+      <span style="display:flex;align-items:flex-end;gap:2px;height:20px;">${sparks}</span>
+      ${pill}
     </div>`;
   }).join('');
-  return filterBar+legend+insufficientDataBanner+alertsHtml+teamOverview+cards;
+  return sectionHeader+kpiRow+barChart+insufficientBanner+alertsBanner+`<div class="q-card">${tableHead}${tableRows}</div>`;
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
