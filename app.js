@@ -1531,6 +1531,8 @@ function renderTeamRPE(){
 function renderIndividualRPE(){
   const cd=getCat(),att=cd.attendance[S.date]||{},dur=parseInt(S.sessionDraft.duration)||0;
   const editable=canEdit();
+  const isMob=window.innerWidth<900;
+  if(!S.rpeExpand)S.rpeExpand={};
   return`<div style="border-top:1px solid var(--line);">
     <div style="padding:8px 16px;background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;">RPE por jugador</div>
     ${cd.players.map(p=>{
@@ -1538,6 +1540,19 @@ function renderIndividualRPE(){
       const rpeVal=S.sessionDraft.playerRPE[p.id]??null;
       const initials=p.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
       if(!isPresent){const stateLabel={A:'Ausente',L:'Lesión',J:'Justificado'};return`<div class="q-ind-row absent"><div class="q-ind-ath"><span class="av">${initials}</span><span class="nm">${p.name}</span></div><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bad-soft);color:var(--bad);">${stateLabel[status]||'Sin registro'}</span></div>`;}
+      if(isMob&&rpeVal!==null&&!S.rpeExpand[p.id]){
+        const ua=dur?rpeVal*dur:null;
+        return`<div class="q-ind-row" style="justify-content:space-between;">
+          <div class="q-ind-ath"><span class="av">${initials}</span><span class="nm">${p.name}</span></div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="display:flex;align-items:center;gap:6px;">
+              <span style="width:38px;height:38px;border-radius:8px;display:grid;place-items:center;font:700 20px var(--font-mono);background:${RPE_BG[rpeVal]}22;color:${RPE_BG[rpeVal]};border:1.5px solid ${RPE_BG[rpeVal]}55;">${rpeVal}</span>
+              ${ua!==null?`<span style="font-size:11px;font-family:var(--font-mono);color:var(--text-2);">${ua} UA</span>`:''}
+            </span>
+            ${editable?`<button style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg-3);color:var(--text-1);cursor:pointer;" data-action="expandrpe" data-pid="${p.id}">Cambiar</button>`:''}
+          </div>
+        </div>`;
+      }
       const btns=Array.from({length:11},(_,i)=>`<button class="b${rpeVal===i?' sel':''}"${rpeVal===i?` style="background:${RPE_BG[i]}22;color:${RPE_BG[i]};border-color:${RPE_BG[i]};"`:''}${editable?` data-action="playerrpe" data-pid="${p.id}" data-rpe="${i}"`:' disabled'}>${i}</button>`).join('');
       return`<div class="q-ind-row">
         <div class="q-ind-ath"><span class="av">${initials}</span><span class="nm">${p.name}</span></div>
@@ -2642,7 +2657,8 @@ async function handleAction(e){
   else if(a==='save'){await saveAttendance();}
   // SESSION
   else if(a==='teamrpe'){S.sessionDraft.teamRPE=parseInt(el.dataset.rpe);render();}
-  else if(a==='playerrpe'){S.sessionDraft.playerRPE[el.dataset.pid]=parseInt(el.dataset.rpe);render();}
+  else if(a==='expandrpe'){if(!S.rpeExpand)S.rpeExpand={};S.rpeExpand[el.dataset.pid]=true;render();}
+  else if(a==='playerrpe'){const _pid=el.dataset.pid;S.sessionDraft.playerRPE[_pid]=parseInt(el.dataset.rpe);if(S.rpeExpand)delete S.rpeExpand[_pid];render();}
   else if(a==='wellness'){const pid=el.dataset.pid,key=el.dataset.key,val=parseInt(el.dataset.val);if(!S.wellnessDraft[pid])S.wellnessDraft[pid]={};S.wellnessDraft[pid][key]=val;render();}
   else if(a==='togglewellness'){S.wellnessExpanded[el.dataset.pid]=!S.wellnessExpanded[el.dataset.pid];render();}
   else if(a==='savesession'){const durI=document.getElementById('dur-input');if(durI)S.sessionDraft.duration=durI.value;await saveSessionDraft();render();const msg=document.getElementById('sess-save-msg');if(msg){msg.textContent='✓ Guardado';setTimeout(()=>{if(msg)msg.textContent='';},2500);}}
