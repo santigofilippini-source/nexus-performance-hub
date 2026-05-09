@@ -2813,6 +2813,8 @@ function renderAthleteAntro(a,catId,teamId){
 }
 
 function renderAthleteTests(a){
+  const sv=(d,s=13,sw=1.6)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="${d}"/></svg>`;
+  // ── Jump data ──
   const evals=Object.entries(a.jumpTests||{}).sort((x,y)=>y[0].localeCompare(x[0]));
   const editJump=S.editingEvalId&&S.athleteForm==='tests'?(a.jumpTests||{})[S.editingEvalId]:null;
   const _jV=(k)=>editJump?.[k]!=null?editJump[k]:'';
@@ -2835,28 +2837,44 @@ function renderAthleteTests(a){
     </div>
     <div class="form-field" style="margin-top:8px;"><label>Notas</label><input type="text" id="af-notes" placeholder="Condiciones, observaciones..." value="${_jV('notes')}"></div>
     <div class="form-row"><button class="save-btn" style="width:100%;" data-action="savetestsform">Guardar</button></div>
-  </div>`:`<div><p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Evaluación de salto: SJ, CMJ, ABK y DJ.</p><button class="save-btn" style="width:100%;margin-bottom:12px;background:var(--bg2);color:var(--text);border:1px solid var(--border);" data-action="newtests">+ Nueva evaluación de salto</button></div>`;
+  </div>`:'';
+  // ── KPI strip (latest eval) ──
+  const lt=evals[0]?.[1],pv=evals[1]?.[1];
+  const rsiLt=lt?.djHeight&&lt?.djTc?Math.round((lt.djHeight/100)/(lt.djTc/1000)*100)/100:null;
+  const rsiPv=pv?.djHeight&&pv?.djTc?Math.round((pv.djHeight/100)/(pv.djTc/1000)*100)/100:null;
+  const kpis=lt?[
+    {l:'CMJ',v:lt.cmj,p:pv?.cmj,u:'cm',c:'var(--accent)'},
+    {l:'SJ',v:lt.sj,p:pv?.sj,u:'cm',c:'var(--text-0)'},
+    {l:'ABK',v:lt.abk,p:pv?.abk,u:'cm',c:'var(--text-0)'},
+    {l:'DJ',v:lt.djHeight,p:pv?.djHeight,u:'cm',c:'var(--text-0)'},
+    {l:'RSI',v:rsiLt,p:rsiPv,u:'',c:rsiLt>=2?'var(--ok)':rsiLt>=1.5?'var(--warn)':'var(--bad)'},
+  ].filter(k=>k.v!=null):[];
+  const kpiStrip=kpis.length?`<div class="q-stats" style="grid-template-columns:repeat(${kpis.length},1fr);margin-bottom:18px;">${kpis.map(k=>{const d=k.p!=null?Math.round((k.v-k.p)*10)/10:null;return`<div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">${k.l}</span></div><div class="q-stat__val" style="color:${k.c};">${k.v}${k.u?`<span class="u">${k.u}</span>`:''}</div>${d!=null?`<div class="q-stat__sub"><span class="q-stat__delta ${d>0?'up':d<0?'down':'flat'}">${d>0?'+':''}${d}</span></div>`:''}</div>`;}).join('')}</div>`:'';
+  // ── History cards ──
   const cards=evals.map(([id,ev],i)=>{
-    const prev=evals[i+1]?evals[i+1][1]:null;
+    const prev=evals[i+1]?.[1];
     const rsi=ev.djHeight&&ev.djTc?Math.round((ev.djHeight/100)/(ev.djTc/1000)*100)/100:null;
     const rz=rsiZone(rsi);
-    return`<div class="eval-card">
-      <div class="eval-top"><span class="eval-date">${fmtDate(ev.date||id.slice(0,10))}</span><button class="sm-btn" style="margin-left:auto;margin-right:4px;" data-action="editevaltests" data-evid="${id}">Editar</button><button class="eval-del" data-action="delevaltests" data-evid="${id}">Eliminar</button></div>
-      <div class="jump-grid">
-        ${ev.sj!=null?`<div class="jump-cell"><div class="jump-lbl">SJ</div><div class="jump-val">${ev.sj}</div><div class="jump-unit">cm${deltaHtml(ev.sj,prev?.sj)}</div></div>`:'<div></div>'}
-        ${ev.cmj!=null?`<div class="jump-cell"><div class="jump-lbl">CMJ</div><div class="jump-val">${ev.cmj}</div><div class="jump-unit">cm${deltaHtml(ev.cmj,prev?.cmj)}</div></div>`:'<div></div>'}
-        ${ev.abk!=null?`<div class="jump-cell"><div class="jump-lbl">ABK</div><div class="jump-val">${ev.abk}</div><div class="jump-unit">cm${deltaHtml(ev.abk,prev?.abk)}</div></div>`:'<div></div>'}
-        ${ev.abkRight!=null?`<div class="jump-cell"><div class="jump-lbl">ABK D.</div><div class="jump-val">${ev.abkRight}</div><div class="jump-unit">cm${deltaHtml(ev.abkRight,prev?.abkRight)}</div></div>`:'<div></div>'}
-        ${ev.abkLeft!=null?`<div class="jump-cell"><div class="jump-lbl">ABK I.</div><div class="jump-val">${ev.abkLeft}</div><div class="jump-unit">cm${deltaHtml(ev.abkLeft,prev?.abkLeft)}</div></div>`:'<div></div>'}
-        ${rsi!=null?`<div class="jump-cell" style="background:${rz.bg};"><div class="jump-lbl" style="color:${rz.fg};">RSI</div><div class="jump-val" style="color:${rz.fg};">${rsi}</div><div class="jump-unit" style="color:${rz.fg};">${rz.label}</div></div>`:'<div></div>'}
-      </div>
-      ${ev.djHeight||ev.djTc?`<div style="font-size:12px;color:var(--text2);margin-top:6px;text-align:center;">DJ: ${ev.djHeight||'—'}cm · TC: ${ev.djTc||'—'}ms</div>`:''}
-      ${ev.notes?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${ev.notes}</div>`:''}
-    </div>`;
+    const protos=[
+      {l:'CMJ — Counter Movement Jump',v:ev.cmj,pv:prev?.cmj,c:'var(--accent)',u:'cm'},
+      {l:'SJ — Squat Jump',v:ev.sj,pv:prev?.sj,c:'var(--text-0)',u:'cm'},
+      {l:'ABK — Abalakov',v:ev.abk,pv:prev?.abk,c:'var(--text-0)',u:'cm'},
+      {l:'ABK Der.',v:ev.abkRight,pv:prev?.abkRight,c:'var(--text-0)',u:'cm'},
+      {l:'ABK Izq.',v:ev.abkLeft,pv:prev?.abkLeft,c:'var(--text-0)',u:'cm'},
+      {l:'DJ 30 cm — Drop Jump',v:ev.djHeight,pv:prev?.djHeight,c:rz?rz.color:'var(--text-0)',u:'cm',note:rsi?`RSI: ${rsi} (${rz?.label||''})`:null},
+    ].filter(p=>p.v!=null);
+    const rows=protos.map(p=>{
+      const d=p.pv!=null?Math.round((p.v-p.pv)*10)/10:null;
+      const pct=Math.min(100,(p.v/55)*100);
+      return`<div style="padding:10px 0;border-bottom:1px solid var(--line);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:12px;font-weight:500;color:var(--text-1);">${p.l}</span><div style="display:flex;align-items:baseline;gap:8px;"><span class="mono" style="font-size:15px;font-weight:500;color:${p.c};letter-spacing:-.02em;">${p.v}<span style="font-size:10px;color:var(--text-2);margin-left:2px;">${p.u}</span></span>${d!=null?`<span class="mono" style="font-size:10px;color:${d>0?'var(--ok)':d<0?'var(--bad)':'var(--text-2)'};">${d>0?'+':''}${d}</span>`:''}</div></div><div style="height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${p.c};border-radius:3px;opacity:.8;"></div></div>${p.note?`<div class="mono" style="font-size:10px;color:var(--text-3);margin-top:3px;">${p.note}</div>`:''}</div>`;
+    }).join('');
+    return`<div class="q-card" style="margin-bottom:12px;"><div class="q-card__h"><h3>${sv('M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3-2v4m8-4v4',12)} ${fmtDate(ev.date||id.slice(0,10))}</h3><div style="display:flex;gap:6px;">${ev.notes?`<span class="mono" style="font-size:10px;color:var(--text-2);padding:2px 6px;background:var(--bg-3);border-radius:3px;">${ev.notes}</span>`:''}<button class="q-btn q-btn--ghost q-btn--sm" data-action="editevaltests" data-evid="${id}">Editar</button><button class="q-btn q-btn--sm" style="color:var(--bad);border-color:rgba(255,77,94,.4);background:var(--bad-soft);" data-action="delevaltests" data-evid="${id}">Eliminar</button></div></div>${protos.length?`<div class="q-card__b" style="padding:4px 16px 12px;">${rows}</div>`:'<div class="q-card__b" style="color:var(--text-2);font-size:12px;">Sin datos.</div>'}</div>`;
   }).join('');
+  const chartHtml=evals.length>=2?`<div class="q-card" style="margin-bottom:12px;"><div class="q-card__h"><h3>Evolución de saltos</h3><div class="chart-legend"><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#60a5fa;"></span>SJ</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--accent);"></span>CMJ</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#f59e0b;"></span>ABK</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#f472b6;"></span>RSI</span></div></div><div class="q-card__b"><canvas id="chart-tests" height="150"></canvas></div></div>`:'';
+  // ── FMS ──
   const fmsEvals=Object.entries(a.fmsTests||{}).sort((x,y)=>y[0].localeCompare(x[0]));
   const minBi=(l,r)=>(l!=null&&r!=null)?Math.min(l,r):l!=null?l:r!=null?r:null;
-  const fmsInfo=(ev)=>{const s=[ev.deepSquat,minBi(ev.hurdleL,ev.hurdleR),minBi(ev.lungeL,ev.lungeR),minBi(ev.shoulderL,ev.shoulderR),minBi(ev.aslrL,ev.aslrR),ev.trunkStab,minBi(ev.rotaryL,ev.rotaryR)];const valid=s.filter(v=>v!=null);return{sum:valid.reduce((a,b)=>a+b,0),completed:valid.length,maxPossible:valid.length*3};};
+  const fmsInfo=(ev)=>{const s=[ev.deepSquat,minBi(ev.hurdleL,ev.hurdleR),minBi(ev.lungeL,ev.lungeR),minBi(ev.shoulderL,ev.shoulderR),minBi(ev.aslrL,ev.aslrR),ev.trunkStab,minBi(ev.rotaryL,ev.rotaryR)];const valid=s.filter(v=>v!=null);return{sum:valid.reduce((a,b)=>a+b,0),completed:valid.length};};
   const editFms=S.editingEvalId&&S.athleteForm==='fms'?(a.fmsTests||{})[S.editingEvalId]:null;
   const _fV=(k)=>editFms?.[k]!=null?editFms[k]:'';
   const fsel=(id,val='')=>`<select id="${id}" style="width:100%;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;">${['','0','1','2','3'].map(n=>`<option value="${n}"${String(val)===n?' selected':''}>${n===''?'—':n}</option>`).join('')}</select>`;
@@ -2880,23 +2898,70 @@ function renderAthleteTests(a){
     </div>
     <div class="form-field" style="margin-top:4px;"><label>Notas</label><input type="text" id="fms-notes" placeholder="Observaciones..." value="${_fV('notes')}"></div>
     <div class="form-row"><button class="save-btn" style="width:100%;" data-action="savefmsform">Guardar</button></div>
-  </div>`:`<button class="save-btn" style="width:100%;margin-bottom:12px;background:var(--bg2);color:var(--text);border:1px solid var(--border);" data-action="newfmseval">+ Nueva evaluación FMS</button>`;
-  const fmsCards=fmsEvals.map(([id,ev])=>{
-    const {sum,completed,maxPossible}=fmsInfo(ev);
-    const badge=completed===7?`<span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:13px;font-weight:700;background:${sum>14?'#052e16':'#2d0a0a'};color:${sum>14?'#86efac':'#fca5a5'};">${sum}/21 — ${sum>14?'Sin riesgo':'⚠ Riesgo lesión'}</span>`:`<span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:13px;font-weight:700;background:#1e293b;color:#94a3b8;">Incompleto — ${completed} de 7 mov. · ${sum}/${maxPossible} pts</span>`;
-    const mv=(l,v)=>v!=null?`<span style="font-size:12px;color:var(--text2);margin-right:8px;">${l}: <strong style="color:var(--text);">${v}</strong></span>`:'';
-    const mvBi=(l,vl,vr)=>(vl!=null||vr!=null)?`<span style="font-size:12px;color:var(--text2);margin-right:8px;">${l}: <strong style="color:var(--text);">${vl??'—'}/${vr??'—'}</strong><span style="font-size:10px;color:var(--text3);"> min:${minBi(vl,vr)??'—'}</span></span>`:'';
-    return`<div class="eval-card">
-      <div class="eval-top"><span class="eval-date">${fmtDate(ev.date||id.slice(0,10))}</span><button class="sm-btn" style="margin-left:auto;margin-right:4px;" data-action="editevalfms" data-evid="${id}">Editar</button><button class="eval-del" data-action="delevalfms" data-evid="${id}">Eliminar</button></div>
-      <div style="margin-bottom:8px;">${badge}</div>
-      <div style="line-height:2;flex-wrap:wrap;">${mv('Deep Squat',ev.deepSquat)}${mv('Trunk Stab.',ev.trunkStab)}${mvBi('Hurdle',ev.hurdleL,ev.hurdleR)}${mvBi('Lunge',ev.lungeL,ev.lungeR)}${mvBi('Shoulder',ev.shoulderL,ev.shoulderR)}${mvBi('ASLR',ev.aslrL,ev.aslrR)}${mvBi('Rotary',ev.rotaryL,ev.rotaryR)}</div>
-      ${ev.notes?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">${ev.notes}</div>`:''}
+  </div>`:'';
+  // ── FMS latest eval ──
+  const ltFms=fmsEvals[0]?.[1];
+  let fmsLatestHtml='';
+  if(ltFms){
+    const pvFms=fmsEvals[1]?.[1];
+    const {sum,completed}=fmsInfo(ltFms);
+    const safe=sum>=14;
+    const fc=safe?'var(--ok)':'var(--bad)';
+    const pct=(sum/21)*360;
+    const pvInfo=pvFms?fmsInfo(pvFms):null;
+    const delta=pvInfo!=null?sum-pvInfo.sum:null;
+    const sc=(s)=>s===0||s===1?'var(--bad)':s===2?'var(--warn)':'var(--ok)';
+    const sl=(s)=>s===0?'Dolor':s===1?'Pobre':s===2?'Compensa':'Óptimo';
+    const patterns=[
+      {l:'Deep Squat',s:ltFms.deepSquat,note:''},
+      {l:'Hurdle Step L/R',s:minBi(ltFms.hurdleL,ltFms.hurdleR),note:ltFms.hurdleL!=null?`${ltFms.hurdleL}/${ltFms.hurdleR}`:''},
+      {l:'In-Line Lunge L/R',s:minBi(ltFms.lungeL,ltFms.lungeR),note:ltFms.lungeL!=null?`${ltFms.lungeL}/${ltFms.lungeR}`:''},
+      {l:'Shoulder Mobility L/R',s:minBi(ltFms.shoulderL,ltFms.shoulderR),note:ltFms.shoulderL!=null?`${ltFms.shoulderL}/${ltFms.shoulderR}`:''},
+      {l:'Active SLR L/R',s:minBi(ltFms.aslrL,ltFms.aslrR),note:ltFms.aslrL!=null?`${ltFms.aslrL}/${ltFms.aslrR}`:''},
+      {l:'Trunk Stability Push-Up',s:ltFms.trunkStab,note:''},
+      {l:'Rotary Stability L/R',s:minBi(ltFms.rotaryL,ltFms.rotaryR),note:ltFms.rotaryL!=null?`${ltFms.rotaryL}/${ltFms.rotaryR}`:''},
+    ].filter(p=>p.s!=null);
+    const fi='M4 21V4M4 4h13l-2 4 2 4H4',ci='m4 12 6 6L20 6';
+    const flags=[];
+    if(ltFms.deepSquat!=null&&ltFms.deepSquat<3)flags.push({l:`Deep Squat = ${ltFms.deepSquat} · movilidad tobillo`,s:'Plan A · 3x sem',c:'var(--warn)',i:fi});
+    const lunge=minBi(ltFms.lungeL,ltFms.lungeR);
+    if(lunge!=null&&lunge<3&&ltFms.lungeL!==ltFms.lungeR)flags.push({l:`Asimetría Lunge L${ltFms.lungeL}/R${ltFms.lungeR}`,s:'Trabajo unilateral · core anti-rotación',c:'var(--warn)',i:fi});
+    if(ltFms.trunkStab!=null&&ltFms.trunkStab<3)flags.push({l:`Trunk Stability = ${ltFms.trunkStab}`,s:'Plank progresiones · dead bug',c:'var(--warn)',i:fi});
+    const allScores=[ltFms.deepSquat,ltFms.hurdleL,ltFms.hurdleR,ltFms.lungeL,ltFms.lungeR,ltFms.shoulderL,ltFms.shoulderR,ltFms.aslrL,ltFms.aslrR,ltFms.trunkStab,ltFms.rotaryL,ltFms.rotaryR].filter(v=>v!=null);
+    if(!allScores.includes(0))flags.push({l:'Sin dolor en ningún patrón',s:'Habilita carga libre',c:'var(--ok)',i:ci});
+    fmsLatestHtml=`<div style="display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:start;margin-bottom:16px;">
+      <div style="background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:16px 12px;text-align:center;">
+        <div style="font-size:9.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:8px;">FMS Score · ${fmtDate(ltFms.date||fmsEvals[0][0].slice(0,10))}</div>
+        <div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(${fc} 0 ${pct}deg,var(--bg-3) 0);display:grid;place-items:center;margin:0 auto 12px;position:relative;">
+          <div style="position:absolute;inset:10px;border-radius:50%;background:var(--bg-1);display:grid;place-items:center;">
+            <div><div class="mono" style="font-size:34px;font-weight:500;letter-spacing:-.04em;color:${fc};line-height:1;">${sum}</div><div class="mono" style="font-size:10px;color:var(--text-2);">de 21</div></div>
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:${fc};">${safe?'Sobre el umbral':'⚠ Zona riesgo'}</div>
+        <div style="font-size:10.5px;color:var(--text-2);margin-top:4px;line-height:1.4;">Score &lt; 14 → 2× riesgo lesión</div>
+        ${delta!=null?`<div class="mono" style="font-size:10px;color:${delta>0?'var(--ok)':delta<0?'var(--bad)':'var(--text-2)'};margin-top:8px;padding-top:8px;border-top:1px solid var(--line);">${delta>0?'+':''}${delta} vs eval anterior</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="q-card"><div class="q-card__h" style="padding:10px 14px;"><h3 style="font-size:12px;">Desglose · ${patterns.length} patrones</h3><div style="display:flex;gap:3px;">${[{l:'0',c:'var(--bad)'},{l:'1',c:'var(--bad)'},{l:'2',c:'var(--warn)'},{l:'3',c:'var(--ok)'}].map(s=>`<span class="mono" style="font-size:9px;color:${s.c};padding:1px 4px;border:1px solid ${s.c}55;border-radius:2px;">${s.l}</span>`).join('')}</div></div>
+        <div>${patterns.map((p,i)=>`<div style="display:grid;grid-template-columns:20px 1fr auto auto;align-items:center;gap:8px;padding:8px 14px;border-bottom:${i<patterns.length-1?'1px solid var(--line)':'0'};"><span class="mono" style="font-size:9px;color:var(--text-3);">0${i+1}</span><div><div style="font-size:11.5px;font-weight:500;">${p.l}</div>${p.note?`<div style="font-size:9.5px;color:var(--text-2);">${p.note}</div>`:''}</div><div style="display:flex;gap:2px;">${[0,1,2,3].map(s=>`<div style="width:20px;height:20px;border-radius:3px;display:grid;place-items:center;font:600 10px var(--font-mono);background:${s===p.s?sc(s):'var(--bg-3)'};color:${s===p.s?'#fff':'var(--text-3)'};border:${s===p.s?'0':'1px solid var(--line)'};">${s}</div>`).join('')}</div><span style="font-size:10px;font-weight:600;color:${sc(p.s)};white-space:nowrap;min-width:55px;text-align:right;">${sl(p.s)}</span></div>`).join('')}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--bg-3);border-top:2px solid var(--line-strong);"><span style="font-size:11.5px;font-weight:600;">Total · ${completed} patrones</span><span class="mono" style="font-size:16px;font-weight:500;color:${safe?'var(--ok)':'var(--bad)'};">${sum} <span style="font-size:10px;color:var(--text-2);">/ 21</span></span></div></div></div>
+        ${flags.length?`<div class="q-card"><div class="q-card__h" style="padding:10px 14px;"><h3 style="font-size:12px;">Banderas · trabajo correctivo</h3></div><div>${flags.map((ff,i)=>`<div style="padding:10px 14px;border-bottom:${i<flags.length-1?'1px solid var(--line)':'0'};display:flex;gap:8px;align-items:flex-start;"><span style="width:24px;height:24px;border-radius:5px;background:${ff.c}1f;color:${ff.c};display:grid;place-items:center;flex-shrink:0;">${sv(ff.i,12)}</span><div><div style="font-size:11.5px;font-weight:500;">${ff.l}</div><div style="font-size:10.5px;color:var(--text-2);">${ff.s}</div></div></div>`).join('')}</div></div>`:''}
+      </div>
     </div>`;
+  }
+  const fmsOldCards=fmsEvals.slice(ltFms?1:0).map(([id,ev])=>{
+    const {sum}=fmsInfo(ev);const safe=sum>=14;
+    return`<div class="q-card" style="margin-bottom:8px;"><div class="q-card__h"><h3>${fmtDate(ev.date||id.slice(0,10))}</h3><div style="display:flex;gap:6px;align-items:center;"><span class="mono" style="font-size:11px;padding:2px 8px;border-radius:12px;background:${safe?'var(--ok-soft)':'var(--bad-soft)'};color:${safe?'var(--ok)':'var(--bad)'};">${sum}/21 — ${safe?'OK':'Riesgo'}</span><button class="q-btn q-btn--ghost q-btn--sm" data-action="editevalfms" data-evid="${id}">Editar</button><button class="q-btn q-btn--sm" style="color:var(--bad);border-color:rgba(255,77,94,.4);background:var(--bad-soft);" data-action="delevalfms" data-evid="${id}">Eliminar</button></div></div></div>`;
   }).join('');
-  const fmsSection=`<div style="margin-top:20px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-top:12px;border-top:1px solid var(--border);">FMS — Functional Movement Screening</div>${fmsFormHtml}${fmsCards||`<div class="empty-state">Sin evaluaciones FMS.</div>`}</div>`;
-  return formHtml+(cards||`<div class="empty-state">Sin evaluaciones de salto.</div>`)+(evals.length>=2?`<div class="chart-card"><div class="chart-title">Evolución de saltos<div class="chart-legend"><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#60a5fa;"></span>SJ</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#34d399;"></span>CMJ</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#f59e0b;"></span>ABK</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#fb923c;"></span>ABK D.</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#a78bfa;"></span>ABK I.</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#f472b6;"></span>RSI</span></div></div><canvas id="chart-tests" height="150"></canvas></div>`:'')+fmsSection;
+  return`<div style="margin-bottom:8px;">
+    <div class="q-section-h"><div class="q-section-h__l"><h2>Tests de Salto</h2><p>SJ · CMJ · ABK · Drop Jump</p></div><div class="q-section-h__r">${!editJump&&S.athleteForm!=='tests'?`<button class="q-btn q-btn--primary q-btn--sm" data-action="newtests">${sv('M12 5v14M5 12h14',12)} Nueva evaluación</button>`:''}</div></div>
+    ${formHtml}${kpiStrip}${cards||`<div class="empty-state">Sin evaluaciones de salto.</div>`}${chartHtml}
+  </div>
+  <div style="padding-top:20px;border-top:1px solid var(--line);">
+    <div class="q-section-h"><div class="q-section-h__l"><h2>FMS — Functional Movement Screen</h2><p>7 patrones de movimiento fundamental</p></div><div class="q-section-h__r">${!editFms&&S.athleteForm!=='fms'?`<button class="q-btn q-btn--primary q-btn--sm" data-action="newfmseval">${sv('M12 5v14M5 12h14',12)} Nueva evaluación</button>`:''}</div></div>
+    ${fmsFormHtml}${ltFms?fmsLatestHtml:`<div class="empty-state">Sin evaluaciones FMS.</div>`}${fmsOldCards}
+  </div>`;
 }
-
 function updateRsiPreview(){const h=parseFloat(document.getElementById('af-djh')?.value);const tc=parseFloat(document.getElementById('af-djtc')?.value);const el=document.getElementById('af-rsi-preview');if(el&&h&&tc)el.value=((h/100)/(tc/1000)).toFixed(2);else if(el)el.value='—';}
 
 // ── CHARTS ────────────────────────────────────────────────────
