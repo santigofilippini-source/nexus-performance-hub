@@ -2253,7 +2253,7 @@ function renderMetrics(){
       ${pill}
     </div>`;
   }).join('');
-  return sectionHeader+kpiRow+barChart+insufficientBanner+alertsBanner+`<div class="q-card">${tableHead}${tableRows}</div>`;
+  return sectionHeader+kpiRow+barChart+insufficientBanner+alertsBanner+`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><div class="q-card" style="min-width:620px;">${tableHead}${tableRows}</div></div>`;
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
@@ -2306,13 +2306,13 @@ function renderReports(){
   const alertCount=stats.filter(s=>s.consec>=ALERT_N).length;
   const alertBanner=alertCount>0?`<div class="alert-banner" style="margin-bottom:14px;"><div class="alert-banner-title">⚠ ${alertCount} jugador${alertCount>1?'es':''} con ${ALERT_N}+ ausencias seguidas</div></div>`:'';
   // KPI strip
-  const kpiRow=`<div class="q-stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px;">
+  const kpiRow=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:14px;"><div class="q-stats" style="grid-template-columns:repeat(5,minmax(110px,1fr));min-width:540px;">
     <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Asistencia</span></div><div class="q-stat__val" style="color:${weekAtt!==null?(weekAtt>=85?'var(--ok)':weekAtt>=70?'var(--warn)':'var(--bad)'):'var(--text-0)'};">${weekAtt!==null?weekAtt+'%':'—'}</div><div class="q-stat__sub"><span>semana actual</span></div></div>
     <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Carga total</span></div><div class="q-stat__val">${weekLoadAvg}<span class="u">UA</span></div><div class="q-stat__sub"><span>promedio plantel</span></div></div>
     <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">ACWR</span></div><div class="q-stat__val" style="color:${teamACWR!==null?(teamACWR>1.3?'var(--warn)':teamACWR<0.8?'var(--info)':'var(--ok)'):'var(--text-0)'};">${teamACWR!==null?teamACWR:'—'}</div><div class="q-stat__sub"><span>rango 0.8–1.3</span></div></div>
     <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">RPE medio</span></div><div class="q-stat__val">${weekRPE!==null?weekRPE:'—'}<span class="u">/10</span></div><div class="q-stat__sub"><span>sesiones MC</span></div></div>
     <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Atletas en riesgo</span></div><div class="q-stat__val" style="color:${atRisk>0?'var(--bad)':'var(--ok)'};">${atRisk}<span class="u">/${cd.players.length}</span></div><div class="q-stat__sub"><span>ACWR &gt;1.3</span></div></div>
-  </div>`;
+  </div></div>`;
   // Sub-tab toggle
   const currentSub=S.reportSub||'semanal';
   const subTabs=`<div class="q-att-toggle" style="background:var(--bg-2);margin-bottom:14px;">${[['semanal','Resumen'],['players','Jugadores'],['months','Por mes']].map(([v,l])=>`<button class="b${currentSub===v?' on p':''}" data-action="reportsub" data-sub="${v}" style="height:28px;">${l}</button>`).join('')}</div>`;
@@ -2447,7 +2447,8 @@ function renderReports(){
   // Assemble
   let tabContent='';
   if(currentSub==='semanal'){
-    tabContent=`<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;"><div>${dailyChart}${trendTable}</div><div>${riskCard}${topCard}</div></div>`;
+    const isMob=window.innerWidth<900;
+    tabContent=isMob?`<div>${dailyChart}${trendTable}${riskCard}${topCard}</div>`:`<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;"><div>${dailyChart}${trendTable}</div><div>${riskCard}${topCard}</div></div>`;
   } else if(currentSub==='players'){
     tabContent=jugadoresTab;
   } else {
