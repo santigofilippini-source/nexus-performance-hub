@@ -1540,17 +1540,15 @@ function renderIndividualRPE(){
       const rpeVal=S.sessionDraft.playerRPE[p.id]??null;
       const initials=p.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
       if(!isPresent){const stateLabel={A:'Ausente',L:'Lesión',J:'Justificado'};return`<div class="q-ind-row absent"><div class="q-ind-ath"><span class="av">${initials}</span><span class="nm">${p.name}</span></div><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bad-soft);color:var(--bad);">${stateLabel[status]||'Sin registro'}</span></div>`;}
-      if(isMob&&rpeVal!==null&&!S.rpeExpand[p.id]){
-        const ua=dur?rpeVal*dur:null;
+      if(isMob&&!S.rpeExpand[p.id]){
+        const ua=rpeVal!==null&&dur?rpeVal*dur:null;
+        const pill=rpeVal!==null
+          ?`<span style="width:38px;height:38px;border-radius:8px;display:grid;place-items:center;font:700 20px var(--font-mono);background:${RPE_BG[rpeVal]}22;color:${RPE_BG[rpeVal]};border:1.5px solid ${RPE_BG[rpeVal]}55;">${rpeVal}</span>${ua!==null?`<span style="font-size:11px;font-family:var(--font-mono);color:var(--text-2);">${ua} UA</span>`:''}`
+          :`<span style="font-size:12px;color:var(--text-3);font-family:var(--font-mono);">—</span>`;
+        const btn=editable?`<button style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg-3);color:var(--text-1);cursor:pointer;" data-action="expandrpe" data-pid="${p.id}">${rpeVal!==null?'Cambiar':'Elegir'}</button>`:'';
         return`<div class="q-ind-row" style="justify-content:space-between;">
           <div class="q-ind-ath"><span class="av">${initials}</span><span class="nm">${p.name}</span></div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="display:flex;align-items:center;gap:6px;">
-              <span style="width:38px;height:38px;border-radius:8px;display:grid;place-items:center;font:700 20px var(--font-mono);background:${RPE_BG[rpeVal]}22;color:${RPE_BG[rpeVal]};border:1.5px solid ${RPE_BG[rpeVal]}55;">${rpeVal}</span>
-              ${ua!==null?`<span style="font-size:11px;font-family:var(--font-mono);color:var(--text-2);">${ua} UA</span>`:''}
-            </span>
-            ${editable?`<button style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg-3);color:var(--text-1);cursor:pointer;" data-action="expandrpe" data-pid="${p.id}">Cambiar</button>`:''}
-          </div>
+          <div style="display:flex;align-items:center;gap:8px;">${pill}${btn}</div>
         </div>`;
       }
       const btns=Array.from({length:11},(_,i)=>`<button class="b${rpeVal===i?' sel':''}"${rpeVal===i?` style="background:${RPE_BG[i]}22;color:${RPE_BG[i]};border-color:${RPE_BG[i]};"`:''}${editable?` data-action="playerrpe" data-pid="${p.id}" data-rpe="${i}"`:' disabled'}>${i}</button>`).join('');
