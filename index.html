@@ -158,12 +158,27 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 .chart-legend{display:flex;flex-wrap:wrap;gap:8px}
 .chart-legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
 .chart-legend-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0}
-/* SEARCH */
-.search-header{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg-1)}
-.search-input-main{flex:1;font-size:15px;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-family:var(--font);outline:none}
-.search-input-main:focus{border-color:var(--accent)}
-.search-cancel{padding:8px 12px;border:none;background:transparent;color:var(--accent);font-size:14px;cursor:pointer;font-family:var(--font);white-space:nowrap}
-.search-result{display:flex;align-items:center;gap:10px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:7px;cursor:pointer;width:100%;text-align:left}
+/* SEARCH OVERLAY */
+.q-search-overlay{position:fixed;inset:0;background:rgba(5,6,8,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;justify-content:center;padding-top:80px;z-index:1000;}
+.q-search-modal{width:720px;max-width:92%;background:var(--bg-1);border:1px solid var(--line-strong);border-radius:14px;box-shadow:0 32px 80px -16px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.02);max-height:78vh;display:flex;flex-direction:column;overflow:hidden;}
+.q-search-irow{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);}
+.q-search-input{flex:1;background:transparent;border:0;color:var(--text-0);font-size:17px;font-family:var(--font);outline:none;letter-spacing:-.01em;}
+.q-search-input::placeholder{color:var(--text-3);}
+.q-search-chips{padding:10px 18px;border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;}
+.q-search-chip{padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--text-1);font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;background:transparent;cursor:default;}
+.q-search-chip.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);}
+.q-search-body{flex:1;overflow-y:auto;padding:8px 0 12px;}
+.q-search-sec{padding:12px 18px 4px;display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;font-weight:600;}
+.q-search-row{display:flex;align-items:center;gap:12px;padding:10px 18px;cursor:pointer;border-left:2px solid transparent;background:transparent;width:100%;text-align:left;font-family:var(--font);border-top:0;border-right:0;border-bottom:0;color:var(--text-0);}
+.q-search-row:hover{background:var(--accent-soft);border-left-color:var(--accent);}
+.q-search-av{width:32px;height:32px;border-radius:6px;background:var(--bg-3);border:1px solid var(--line-strong);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--text-1);flex-shrink:0;}
+.q-search-name{font-size:13.5px;font-weight:500;color:var(--text-0);}
+.q-search-name mark{background:var(--accent-soft);color:var(--accent);padding:0 2px;border-radius:2px;font-weight:600;font-style:normal;}
+.q-search-sub{font-size:11.5px;color:var(--text-2);margin-top:2px;}
+.q-search-badge{font-size:9.5px;font-weight:700;letter-spacing:.1em;padding:2px 6px;border-radius:3px;font-family:var(--font-mono);flex-shrink:0;}
+.q-search-foot{padding:10px 18px;border-top:1px solid var(--line);background:var(--bg-0);display:flex;gap:18px;font-size:11px;color:var(--text-2);align-items:center;}
+.q-search-foot kbd{font:500 10px var(--font-mono);background:var(--bg-3);border:1px solid var(--line-strong);border-radius:3px;padding:1px 5px;color:var(--text-1);}
+/* legacy - kept for backwards compat */
 .s-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .s-name{flex:1;font-size:14px;font-weight:500;color:var(--text)}
 .s-cat{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600}
@@ -2379,37 +2394,93 @@ function renderRoster(){
 function openSearch(){S.prevView=S.view;S.prevTeamId=S.teamId;S.prevCat=S.cat;S.view='search';S.searchQuery='';render();setTimeout(()=>{const i=document.getElementById('search-main');if(i){i.focus();i.setSelectionRange(999,999);}},50);}
 function filterSearch(q){S.searchQuery=q;const el=document.getElementById('search-results');if(!el)return;el.innerHTML=renderSearchResults(q);el.querySelectorAll('[data-action]').forEach(e=>e.addEventListener('click',handleAction));}
 function renderSearchResults(q){
-  const ql=(q||'').toLowerCase();let html='',hasAny=false;
-  if(ql){
-    Object.entries(S.teams).forEach(([tid,t])=>{
-      if(t.name.toLowerCase().includes(ql)){hasAny=true;html+=`<button class="search-result" data-action="openteam" data-tid="${tid}"><span class="s-dot" style="background:var(--accent);"></span><span class="s-name">${t.name}</span><div style="text-align:right;"><span class="s-cat" style="background:var(--accent-soft);color:var(--accent);">Equipo</span><div style="font-size:10px;color:var(--text3);margin-top:2px;">${t.sport||''}</div></div><span style="font-size:12px;color:var(--text3);">Ver →</span></button>`;}
-      Object.entries(t.categories||{}).forEach(([cid,c])=>{
-        const color=c.color||CAT_PALETTE[0];
-        if(c.name.toLowerCase().includes(ql)){hasAny=true;html+=`<button class="search-result" data-action="opencat" data-tid="${tid}" data-cid="${cid}"><span class="s-dot" style="background:${color};"></span><span class="s-name">${c.name}</span><div style="text-align:right;"><span class="s-cat" style="background:${color}22;color:${color};">Categoría</span><div style="font-size:10px;color:var(--text3);margin-top:2px;">${t.name}</div></div><span style="font-size:12px;color:var(--text3);">Ver →</span></button>`;}
-      });
-    });
-  }
+  const ql=(q||'').toLowerCase().trim();
+  const hl=(str)=>{
+    if(!ql)return str;
+    const idx=str.toLowerCase().indexOf(ql);
+    if(idx<0)return str;
+    return str.slice(0,idx)+`<mark>${str.slice(idx,idx+ql.length)}</mark>`+str.slice(idx+ql.length);
+  };
+  const BADGE={
+    athlete:`<span class="q-search-badge" style="color:var(--accent);background:rgba(255,106,26,.12);border:1px solid rgba(255,106,26,.35);">ATLETA</span>`,
+    team:`<span class="q-search-badge" style="color:var(--info);background:rgba(107,184,255,.12);border:1px solid rgba(107,184,255,.35);">EQUIPO</span>`,
+    category:`<span class="q-search-badge" style="color:var(--info);background:rgba(107,184,255,.12);border:1px solid rgba(107,184,255,.35);">CATEGORÍA</span>`,
+  };
+  let athletes='',teamsHtml='',aCnt=0,tCnt=0;
+  // Teams + categories
   Object.entries(S.teams).forEach(([tid,t])=>{
+    if(ql&&t.name.toLowerCase().includes(ql)){
+      tCnt++;
+      const initials=t.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
+      teamsHtml+=`<button class="q-search-row" data-action="openteam" data-tid="${tid}">
+        <span class="q-search-av">${initials}</span>
+        <span style="flex:1;min-width:0;"><div class="q-search-name">${hl(t.name)}</div><div class="q-search-sub">${t.sport||'Equipo'} · ${Object.keys(t.categories||{}).length} categorías</div></span>
+        ${BADGE.team}
+      </button>`;
+    }
     Object.entries(t.categories||{}).forEach(([cid,c])=>{
       const color=c.color||CAT_PALETTE[0];
       const players=Array.isArray(c.players)?c.players:Object.values(c.players||[]);
+      if(ql&&c.name.toLowerCase().includes(ql)){
+        tCnt++;
+        const initials=c.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
+        teamsHtml+=`<button class="q-search-row" data-action="opencat" data-tid="${tid}" data-cid="${cid}">
+          <span class="q-search-av" style="background:${color}22;border-color:${color}44;color:${color};">${initials}</span>
+          <span style="flex:1;min-width:0;"><div class="q-search-name">${hl(c.name)}</div><div class="q-search-sub">${t.name} · ${players.length} atletas</div></span>
+          ${BADGE.category}
+        </button>`;
+      }
       players.forEach(p=>{
-        if(!ql||p.name.toLowerCase().includes(ql)){hasAny=true;html+=`<button class="search-result" data-action="openathlete" data-tid="${tid}" data-cid="${cid}" data-pid="${p.id}"><span class="s-dot" style="background:${color};"></span><span class="s-name">${p.name}</span><div style="text-align:right;"><span class="s-cat" style="background:${color}22;color:${color};">${c.name}</span><div style="font-size:10px;color:var(--text3);margin-top:2px;">${t.name}</div></div><span style="font-size:12px;color:var(--text3);">Ficha →</span></button>`;}
+        if(!ql||p.name.toLowerCase().includes(ql)){
+          aCnt++;
+          const initials=p.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
+          const pos=p.position?` · ${p.position}`:'';
+          athletes+=`<button class="q-search-row" data-action="openathlete" data-tid="${tid}" data-cid="${cid}" data-pid="${p.id}">
+            <span class="q-search-av" style="background:${color}22;border-color:${color}44;color:${color};">${initials}</span>
+            <span style="flex:1;min-width:0;"><div class="q-search-name">${hl(p.name)}</div><div class="q-search-sub">${t.name} · ${c.name}${pos}</div></span>
+            ${BADGE.athlete}
+          </button>`;
+        }
       });
     });
   });
-  if(!hasAny)return`<div class="empty-state">${ql?`Sin resultados para "${q}"`:'Escribí para buscar...'}</div>`;
-  return html;
+  const hasAny=aCnt>0||tCnt>0;
+  if(!hasAny){
+    return`<div style="padding:32px 18px;text-align:center;color:var(--text-2);font-size:13px;">${ql?`Sin resultados para "<strong>${q}</strong>"`:'Escribí para buscar atletas, equipos o categorías…'}</div>`;
+  }
+  let out='';
+  if(aCnt>0)out+=`<div class="q-search-sec"><span>Atletas</span><span style="font-family:var(--font-mono);">${aCnt}</span></div>${athletes}`;
+  if(tCnt>0)out+=`<div class="q-search-sec" style="margin-top:8px;"><span>Equipos · Categorías</span><span style="font-family:var(--font-mono);">${tCnt}</span></div>${teamsHtml}`;
+  return out;
 }
 function renderSearch(){
-  return`<div class="search-header">
-    <button class="back-btn" data-action="home" style="flex-shrink:0;">⌂ Inicio</button>
-    <input type="text" id="search-main" class="search-input-main" placeholder="Buscar jugador, equipo o categoría..." oninput="filterSearch(this.value)">
-    <button class="search-cancel" data-action="cancelsearch">Cancelar</button>
-  </div>
-  <div class="wrap" id="search-results">${renderSearchResults('')}</div>`;
+  const q=S.searchQuery||'';
+  const SVG_SEARCH=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-2);flex-shrink:0;"><path d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm10 2-4.3-4.3"/></svg>`;
+  return`<div class="q-search-overlay" data-action="cancelsearch">
+    <div class="q-search-modal" onclick="event.stopPropagation()">
+      <div class="q-search-irow">
+        ${SVG_SEARCH}
+        <input id="search-main" class="q-search-input" placeholder="Buscar atletas, equipos, categorías…" value="${q.replace(/"/g,'&quot;')}" oninput="filterSearch(this.value)">
+        <span style="font:500 11px var(--font-mono);color:var(--text-2);background:var(--bg-3);border:1px solid var(--line-strong);padding:3px 7px;border-radius:4px;flex-shrink:0;">esc</span>
+      </div>
+      <div class="q-search-chips">
+        <span style="color:var(--text-2);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-right:4px;">Filtrar</span>
+        <span class="q-search-chip on">Todo</span>
+        <span class="q-search-chip">Atletas</span>
+        <span class="q-search-chip">Equipos</span>
+        <span class="q-search-chip">Categorías</span>
+      </div>
+      <div class="q-search-body" id="search-results">${renderSearchResults(q)}</div>
+      <div class="q-search-foot">
+        <span style="display:inline-flex;gap:5px;align-items:center;"><kbd>↑</kbd><kbd>↓</kbd> navegar</span>
+        <span style="display:inline-flex;gap:5px;align-items:center;"><kbd>↵</kbd> abrir</span>
+        <span style="display:inline-flex;gap:5px;align-items:center;"><kbd>esc</kbd> cerrar</span>
+        <span style="flex:1;"></span>
+        <span style="color:var(--text-3);font-size:11px;">Powered by <b style="color:var(--accent);">Qoore</b></span>
+      </div>
+    </div>
+  </div>`;
 }
-
 // ── ATHLETE VIEW ──────────────────────────────────────────────
 function renderAthleteView(){
   const [tid,cid,pid]=S.athleteKey.split('__');
@@ -2953,6 +3024,7 @@ function handleLogoUpload(input) {
 function handleSidebarSearch(val){S.searchQuery=val;if(val.length>1){S.view='search';render();}else if(val.length===0&&S.view==='search'){S.view='home';render();}}
 function attachEvents(){
   document.querySelectorAll('[data-action]').forEach(el=>el.addEventListener('click',handleAction));
+  document.onkeydown=e=>{if(e.key==='Escape'&&S.view==='search'){S.view=S.prevView||'home';S.teamId=S.prevTeamId||S.teamId;render();}if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}};
   const di=document.getElementById('date-input');
   if(di)di.addEventListener('change',e=>{S.date=e.target.value;loadSession();if(S.tab==='session')loadSessionDraft();render();});
   const durI=document.getElementById('dur-input');
