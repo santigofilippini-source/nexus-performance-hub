@@ -1260,7 +1260,6 @@ function renderHome(){
       </div>
       <button class="sm-btn" data-action="newteam">+ Nuevo equipo</button>
     </div>
-    ${renderHomeAlerts()}
     ${S.teamFormMode?renderTeamForm():''}
     ${cards}${empty}
   </div>`;
