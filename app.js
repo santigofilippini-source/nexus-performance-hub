@@ -280,8 +280,8 @@ function updateHeader() {
     logo.style.padding = '0';
   } else {
     logo.innerHTML = '<img src="public/brand/logo-icon.png" style="width:30px;height:30px;object-fit:contain;">';
-    logo.style.background = 'var(--accent)';
-    logo.style.padding = '';
+    logo.style.background = 'transparent';
+    logo.style.padding = '2px';
   }
   // Breadcrumb
   if (S.view === 'team' && team) {
@@ -1085,7 +1085,7 @@ async function addPlayer(){
 }
 
 function handleMobTab(tab){
-  if(tab==='home'){S.view='home';S.teamFormMode=null;S.catFormMode=null;render();return;}
+  if(tab==='home'){S.view='home';S.teamId=null;S.teamFormMode=null;S.catFormMode=null;render();return;}
   const catTab={att:'attend',ses:'session',met:'metrics',more:'roster'}[tab];
   if(!catTab)return;
   const tid=S.lastCatTid||S.teamId;
