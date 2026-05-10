@@ -73,9 +73,9 @@
 </aside>
 <div id="nx-stats-bar">
   <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Equipos activos</span></div><div class="q-stat__val mono" id="nxs-teams">—</div></div>
-  <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Jugadores</span></div><div class="q-stat__val mono" id="nxs-players">—</div></div>
+  <div class="q-stat q-stat--link" onclick="openSearch()" title="Buscar atleta"><div class="q-stat__row"><span class="q-stat__label">Jugadores</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.4"><path d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm10 2-4.3-4.3"/></svg></div><div class="q-stat__val mono" id="nxs-players">—</div></div>
   <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Asistencia</span><div style="display:flex;gap:3px;"><button class="nxs-pd active" data-days="7" onclick="S.statsPeriod=7;updateStatsBar()">7d</button><button class="nxs-pd" data-days="30" onclick="S.statsPeriod=30;updateStatsBar()">30d</button></div></div><div class="q-stat__val mono" id="nxs-att">—</div></div>
-  <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Sesiones hoy</span></div><div class="q-stat__val mono" id="nxs-sessions">—</div></div>
+  <div class="q-stat q-stat--link" onclick="goToTodaySessions()" title="Ver sesiones de hoy"><div class="q-stat__row"><span class="q-stat__label">Sesiones hoy</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div><div class="q-stat__val mono" id="nxs-sessions">—</div></div>
 </div>
 
 <div id="app-screen">

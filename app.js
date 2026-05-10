@@ -333,6 +333,19 @@ function updateStatsBar() {
   document.querySelectorAll('.nxs-pd').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.days)===(S.statsPeriod||7)));
 }
 
+function goToTodaySessions(){
+  const hits=[];
+  Object.keys(S.teams).forEach(tid=>{
+    const t=S.teams[tid];
+    if(t._legacyPending)return;
+    Object.keys(t.categories||{}).forEach(cid=>{if((t.categories[cid].sessions||{})[TODAY])hits.push({tid,cid});});
+  });
+  if(!hits.length)return;
+  const{tid,cid}=hits[0];
+  S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;
+  S.view='cat';S.tab='session';
+  loadSession();loadSessionDraft();render();
+}
 function sidebarOpenTeam(tid){S.teamId=tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
 function sidebarOpenCat(tid,cid){S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
 function sidebarToggleAccess(tid){S.teamId=tid;S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};if(S.accessPanel)loadTeamMembers(tid);render();}
@@ -1180,6 +1193,10 @@ function renderHome(){
     const color=t.color||CAT_PALETTE[teamIds.indexOf(tid)%CAT_PALETTE.length];
     const lastDates=cats.map(cid=>Object.keys(t.categories[cid].attendance||{}).sort().pop()).filter(Boolean).sort();
     const lastDate=lastDates[lastDates.length-1];
+    let weekSess=0,weekP=0,weekAll=0;
+    for(let i=0;i<7;i++){const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);const ds=d.toISOString().split('T')[0];cats.forEach(cid=>{const c=t.categories[cid];if((c.sessions||{})[ds])weekSess++;const da=(c.attendance||{})[ds]||{};(c.players||[]).forEach(p=>{const s=da[p.id];if(s==='P'||s==='T'||s==='A'||s==='L'||s==='J'){weekAll++;if(s==='P'||s==='T')weekP++;}});});}
+    const weekAtt=weekAll>0?Math.round(weekP/weekAll*100):null;
+    const cardSub=weekSess>0?`${weekSess} sesión${weekSess!==1?'es':''} esta semana${weekAtt!==null?' · '+weekAtt+'% asist.':''}`:lastDate?`Última: ${fmtDate(lastDate)}`:'Sin registros';
     const role=myRole(tid);
     const rolePill=role&&role!=='owner'?`<span class="role-pill ${role==='editor'?'role-editor':'role-viewer'}">${role==='editor'?'✏ Editor':'👁 Lector'}</span>`:role==='owner'&&t.ownerId!==currentUser.uid?'':'';
     // Legacy pending: owner hasn't migrated yet
@@ -1208,7 +1225,7 @@ function renderHome(){
       <div style="display:flex;gap:10px;font-size:12px;color:var(--text2);flex-wrap:wrap;">
         <span>${cats.length} categoría${cats.length!==1?'s':''}</span>
         <span>${totalPlayers} jugadores</span>
-        ${lastDate?`<span>Última: ${fmtDate(lastDate)}</span>`:'<span>Sin registros</span>'}
+        <span>${cardSub}</span>
       </div>
     </button>`;
     return _nonOwner
