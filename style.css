@@ -443,6 +443,7 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   #nx-sidebar,#nx-stats-bar{display:none!important}
   #app-screen{max-width:100%;margin-left:0}
   #app-body{padding-bottom:80px}
+  .tabs{top:56px}
   #mob-tabbar{
     display:flex!important;position:fixed;left:0;right:0;bottom:0;
     background:var(--bg-1);border-top:1px solid var(--line);
