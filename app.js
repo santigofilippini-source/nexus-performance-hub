@@ -1171,17 +1171,10 @@ function renderHomeAlerts(){
   });
   if(!alerts.length)return'';
   alerts.sort((a,b)=>a.lvl==='danger'&&b.lvl!=='danger'?-1:1);
-  const shown=alerts.slice(0,6);
-  const extra=alerts.length>6?`<div style="font-size:11px;color:var(--text-2);padding:2px 2px 0;">${alerts.length-6} alerta${alerts.length-6!==1?'s':''} más…</div>`:'';
-  return`<div class="q-alerts">
-    <div class="q-alerts__hd">Alertas</div>
-    ${shown.map(a=>`<div class="q-alert q-alert--${a.lvl}">
-      <span class="q-alert__icon">${a.icon}</span>
-      <div class="q-alert__body">
-        <span class="q-alert__msg">${a.msg}</span>
-        <span class="q-alert__ctx">${a.ctx}</span>
-      </div>
-    </div>`).join('')}${extra}
+  const chips=alerts.map(a=>`<span class="q-alert-chip q-alert-chip--${a.lvl}" title="${a.ctx}">${a.icon} ${a.msg}</span>`).join('');
+  return`<div class="q-alerts-strip">
+    <span class="q-alerts-strip__hd">⚡ ${alerts.length}</span>
+    <div class="q-alerts-strip__scroll">${chips}</div>
   </div>`;
 }
 function renderHome(){
@@ -1229,7 +1222,7 @@ function renderHome(){
       </div>
     </button>`;
     return _nonOwner
-      ?`<div>${cardInner}<button style="width:100%;padding:5px 10px;font-size:11px;color:var(--text-3);background:var(--bg-2);border:1px solid var(--line);border-top:none;border-radius:0 0 14px 14px;cursor:pointer;font-family:var(--font-ui);letter-spacing:.01em;margin-bottom:10px;" data-action="leaveteam" data-tid="${tid}">Salir del equipo</button></div>`
+      ?`<div style="grid-column:auto">${cardInner}<button style="width:100%;padding:5px 10px;font-size:11px;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent);border-top:none;border-radius:0 0 14px 14px;cursor:pointer;font-family:var(--font-ui);letter-spacing:.01em;margin-bottom:10px;transition:background .15s;" data-action="leaveteam" data-tid="${tid}">↩ Salir del equipo</button></div>`
       :cardInner;
   }).join('');
 
@@ -1239,9 +1232,19 @@ function renderHome(){
     <div style="font-size:14px;color:var(--text2);margin-bottom:24px;">Creá tu primer equipo o pedile al Admin que te invite a uno existente.</div>
   </div>`:'';
 
+  const _now=new Date();
+  const _hr=_now.getHours();
+  const _greeting=_hr<12?'Buenos días':_hr<19?'Buenas tardes':'Buenas noches';
+  const _firstName=S.userProfile?.nombre||(currentUser?.displayName?.split(' ')[0])||'';
+  const _dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const _meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const _dateStr=`${_dias[_now.getDay()]} ${_now.getDate()} de ${_meses[_now.getMonth()]}`;
   return`<div class="wrap">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-size:13px;font-weight:500;color:var(--text2);">${(()=>{const n=new Date();const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return`Hoy · ${dias[n.getDay()]} ${n.getDate()} de ${meses[n.getMonth()]}`;})()}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;">
+      <div>
+        <div style="font-size:20px;font-weight:600;color:var(--text-0);line-height:1.2;">${_greeting}${_firstName?', '+_firstName:''}</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:3px;">${_dateStr}</div>
+      </div>
       <button class="sm-btn" data-action="newteam">+ Nuevo equipo</button>
     </div>
     ${renderHomeAlerts()}
