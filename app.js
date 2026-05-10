@@ -548,7 +548,7 @@ async function persistTeam(tid=S.teamId) {
   const {athletes:_ath, ...teamData} = S.teams[tid];
   try {
     const clean=JSON.parse(JSON.stringify({...teamData, ownerId: S.teams[tid].ownerId||currentUser.uid}));
-    await db.ref(`teams/${tid}`).set(clean);
+    await db.ref(`teams/${tid}`).update(clean);
     setSyncBar('ok');
   } catch(e) {
     console.error('persistTeam error:', e.code, e.message, e);
