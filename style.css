@@ -244,7 +244,7 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   /* Sidebar */
   body.is-auth #nx-sidebar{display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;width:240px;background:var(--bg-1);border-right:1px solid var(--line);z-index:200;overflow:hidden}
   /* Sidebar q-* internals */
-  .q-sidebar__brand{height:56px;padding:0 16px;display:flex;align-items:center;border-bottom:1px solid var(--line);flex-shrink:0}
+  .q-sidebar__brand{height:68px;padding:0 20px;display:flex;align-items:center;border-bottom:1px solid var(--line);flex-shrink:0}
   .q-sidebar__search{padding:10px 12px;border-bottom:1px solid var(--line)}
   .q-input{width:100%;height:30px;background:var(--bg-2);border:1px solid var(--line);color:var(--text-0);border-radius:var(--r-2);padding:0 10px 0 28px;font-size:12px;outline:none;transition:border-color .12s,background .12s;font-family:var(--font-ui)}
   .q-input:focus{border-color:var(--accent-line);background:var(--bg-3)}
@@ -277,6 +277,8 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .q-sidebar__foot .who{flex:1;min-width:0}
   .q-sidebar__foot .who .n{font-size:12px;font-weight:500;color:var(--text-0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .q-sidebar__foot .who .r{font-size:10.5px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .q-foot-btn{background:transparent;border:0;color:var(--text-2);cursor:pointer;width:28px;height:28px;border-radius:var(--r-1);display:grid;place-items:center;flex-shrink:0;transition:background .12s,color .12s}
+  .q-foot-btn:hover{background:var(--bg-3);color:var(--text-0)}
   /* Stats bar q-* */
   .q-stat{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-3);padding:14px 16px;position:relative;overflow:hidden}
   .q-stat__row{display:flex;align-items:center;justify-content:space-between}
@@ -294,8 +296,9 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .wrap>*{grid-column:1/-1}
   .wrap>.team-card,.wrap>.cat-card{grid-column:auto;margin-bottom:0}
   .team-card,.cat-card{box-shadow:var(--shadow-card)}
-  /* Header: ocultar logo en desktop, el sidebar ya hace esa función */
+  /* Header: ocultar logo y botones en desktop, el sidebar los reemplaza */
   #header-logo{display:none}
+  body.is-auth .header .icon-btn,body.is-auth .header .logout-btn{display:none}
   .header-info{padding-left:0}
   .nxs-pd{background:var(--bg-3);border:1px solid var(--line);border-radius:4px;color:var(--fg-3);font-size:10px;font-weight:500;padding:2px 6px;cursor:pointer;font-family:var(--font-ui);transition:background .15s,color .15s,border-color .15s;}
   .nxs-pd.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
