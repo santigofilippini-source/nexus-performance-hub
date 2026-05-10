@@ -1199,58 +1199,30 @@ function renderHome(){
         </div>
       </div>`;
     }
-    // ── KPI calculations ──────────────────────────────────────
-    let weekSess=0,weekP=0,weekAll=0,rpeVals=[],daily14=new Array(14).fill(0);
-    cats.forEach(cid=>{
-      const cd=getCat(cid,tid);
-      for(let i=0;i<14;i++){
-        const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);const ds=d.toISOString().split('T')[0];
-        const c=t.categories[cid];
-        if(i<7){
-          if((c.sessions||{})[ds])weekSess++;
-          const da=(c.attendance||{})[ds]||{};
-          cd.players.forEach(p=>{const s=da[p.id];if(s==='P'||s==='T'||s==='A'||s==='L'||s==='J'){weekAll++;if(s==='P'||s==='T')weekP++;}});
-          const sess=(c.sessions||{})[ds];
-          if(sess){if(sess.teamRPE!=null)rpeVals.push(sess.teamRPE);else{const pv=Object.values(sess.playerRPE||{});if(pv.length)rpeVals.push(pv.reduce((a,b)=>a+b,0)/pv.length);}}
-        }
-        cd.players.forEach(p=>{daily14[13-i]+=playerLoadOnDate(cd,p.id,ds);});
-      }
-    });
+    // ── Attendance calculation ────────────────────────────────
+    let weekP=0,weekAll=0;
+    for(let i=0;i<7;i++){const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);const ds=d.toISOString().split('T')[0];cats.forEach(cid=>{const da=(t.categories[cid].attendance||{})[ds]||{};(t.categories[cid].players||[]).forEach(p=>{const s=da[p.id];if(s==='P'||s==='T'||s==='A'||s==='L'||s==='J'){weekAll++;if(s==='P'||s==='T')weekP++;}});});}
     const weekAtt=weekAll>0?Math.round(weekP/weekAll*100):null;
-    const rpeAvg=rpeVals.length?Math.round(rpeVals.reduce((a,b)=>a+b,0)/rpeVals.length*10)/10:null;
-    const maxLoad=Math.max(...daily14,1);
-    const hasKpiData=weekSess>0||daily14.some(v=>v>0);
-    let hasHL=false;
-    if(hasKpiData)cats.forEach(cid=>{const cd=getCat(cid,tid);cd.players.forEach(p=>{const m=calcMetrics(cd,p.id);if(m.hasData&&m.acwr!==null&&m.acwr>1.5)hasHL=true;});});
-    const attColor=weekAtt===null?'var(--text-1)':weekAtt>=85?'var(--ok)':weekAtt>=70?'#eab308':'var(--bad)';
-    const rpeColor=rpeAvg===null?'var(--text-1)':rpeAvg<=5?'var(--ok)':rpeAvg<=7?'#eab308':'var(--bad)';
-    const statusEl=hasKpiData?(hasHL?`<span style="font-size:11px;color:#fb923c;">● Carga elevada</span>`:`<span style="font-size:11px;color:var(--ok);">● Operación normal</span>`):'';
-    const bars=daily14.map(v=>{const pct=v/maxLoad;const h=Math.max(Math.round(pct*26),v>0?3:1);const bc=pct===0?'var(--bg-3)':pct<0.4?'#22c55e':pct<0.7?'#eab308':pct<0.9?'#f97316':'#ef4444';return`<div style="flex:1;height:${h}px;background:${bc};border-radius:2px;align-self:flex-end;min-height:${v>0?3:1}px;"></div>`;}).join('');
+    const attColor=weekAtt===null?'var(--text-2)':weekAtt>=85?'var(--ok)':weekAtt>=70?'#eab308':'var(--bad)';
     // ── Card HTML ─────────────────────────────────────────────
     const _nonOwner=role==='editor'||role==='viewer';
     const logoEl=t.logo?`<img src="${t.logo}" style="width:38px;height:38px;border-radius:9px;object-fit:cover;flex-shrink:0;">`:`<div style="width:38px;height:38px;border-radius:9px;background:${color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:700;color:${color};">${t.name.slice(0,2).toUpperCase()}</div>`;
-    const kpiSection=hasKpiData?`
-      <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px;">
-        <div style="display:flex;align-items:flex-end;gap:0;">
-          <div class="q-ckpi">
-            <div class="q-ckpi__lbl">Asist 7D</div>
-            <div class="q-ckpi__val" style="color:${attColor};">${weekAtt!==null?weekAtt+'%':'—'}</div>
-          </div>
-          <div class="q-ckpi" style="border-left:1px solid var(--line);">
-            <div class="q-ckpi__lbl">Sesiones</div>
-            <div class="q-ckpi__val">${weekSess||'—'}</div>
-          </div>
-          <div class="q-ckpi" style="border-left:1px solid var(--line);">
-            <div class="q-ckpi__lbl">RPE prom.</div>
-            <div class="q-ckpi__val" style="color:${rpeColor};">${rpeAvg!==null?rpeAvg:'—'}</div>
-          </div>
-          <div style="flex:1;padding-left:14px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:4px;">
-            <div class="q-ckpi__lbl">14D</div>
-            <div style="display:flex;align-items:flex-end;gap:2px;height:26px;">${bars}</div>
-          </div>
-        </div>
-        <div style="margin-top:7px;">${statusEl}</div>
-      </div>`:`<div style="font-size:12px;color:var(--text-2);margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">Sin registros</div>`;
+    const attBar=weekAtt!==null?`<div style="margin-top:6px;height:3px;border-radius:2px;background:var(--bg-3);overflow:hidden;"><div style="height:100%;width:${weekAtt}%;background:${attColor};border-radius:2px;"></div></div>`:'';
+    const statsRow=`<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px;display:flex;gap:0;">
+      <div class="q-ckpi">
+        <div class="q-ckpi__lbl">Categorías</div>
+        <div class="q-ckpi__val">${cats.length}</div>
+      </div>
+      <div class="q-ckpi" style="border-left:1px solid var(--line);">
+        <div class="q-ckpi__lbl">Jugadores</div>
+        <div class="q-ckpi__val">${totalPlayers}</div>
+      </div>
+      <div class="q-ckpi" style="border-left:1px solid var(--line);flex:1;">
+        <div class="q-ckpi__lbl">Asistencia 7D</div>
+        <div class="q-ckpi__val" style="color:${attColor};">${weekAtt!==null?weekAtt+'%':'—'}</div>
+        ${attBar}
+      </div>
+    </div>`;
     const cardInner=`<button class="team-card" data-action="openteam" data-tid="${tid}" style="--c:${color};${_nonOwner?'margin-bottom:0;border-radius:14px 14px 0 0;flex:1;':''}">
       <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:${color};border-radius:2px 0 0 2px;"></div>
       <div style="display:flex;align-items:center;gap:10px;">
@@ -1258,10 +1230,9 @@ function renderHome(){
         <div style="min-width:0;">
           <div style="font-size:16px;font-weight:600;color:var(--text);line-height:1.2;">${t.name}</div>
           <div style="margin-top:3px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;"><span class="sport-badge">${t.sport||'Deporte'}</span>${rolePill}</div>
-          <div style="font-size:11px;color:var(--text-2);margin-top:2px;">${cats.length} categoría${cats.length!==1?'s':''} · ${totalPlayers} jugadores</div>
         </div>
       </div>
-      ${kpiSection}
+      ${statsRow}
     </button>`;
     return _nonOwner
       ?`<div style="grid-column:auto;display:flex;flex-direction:column;">${cardInner}<button style="width:100%;padding:5px 10px;font-size:11px;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent);border-top:none;border-radius:0 0 14px 14px;cursor:pointer;font-family:var(--font-ui);letter-spacing:.01em;margin-bottom:10px;transition:background .15s;flex-shrink:0;" data-action="leaveteam" data-tid="${tid}">↩ Salir del equipo</button></div>`
