@@ -513,3 +513,64 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .q-tab{padding:0 10px;font-size:12px;gap:5px;white-space:nowrap}
   .sub-tabs{flex-wrap:nowrap;overflow-x:auto}
 }
+/* ══════════════════════════════════════════════════════════════ */
+/* ██  MÉDICO / LESIONES  ██                                     */
+/* ══════════════════════════════════════════════════════════════ */
+.q-medical{padding:16px 0}
+.q-medical__topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.q-medical__legend{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-2)}
+.bm-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.q-medical__actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* Body map layout */
+.q-bodymap-wrap{display:grid;grid-template-columns:1fr 1fr 300px;gap:16px;align-items:start}
+.q-bodymap-views{display:flex;gap:12px}
+.q-bodymap-panel{flex:1;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-3);padding:12px 8px 8px;display:flex;flex-direction:column;align-items:center}
+.q-bodymap-panel__label{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;align-self:flex-start}
+.bm-svg{width:100%;max-width:130px;height:auto}
+
+/* SVG body regions */
+.bm-body-fill{fill:var(--bg-3);stroke:none}
+.bm-outline{fill:none;stroke:var(--line-strong);stroke-width:1.2;pointer-events:none}
+.bm-reg{fill:var(--bg-4);fill-opacity:0;stroke:var(--line);stroke-width:0.5;transition:fill-opacity .15s,fill .15s}
+.bm-reg--click{cursor:pointer}
+.bm-reg--click:hover{fill:var(--bg-5)!important;fill-opacity:0.8!important}
+.bm-reg--inj{stroke:none}
+.bm-reg--sel{stroke:var(--accent)!important;stroke-width:1.5!important}
+
+/* Injury list panel */
+.q-bodymap-list{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-3);overflow:hidden}
+.q-bodymap-list__hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line)}
+.q-badge--neutral{background:var(--bg-4);color:var(--text-1);border-radius:var(--r-pill);padding:1px 8px;font-size:11px;font-weight:600}
+
+/* Injury cards */
+.q-inj-card{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.q-inj-card:last-child{border-bottom:none}
+.q-inj-card__row1{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.q-inj-card__player{font-size:12px;font-weight:600;color:var(--text-0)}
+.q-sev-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:var(--r-pill);flex-shrink:0}
+.q-inj-card__region{font-size:12px;color:var(--text-1);font-weight:500}
+.q-inj-card__meta{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-2);flex-wrap:wrap}
+.q-inj-status--activa{color:var(--bad)}
+.q-inj-status--en_rehab{color:var(--warn)}
+.q-inj-status--recuperada{color:var(--ok)}
+.q-inj-card__notes{font-size:11px;color:var(--text-2);font-style:italic;line-height:1.4}
+.q-inj-card__foot{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
+.q-inj-card__date{font-size:11px;color:var(--text-3)}
+
+/* Modal */
+.q-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+.q-modal{background:var(--bg-2);border:1px solid var(--line-strong);border-radius:var(--r-4);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-pop)}
+.q-modal__header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+.q-modal__header h3{font-size:15px;font-weight:600;color:var(--text-0)}
+.q-modal__close{background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px;padding:4px;border-radius:var(--r-1)}
+.q-modal__close:hover{color:var(--text-0)}
+.q-modal__body{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.q-modal__footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--line)}
+
+@media(max-width:899px){
+  .q-bodymap-wrap{grid-template-columns:1fr}
+  .q-bodymap-views{justify-content:center}
+  .q-bodymap-panel{max-width:160px}
+  .bm-svg{max-width:120px}
+}
