@@ -1968,16 +1968,23 @@ function renderReports(){
     const _anthrKeys=Object.keys(selAth?.anthropometry||{}).sort().reverse();
     const _lm=_morphKeys[0]?selAth.morphology[_morphKeys[0]]:null;
     const _la=_anthrKeys[0]?selAth.anthropometry[_anthrKeys[0]]:null;
+    const _pAdip=_la?.masaAdip&&_lm?.weight?(_la.masaAdip/_lm.weight*100).toFixed(1):null;
+    const _pMusc=_la?.masaMusc&&_lm?.weight?(_la.masaMusc/_lm.weight*100).toFixed(1):null;
+    const _bodyDate=_la?.date||_lm?.date;
     const _bodyStats=[
-      _lm?.weight!=null?{l:'Peso',v:_lm.weight,u:'kg'}:null,
-      _lm?.height!=null?{l:'Talla',v:_lm.height,u:'cm'}:null,
-      _lm?.fatMass!=null?{l:'% Grasa',v:_lm.fatMass,u:'%'}:null,
-      _lm?.muscleMass!=null?{l:'% Músculo',v:_lm.muscleMass,u:'%'}:null,
-      _la?.sumSkinfolds!=null?{l:'Σ Pliegues',v:_la.sumSkinfolds,u:'mm'}:null,
+      _lm?.weight!=null?{l:'Peso',v:_lm.weight,u:'kg',c:'var(--text-0)'}:null,
+      _lm?.height!=null?{l:'Talla',v:_lm.height,u:'cm',c:'var(--text-0)'}:null,
+      _la?.masaAdip!=null?{l:'M. Adiposa',v:_la.masaAdip,u:'kg',c:'var(--text-0)'}:null,
+      _pAdip!=null?{l:'% Adiposa',v:_pAdip,u:'%',c:'var(--text-0)'}:null,
+      _la?.zAdip!=null?{l:'Z-Adip',v:(_la.zAdip>0?'+':'')+_la.zAdip,u:'',c:_la.zAdip<-1.95?'var(--ok)':'var(--bad)'}:null,
+      _la?.masaMusc!=null?{l:'M. Muscular',v:_la.masaMusc,u:'kg',c:'var(--text-0)'}:null,
+      _pMusc!=null?{l:'% Muscular',v:_pMusc,u:'%',c:'var(--text-0)'}:null,
+      _la?.zMusc!=null?{l:'Z-Musc',v:(_la.zMusc>0?'+':'')+_la.zMusc,u:'',c:_la.zMusc>1.75?'var(--ok)':'var(--warn)'}:null,
+      _la?.sumSkinfolds!=null?{l:'Σ Pliegues',v:_la.sumSkinfolds,u:'mm',c:'var(--text-0)'}:null,
     ].filter(Boolean);
     const _body=_bodyStats.length?`<div style="padding:12px 18px;border-bottom:1px solid var(--line);">
-      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;">Composición corporal${_morphKeys[0]?` <span style="font-weight:400;text-transform:none;letter-spacing:0;">· ${fmtDate(_morphKeys[0])}</span>`:''}</div>
-      <div style="display:flex;gap:20px;flex-wrap:wrap;">${_bodyStats.map(s=>`<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:15px;font-weight:600;">${s.v}</div><div style="font-size:10px;color:var(--text-2);margin-top:2px;">${s.l}</div></div>`).join('')}</div>
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;">Composición corporal${_bodyDate?` <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3);">· ${fmtDate(_bodyDate)}</span>`:''}</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">${_bodyStats.map(s=>`<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:${s.c};">${s.v}${s.u?`<span style="font-size:9px;font-weight:400;color:var(--text-2);margin-left:1px;">${s.u}</span>`:''}</div><div style="font-size:9.5px;color:var(--text-3);margin-top:2px;white-space:nowrap;">${s.l}</div></div>`).join('')}</div>
     </div>`:'';
     const _jumpKeys=Object.keys(selAth?.jumpTests||{}).sort().reverse();
     const _lj=_jumpKeys[0]?selAth.jumpTests[_jumpKeys[0]]:null;
@@ -1988,12 +1995,25 @@ function renderReports(){
       _lj?.abk!=null?{l:'ABK',v:_lj.abk,u:'cm',c:'var(--text-0)'}:null,
       _rsi!=null?{l:'RSI',v:_rsi,u:'',c:_rsi>=2?'var(--ok)':_rsi>=1.5?'var(--warn)':'var(--bad)'}:null,
     ].filter(Boolean);
-    const _jumps=_jumpStats.length?`<div style="padding:12px 18px;">
-      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;">Saltos${_jumpKeys[0]?` <span style="font-weight:400;text-transform:none;letter-spacing:0;">· ${fmtDate(_jumpKeys[0])}</span>`:''}</div>
-      <div style="display:flex;gap:20px;flex-wrap:wrap;">${_jumpStats.map(s=>`<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:15px;font-weight:600;color:${s.c};">${s.v}${s.u?`<span style="font-size:10px;font-weight:400;color:var(--text-2);margin-left:2px;">${s.u}</span>`:''}</div><div style="font-size:10px;color:var(--text-2);margin-top:2px;">${s.l}</div></div>`).join('')}</div>
+    const _jumps=_jumpStats.length?`<div style="padding:12px 18px;border-bottom:1px solid var(--line);">
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;">Saltos${_lj?.date?` <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3);">· ${fmtDate(_lj.date)}</span>`:''}</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;">${_jumpStats.map(s=>`<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:15px;font-weight:600;color:${s.c};">${s.v}${s.u?`<span style="font-size:10px;font-weight:400;color:var(--text-2);margin-left:2px;">${s.u}</span>`:''}</div><div style="font-size:9.5px;color:var(--text-3);margin-top:2px;">${s.l}</div></div>`).join('')}</div>
     </div>`:'';
-    _rpdDash=_hd+_kpi+_spark+_strip+_body+_jumps;
-    if(!_body&&!_jumps)_rpdDash+=`<div style="padding:14px 18px;font-size:12px;color:var(--text-3);">Sin evaluaciones físicas registradas.</div>`;
+    const _fmsKeys=Object.keys(selAth?.fmsTests||{}).sort().reverse();
+    const _lfms=_fmsKeys[0]?selAth.fmsTests[_fmsKeys[0]]:null;
+    const _fmsMinBi=(l,r)=>l!=null&&r!=null?Math.min(l,r):l!=null?l:r!=null?r:null;
+    const _fmsScores=_lfms?[_lfms.deepSquat,_fmsMinBi(_lfms.hurdleL,_lfms.hurdleR),_fmsMinBi(_lfms.lungeL,_lfms.lungeR),_fmsMinBi(_lfms.shoulderL,_lfms.shoulderR),_fmsMinBi(_lfms.aslrL,_lfms.aslrR),_lfms.trunkStab,_fmsMinBi(_lfms.rotaryL,_lfms.rotaryR)].filter(v=>v!=null):[];
+    const _fmsTotal=_fmsScores.length?_fmsScores.reduce((a,b)=>a+b,0):null;
+    const _fms=_fmsTotal!=null?`<div style="padding:12px 18px;">
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;">FMS${_lfms?.date?` <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3);">· ${fmtDate(_lfms.date)}</span>`:''}</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:${_fmsTotal>=14?'var(--ok)':_fmsTotal>=10?'var(--warn)':'var(--bad)'};">${_fmsTotal}</div><div style="font-size:9.5px;color:var(--text-3);">/ ${_fmsScores.length*3} pts</div></div>
+        <div style="flex:1;height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${Math.round(_fmsTotal/(_fmsScores.length*3)*100)}%;background:${_fmsTotal>=14?'var(--ok)':_fmsTotal>=10?'var(--warn)':'var(--bad)'};border-radius:3px;"></div></div>
+        <span style="font-size:11px;color:${_fmsTotal>=14?'var(--ok)':_fmsTotal>=10?'var(--warn)':'var(--bad)'};font-weight:600;">${_fmsTotal>=14?'Óptimo':_fmsTotal>=10?'Aceptable':'Revisar'}</span>
+      </div>
+    </div>`:'';
+    _rpdDash=_hd+_kpi+_spark+_strip+_body+_jumps+_fms;
+    if(!_body&&!_jumps&&!_fms)_rpdDash+=`<div style="padding:14px 18px;font-size:12px;color:var(--text-3);">Sin evaluaciones físicas registradas.</div>`;
   }
   const jugadoresTab=`<div class="q-rpd">${_rpdList}<div class="q-rpd-dash q-card" style="overflow-y:auto;">${_rpdDash}</div></div>`;
   // ── Por mes tab ──
