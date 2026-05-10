@@ -58,6 +58,19 @@ const REGIONS_ALL=[
 ];
 function regionLabel(id){return REGIONS_ALL.find(r=>r.id===id)?.label||id;}
 
+// ── Exercise / Program constants ──────────────────────────────
+const EX_CATEGORIES = ['Tren inferior','Tren superior','Core','Cardio / Metabólico','Técnico / Táctico','Movilidad / Elongación','Potencia / Pliometría','Otro'];
+const BLOCK_TYPES = [
+  {id:'warmup',  label:'WARM-UP',   color:'#0891b2'},
+  {id:'strength',label:'STRENGTH',  color:'#7c3aed'},
+  {id:'power',   label:'POWER',     color:'#ea580c'},
+  {id:'cardio',  label:'CARDIO',    color:'#16a34a'},
+  {id:'tactical',label:'TACTICAL',  color:'#2563eb'},
+  {id:'cooldown',label:'COOL-DOWN', color:'#475569'},
+  {id:'custom',  label:'BLOQUE',    color:'#d97706'},
+];
+function blockTypeInfo(id){return BLOCK_TYPES.find(b=>b.id===id)||BLOCK_TYPES[BLOCK_TYPES.length-1];}
+
 // ── State ─────────────────────────────────────────────────────
 let currentUser = null;
 let S = {
@@ -75,6 +88,20 @@ let S = {
   medInjuries:{}, medFilter:'activa', medRegion:'', injForm:null,
   editingTeamId:null, editingCatId:null,
   teamFormMode:null, catFormMode:null, // 'new'|'edit'
+  // Programs (personal per-user training programs)
+  programs:{},           // { progId: { name, createdAt, days:{dayId:{name,order,blocks}} } }
+  programView:null,      // null | { progId, dayId? }
+  programForm:null,      // null | { mode:'new'|'edit', progId?, name, dayId?, dayName }
+  // Exercise library
+  exercises:{ global:{}, personal:{} },
+  // Session plans (loaded for current date)
+  sessionPlans:{},       // { planId: { name, assignedToAll, assignedTo:{}, blocks:{} } }
+  planForm:null,         // null | { mode:'new'|'edit', planId?, name, assignedToAll, assignedTo:{} }
+  exPicker:null,         // null | { planId, blockId } or { progId, dayId, blockId }
+  exPickerQuery:'', exPickerTab:'global',
+  planEditBlock:null,    // { planId, blockId } block name being edited
+  planEditSet:null,      // { planId, blockId, itemId, setIdx, field } cell in edit
+  planCollapsed:{},      // { 'planId__blockId': true }
   // User profile & logo
   userProfile:{}, pendingLogo:null, profileView:false,
   // Permissions & invitations
@@ -282,6 +309,16 @@ async function loadAll() {
     const pSnap = await db.ref(`users/${currentUser.uid}/profile`).get();
     S.userProfile = pSnap.exists() ? (pSnap.val()||{}) : {};
 
+    // 6. Load personal programs and exercise library (in parallel)
+    const [progSnap, exPersonalSnap, exGlobalSnap] = await Promise.all([
+      db.ref(`users/${currentUser.uid}/programs`).get(),
+      db.ref(`users/${currentUser.uid}/exercises`).get(),
+      db.ref('exercises_library').get()
+    ]);
+    S.programs = progSnap.exists() ? (progSnap.val()||{}) : {};
+    S.exercises.personal = exPersonalSnap.exists() ? (exPersonalSnap.val()||{}) : {};
+    S.exercises.global   = exGlobalSnap.exists()   ? (exGlobalSnap.val()||{})   : {};
+
     setSyncBar('ok');
   } catch(e) {
     console.error(e); setSyncBar('error','Error al cargar los datos');
@@ -372,6 +409,7 @@ function goToTodaySessions(){
 }
 function sidebarOpenTeam(tid){S.teamId=tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
 function sidebarOpenCat(tid,cid){S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
+function openPrograms(){S.view='programs';S.programView=null;S.programForm=null;render();}
 function sidebarToggleAccess(tid){S.teamId=tid;S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};if(S.accessPanel)loadTeamMembers(tid);render();}
 function updateSidebarNav(){
   const nav=document.getElementById('nx-sidebar-nav');
@@ -403,6 +441,13 @@ function updateSidebarNav(){
     }
     h+=`</div>`;
   });
+  // Programs section
+  const progCount=Object.keys(S.programs||{}).length;
+  const progActive=S.view==='programs';
+  h=`<div class="q-tree__section-label">MIS EQUIPOS</div>`+h;
+  h+=`<div class="q-tree__section-label" style="margin-top:8px;">BIBLIOTECA</div>`;
+  h+=`<div class="q-tree__cat${progActive?' active':''}" onclick="openPrograms()" style="border-radius:8px;">`;
+  h+=`<span style="font-size:13px;">📋</span><span class="label" style="margin-left:6px;">Programas</span><span class="n">${progCount||''}</span></div>`;
   nav.innerHTML=h;
   // avatar / role footer
   const av=document.getElementById('nx-sidebar-avatar');
@@ -1094,6 +1139,14 @@ function loadSessionDraft(){
   cd.players.forEach(p=>{S.wellnessDraft[p.id]=w[p.id]?{...w[p.id]}:null;});
   S.wellnessExpanded={};
 }
+async function loadSessionPlans(){
+  const tid=S.teamId, cid=S.cat, date=S.date;
+  if(!tid||!cid||!date) return;
+  try {
+    const snap = await db.ref(`teams/${tid}/categories/${cid}/sessions/${date}/plans`).get();
+    S.sessionPlans = snap.exists() ? (snap.val()||{}) : {};
+  } catch(e){ S.sessionPlans={}; }
+}
 async function saveAttendance(){
   getCat().attendance[S.date]={...S.sess};
   await persistCat();render();
@@ -1116,6 +1169,122 @@ async function saveSessionDraft(){
   };
   await persistCat();
 }
+// ── Programs Firebase ─────────────────────────────────────────
+function progRef(pid){ return db.ref(`users/${currentUser.uid}/programs/${pid}`); }
+function dayRef(pid,did){ return db.ref(`users/${currentUser.uid}/programs/${pid}/days/${did}`); }
+function dayBlockRef(pid,did,bid){ return db.ref(`users/${currentUser.uid}/programs/${pid}/days/${did}/blocks/${bid}`); }
+function dayItemRef(pid,did,bid,iid){ return db.ref(`users/${currentUser.uid}/programs/${pid}/days/${did}/blocks/${bid}/items/${iid}`); }
+
+async function saveProgram(pid, data){
+  if(!S.programs[pid]) S.programs[pid]={createdAt:Date.now(),days:{}};
+  Object.assign(S.programs[pid],data);
+  await db.ref(`users/${currentUser.uid}/programs/${pid}`).update(data);
+}
+async function deleteProgram(pid){
+  delete S.programs[pid];
+  await db.ref(`users/${currentUser.uid}/programs/${pid}`).remove();
+}
+async function saveProgramDay(pid, did, data){
+  if(!S.programs[pid]) return;
+  if(!S.programs[pid].days) S.programs[pid].days={};
+  S.programs[pid].days[did]=Object.assign(S.programs[pid].days[did]||{},data);
+  await dayRef(pid,did).update(data);
+}
+async function deleteProgramDay(pid, did){
+  if(S.programs[pid]?.days) delete S.programs[pid].days[did];
+  await dayRef(pid,did).remove();
+}
+async function saveBlockToDay(pid, did, bid, data){
+  if(!S.programs[pid]?.days?.[did]) return;
+  const day=S.programs[pid].days[did];
+  if(!day.blocks) day.blocks={};
+  day.blocks[bid]=Object.assign(day.blocks[bid]||{},data);
+  await dayBlockRef(pid,did,bid).update(data);
+}
+async function deleteBlockFromDay(pid, did, bid){
+  if(S.programs[pid]?.days?.[did]?.blocks) delete S.programs[pid].days[did].blocks[bid];
+  await dayBlockRef(pid,did,bid).remove();
+}
+async function saveItemToDay(pid, did, bid, iid, data){
+  if(!S.programs[pid]?.days?.[did]?.blocks?.[bid]) return;
+  const block=S.programs[pid].days[did].blocks[bid];
+  if(!block.items) block.items={};
+  block.items[iid]=Object.assign(block.items[iid]||{},data);
+  await dayItemRef(pid,did,bid,iid).update(data);
+}
+async function deleteItemFromDay(pid, did, bid, iid){
+  if(S.programs[pid]?.days?.[did]?.blocks?.[bid]?.items) delete S.programs[pid].days[did].blocks[bid].items[iid];
+  await dayItemRef(pid,did,bid,iid).remove();
+}
+
+// ── Session Plans Firebase ─────────────────────────────────────
+function planBase(tid=S.teamId, cid=S.cat, date=S.date){ return `teams/${tid}/categories/${cid}/sessions/${date}`; }
+function planRef(planId){ return db.ref(`${planBase()}/plans/${planId}`); }
+function planBlockRef(planId,bid){ return db.ref(`${planBase()}/plans/${planId}/blocks/${bid}`); }
+function planItemRef(planId,bid,iid){ return db.ref(`${planBase()}/plans/${planId}/blocks/${bid}/items/${iid}`); }
+function planSetRef(planId,bid,iid,sidx){ return db.ref(`${planBase()}/plans/${planId}/blocks/${bid}/items/${iid}/sets/${sidx}`); }
+
+async function ensureSessionExists(){
+  const cd=getCat();
+  if(!cd.sessions?.[S.date]){
+    const minSession={duration:null,teamRPE:null,sessionType:null,playerRPE:{},wellness:{}};
+    if(!cd.sessions)cd.sessions={};
+    cd.sessions[S.date]=minSession;
+    await db.ref(`${planBase()}`).update(minSession);
+  }
+}
+async function saveSessionPlan(planId, data){
+  S.sessionPlans[planId]=Object.assign(S.sessionPlans[planId]||{blocks:{}},data);
+  await ensureSessionExists();
+  await planRef(planId).update(data);
+}
+async function deleteSessionPlan(planId){
+  delete S.sessionPlans[planId];
+  await planRef(planId).remove();
+}
+async function addBlockToPlan(planId, bid, data){
+  if(!S.sessionPlans[planId]) return;
+  if(!S.sessionPlans[planId].blocks) S.sessionPlans[planId].blocks={};
+  S.sessionPlans[planId].blocks[bid]=data;
+  await planBlockRef(planId,bid).set(data);
+}
+async function updateBlockInPlan(planId, bid, data){
+  if(!S.sessionPlans[planId]?.blocks?.[bid]) return;
+  Object.assign(S.sessionPlans[planId].blocks[bid],data);
+  await planBlockRef(planId,bid).update(data);
+}
+async function deleteBlockFromPlan(planId, bid){
+  if(S.sessionPlans[planId]?.blocks) delete S.sessionPlans[planId].blocks[bid];
+  await planBlockRef(planId,bid).remove();
+}
+async function addItemToBlock(planId, bid, iid, data){
+  if(!S.sessionPlans[planId]?.blocks?.[bid]) return;
+  const block=S.sessionPlans[planId].blocks[bid];
+  if(!block.items) block.items={};
+  block.items[iid]=data;
+  await planItemRef(planId,bid,iid).set(data);
+}
+async function deleteItemFromBlock(planId, bid, iid){
+  if(S.sessionPlans[planId]?.blocks?.[bid]?.items) delete S.sessionPlans[planId].blocks[bid].items[iid];
+  await planItemRef(planId,bid,iid).remove();
+}
+async function saveSetInItem(planId, bid, iid, sidx, data){
+  if(!S.sessionPlans[planId]?.blocks?.[bid]?.items?.[iid]) return;
+  const item=S.sessionPlans[planId].blocks[bid].items[iid];
+  if(!item.sets) item.sets={};
+  item.sets[String(sidx)]=Object.assign(item.sets[String(sidx)]||{},data);
+  await planSetRef(planId,bid,iid,sidx).update(data);
+}
+
+// ── Personal exercise library ──────────────────────────────────
+async function savePersonalExercise(name, category){
+  const id=Date.now().toString();
+  const data={name,category:category||'Otro',createdAt:Date.now()};
+  S.exercises.personal[id]=data;
+  await db.ref(`users/${currentUser.uid}/exercises/${id}`).set(data);
+  return id;
+}
+
 async function addPlayer(){
   const inp=document.getElementById('new-player');
   if(!inp||!inp.value.trim())return;
@@ -1162,11 +1331,135 @@ function render(){
   if(S.profileView){ body.innerHTML=renderProfileView(); attachEvents(); updateHeader(); return; }
   if(S.view==='search') {body.innerHTML=renderSearch();attachEvents();updateHeader();return;}
   if(S.view==='athlete'){body.innerHTML=renderAthleteView();attachEvents();updateHeader();return;}
-  if(S.view==='home')   body.innerHTML=renderHome();
-  else if(S.view==='team') body.innerHTML=renderTeamView();
-  else if(S.view==='cat')  body.innerHTML=renderCatHeader()+renderCat();
+  if(S.view==='home')      body.innerHTML=renderHome();
+  else if(S.view==='team')     body.innerHTML=renderTeamView();
+  else if(S.view==='cat')      body.innerHTML=renderCatHeader()+renderCat();
+  else if(S.view==='programs') body.innerHTML=renderProgramsView();
   updateHeader();
   attachEvents();
+  if(S.exPicker) renderExPickerModal();
+}
+
+// ── PROGRAMS VIEW ────────────────────────────────────────────
+function renderProgramsView(){
+  if(S.programView?.dayId) return renderProgramDayEditor();
+  if(S.programView?.progId) return renderProgramDetail();
+  return renderProgramsList();
+}
+
+function renderProgramsList(){
+  const progs=Object.entries(S.programs||{}).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+  const form=S.programForm;
+  let cards='';
+  if(!progs.length && !form){
+    cards=`<div class="q-empty-state"><div style="font-size:36px;margin-bottom:12px;">📋</div><div style="font-weight:600;margin-bottom:4px;">Sin programas todavía</div><div style="font-size:13px;color:var(--text-2);">Crea tu primer programa de entrenamiento</div></div>`;
+  } else {
+    cards=progs.map(([pid,p])=>{
+      const days=Object.values(p.days||{});
+      return `<div class="q-card q-prog-card" data-action="openprog" data-pid="${pid}" style="cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:44px;height:44px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📋</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:15px;color:var(--text);">${p.name||'Sin nombre'}</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${days.length} ${days.length===1?'día':'días'}</div>
+          </div>
+          <button class="q-icon-btn" data-action="deleteprog" data-pid="${pid}" title="Eliminar" onclick="event.stopPropagation();">🗑</button>
+        </div>
+        ${days.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">`+
+          Object.entries(p.days||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0)).map(([did,d])=>
+            `<span class="q-day-chip" data-action="openprogday" data-pid="${pid}" data-did="${did}" onclick="event.stopPropagation();">${d.name||'Día'}</span>`
+          ).join('')+`</div>`:''}
+      </div>`;
+    }).join('');
+  }
+  const formHtml=form?`<div class="q-card" style="margin-bottom:12px;">
+    <div class="q-card__h"><h3>${form.mode==='edit'?'Editar programa':'Nuevo programa'}</h3></div>
+    <div class="q-card__b" style="padding:12px 16px;">
+      <div class="form-field"><label>Nombre del programa</label>
+        <input type="text" id="prog-name-input" value="${form.name||''}" placeholder="ej: Hipertrofia 4 días" class="q-input">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="q-btn q-btn--primary" data-action="saveprogform">Guardar</button>
+        <button class="q-btn" data-action="cancelprogform">Cancelar</button>
+      </div>
+    </div>
+  </div>`:'';
+  return`<div class="wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--text);">Programas</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">Tus rutinas reutilizables — disponibles en cualquier equipo</div>
+      </div>
+      <button class="q-btn q-btn--primary" data-action="newprog">+ Nuevo programa</button>
+    </div>
+    ${formHtml}
+    <div style="display:flex;flex-direction:column;gap:10px;">${cards}</div>
+  </div>`;
+}
+
+function renderProgramDetail(){
+  const pid=S.programView.progId;
+  const prog=S.programs[pid];
+  if(!prog) return renderProgramsList();
+  const days=Object.entries(prog.days||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  const form=S.programForm;
+  const dayFormHtml=form&&form.mode==='newday'?`<div class="q-card" style="margin-bottom:10px;">
+    <div class="q-card__b" style="padding:12px 16px;">
+      <div class="form-field"><label>Nombre del día</label>
+        <input type="text" id="day-name-input" value="${form.dayName||''}" placeholder="ej: Día 1 — Tren inferior empuje" class="q-input">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="q-btn q-btn--primary" data-action="savedayform" data-pid="${pid}">Guardar</button>
+        <button class="q-btn" data-action="cancelprogform">Cancelar</button>
+      </div>
+    </div>
+  </div>`:'';
+  const dayCards=days.map(([did,d])=>{
+    const blockCount=Object.keys(d.blocks||{}).length;
+    const exCount=Object.values(d.blocks||{}).reduce((s,b)=>s+Object.keys(b.items||{}).length,0);
+    return `<div class="q-card q-prog-card" data-action="openprogday" data-pid="${pid}" data-did="${did}" style="cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:8px;background:var(--bg-3);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--accent);">${(d.order||0)+1}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:14px;">${d.name||'Sin nombre'}</div>
+          <div style="font-size:12px;color:var(--text-2);">${blockCount} bloques · ${exCount} ejercicios</div>
+        </div>
+        <button class="q-icon-btn" data-action="deleteprogday" data-pid="${pid}" data-did="${did}" onclick="event.stopPropagation();">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+  return`<div class="wrap">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <button class="q-btn" data-action="backprograms" style="padding:6px 10px;">← Volver</button>
+      <div style="flex:1;">
+        <div style="font-size:18px;font-weight:700;">${prog.name}</div>
+        <div style="font-size:12px;color:var(--text-2);">${days.length} ${days.length===1?'día':'días'}</div>
+      </div>
+      <button class="q-btn q-btn--primary" data-action="newprogday" data-pid="${pid}">+ Agregar día</button>
+    </div>
+    ${dayFormHtml}
+    <div style="display:flex;flex-direction:column;gap:8px;">${dayCards||`<div class="q-empty-state">Agregá días a este programa</div>`}</div>
+  </div>`;
+}
+
+function renderProgramDayEditor(){
+  const pid=S.programView.progId, did=S.programView.dayId;
+  const prog=S.programs[pid];
+  const day=prog?.days?.[did];
+  if(!day) return renderProgramDetail();
+  const blocks=Object.entries(day.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  const blocksHtml=blocks.map(([bid,block])=>renderPlanBlock(bid,block,{progId:pid,dayId:did})).join('');
+  return`<div class="wrap">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <button class="q-btn" data-action="backprogdetail" data-pid="${pid}" style="padding:6px 10px;">← ${prog.name}</button>
+      <div style="flex:1;">
+        <div style="font-size:17px;font-weight:700;">${day.name}</div>
+        <div style="font-size:12px;color:var(--text-2);">${blocks.length} bloques</div>
+      </div>
+    </div>
+    <div class="q-plan-blocks">${blocksHtml}</div>
+    <button class="q-btn q-btn--ghost q-add-block-btn" data-action="addblock" data-ctx="prog" data-pid="${pid}" data-did="${did}">+ Agregar bloque</button>
+  </div>`;
 }
 
 // ── HOME: Teams list ──────────────────────────────────────────
@@ -1553,12 +1846,187 @@ function renderSession(){
       <button class="q-date__btn" data-action="nextday" ${S.date>=TODAY?'disabled':''}>${svg('m9 6 6 6-6 6')}</button>
     </div>
     <div class="q-att-toggle" style="margin-left:auto;">
+      <button class="b${S.sessionSub==='plan'?' on p':''}" data-action="sessionsub" data-sub="plan">Plan</button>
       <button class="b${S.sessionSub==='load'?' on p':''}" data-action="sessionsub" data-sub="load">Carga RPE</button>
       <button class="b${S.sessionSub==='wellness'?' on p':''}" data-action="sessionsub" data-sub="wellness">Wellness</button>
     </div>
   </div>
-  ${S.sessionSub==='load'?renderSessionLoad():renderSessionWellness()}`;
+  ${S.sessionSub==='plan'?renderPlan():S.sessionSub==='load'?renderSessionLoad():renderSessionWellness()}`;
 }
+// ── PLAN editor ───────────────────────────────────────────────
+function renderPlan(){
+  const editable=canEdit();
+  const plans=Object.entries(S.sessionPlans||{}).sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
+  const cd=getCat();
+  const planForm=S.planForm;
+  const planFormHtml=planForm?`<div class="q-card" style="margin-bottom:12px;">
+    <div class="q-card__h"><h3>${planForm.mode==='edit'?'Editar plan':'Nuevo plan'}</h3></div>
+    <div class="q-card__b" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
+      <div class="form-field"><label>Nombre del plan</label>
+        <input type="text" id="planform-name" value="${planForm.name||''}" placeholder="ej: Fuerza tren inferior" class="q-input">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:6px;display:block;">Asignar a</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="q-btn${planForm.assignedToAll?' q-btn--primary':''}" data-action="plantoggleall" style="font-size:12px;padding:4px 10px;">Toda la categoría</button>
+          ${cd.players.map(p=>{
+            const sel=!planForm.assignedToAll&&planForm.assignedTo?.[p.id];
+            return`<button class="q-btn${sel?' q-btn--primary':''}" data-action="plantoggleplayer" data-pid="${p.id}" style="font-size:12px;padding:4px 10px;">${p.name}</button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="q-btn q-btn--primary" data-action="saveplanform">Guardar</button>
+        <button class="q-btn" data-action="cancelplanform">Cancelar</button>
+      </div>
+    </div>
+  </div>`:'';
+  const plansHtml=plans.map(([planId,plan])=>{
+    const blocks=Object.entries(plan.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+    const assignedNames=plan.assignedToAll?'Toda la categoría':Object.keys(plan.assignedTo||{}).map(pid=>{
+      const p=cd.players.find(pl=>pl.id===pid);return p?p.name:'';
+    }).filter(Boolean).join(', ')||'Sin asignar';
+    return`<div class="q-plan-card">
+      <div class="q-plan-card__head">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:15px;">${plan.name||'Plan sin nombre'}</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:2px;">👥 ${assignedNames}</div>
+        </div>
+        ${editable?`<button class="q-icon-btn" data-action="editplanmeta" data-planid="${planId}" title="Editar asignación">✏️</button>
+        <button class="q-icon-btn" data-action="deleteplan" data-planid="${planId}" title="Eliminar plan">🗑</button>`:''}
+      </div>
+      <div class="q-plan-blocks">${blocks.map(([bid,block])=>renderPlanBlock(bid,block,{planId})).join('')}</div>
+      ${editable?`<button class="q-btn q-btn--ghost q-add-block-btn" data-action="addblock" data-ctx="session" data-planid="${planId}">+ Agregar bloque</button>`:''}
+    </div>`;
+  }).join('');
+  const emptyHtml=!plans.length&&!planForm?`<div class="q-empty-state"><div style="font-size:32px;margin-bottom:8px;">🏋️</div><div style="font-weight:600;">Sin plan para este día</div><div style="font-size:13px;color:var(--text-2);margin-top:4px;">Creá un plan o cargá desde un programa guardado</div></div>`:'';
+  return`<div style="padding-top:4px;">
+    ${editable?`<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;">
+      <button class="q-btn" data-action="newplanfromprogram" style="font-size:13px;">📋 Desde programa</button>
+      <button class="q-btn q-btn--primary" data-action="newplan" style="font-size:13px;">+ Nuevo plan</button>
+    </div>`:''}
+    ${planFormHtml}
+    ${plansHtml}
+    ${emptyHtml}
+  </div>`;
+}
+
+function renderPlanBlock(bid, block, ctx){
+  const typeInfo=blockTypeInfo(block.type||'custom');
+  const collapseKey=`${ctx.planId||ctx.progId+'_'+ctx.dayId}__${bid}`;
+  const collapsed=S.planCollapsed[collapseKey];
+  const items=Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  const isSession=!!ctx.planId;
+  const editable=isSession?canEdit():true;
+  const editingBlockName=S.planEditBlock&&S.planEditBlock.blockId===bid&&
+    ((isSession&&S.planEditBlock.planId===ctx.planId)||(ctx.progId&&S.planEditBlock.progId===ctx.progId));
+  const blockHeader=editingBlockName?
+    `<div style="display:flex;gap:8px;flex:1;align-items:center;">
+      <input type="text" id="block-name-input" value="${block.name||''}" class="q-input" style="flex:1;font-size:13px;padding:4px 8px;" placeholder="Nombre del bloque">
+      <button class="q-btn q-btn--primary" data-action="saveblockname" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" style="padding:4px 10px;font-size:12px;">OK</button>
+      <button class="q-btn" data-action="cancelblockname" style="padding:4px 8px;font-size:12px;">✕</button>
+    </div>`:
+    `<div style="flex:1;display:flex;align-items:center;gap:8px;">
+      <span class="q-block-type-tag" style="background:${typeInfo.color}15;color:${typeInfo.color};border:1px solid ${typeInfo.color}40;">${typeInfo.label}</span>
+      <span style="font-weight:600;font-size:14px;">${block.name||'Bloque'}</span>
+    </div>`;
+  const maxSets=items.length?Math.max(...items.map(([,it])=>Object.keys(it.sets||{}).length)):0;
+  const setHeaders=maxSets?Array.from({length:maxSets},(_,i)=>`<th>#${i+1}</th>`).join(''):'';
+  const itemRows=items.map(([iid,item])=>{
+    const sets=item.sets||{};
+    const setCount=Object.keys(sets).length;
+    const setCells=Array.from({length:Math.max(setCount,maxSets)},(_,i)=>{
+      const s=sets[String(i)]||{};
+      const isEditing=S.planEditSet&&S.planEditSet.blockId===bid&&S.planEditSet.itemId===iid&&S.planEditSet.setIdx===i;
+      if(isEditing&&editable){
+        return`<td class="q-set-cell editing">
+          <input type="text" id="set-reps-${i}" value="${s.reps||''}" placeholder="Reps" style="width:52px;" class="q-input q-set-input">
+          <input type="text" id="set-weight-${i}" value="${s.weight||''}" placeholder="Peso" style="width:52px;" class="q-input q-set-input">
+          <button data-action="savesetcell" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" data-iid="${iid}" data-sidx="${i}" style="font-size:11px;" class="q-btn q-btn--primary">OK</button>
+        </td>`;
+      }
+      const display=(s.reps||s.weight)?[(s.reps||''),s.weight?(s.weight+'kg'):''].filter(Boolean).join(' × '):'—';
+      return`<td class="q-set-cell${editable?' clickable':''}" ${editable?`data-action="editsetcell" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" data-iid="${iid}" data-sidx="${i}"`:''}>${display}</td>`;
+    }).join('');
+    return`<tr>
+      <td class="q-ex-name">${item.exName||'Ejercicio'}</td>
+      ${setCells}
+      ${editable?`<td class="q-set-cell" style="white-space:nowrap;">
+        <button class="q-icon-btn" data-action="addset" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" data-iid="${iid}" title="Agregar serie">+</button>
+        <button class="q-icon-btn" data-action="removelastset" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" data-iid="${iid}" title="Quitar serie">−</button>
+        <button class="q-icon-btn" data-action="removeitem" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" data-iid="${iid}" title="Eliminar ejercicio">🗑</button>
+      </td>`:''}
+    </tr>`;
+  }).join('');
+  const tableHtml=items.length?`<div style="overflow-x:auto;margin-top:8px;">
+    <table class="q-plan-table">
+      <thead><tr><th style="text-align:left;">Ejercicio</th>${setHeaders}${editable?'<th></th>':''}</tr></thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+  </div>`:'';
+  return`<div class="q-block-card" data-bid="${bid}">
+    <div class="q-block-card__head">
+      ${blockHeader}
+      <div style="display:flex;gap:4px;margin-left:4px;">
+        <button class="q-icon-btn" data-action="toggleblock" data-colkey="${collapseKey}">${collapsed?'▼':'▲'}</button>
+        ${editable&&!editingBlockName?`<button class="q-icon-btn" data-action="editblockname" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Renombrar">✏️</button>`:''}
+        ${editable?`<button class="q-icon-btn" data-action="deleteblock" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Eliminar bloque">🗑</button>`:''}
+      </div>
+    </div>
+    ${!collapsed?`${tableHtml}
+    ${editable?`<div style="margin-top:8px;">
+      <button class="q-btn q-btn--ghost" style="font-size:12px;width:100%;" data-action="addexercise" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}">+ Agregar ejercicio</button>
+    </div>`:''}`:``}
+  </div>`;
+}
+
+function renderExPickerModal(){
+  const body=document.getElementById('app-body');
+  if(!body||!S.exPicker) return;
+  const q=(S.exPickerQuery||'').toLowerCase();
+  const tab=S.exPickerTab||'global';
+  const allEx=S.exercises[tab]||{};
+  const filtered=Object.entries(allEx).filter(([,ex])=>
+    !q||ex.name?.toLowerCase().includes(q)||(ex.category||'').toLowerCase().includes(q)
+  );
+  const grouped={};
+  filtered.forEach(([id,ex])=>{
+    const cat=ex.category||'Otro';
+    if(!grouped[cat]) grouped[cat]=[];
+    grouped[cat].push({id,...ex});
+  });
+  const listHtml=Object.entries(grouped).map(([cat,exs])=>
+    `<div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">${cat}</div>
+      ${exs.map(ex=>`<div class="q-ex-pick-item" data-action="pickexercise" data-exid="${ex.id}" data-exname="${ex.name}">${ex.name}</div>`).join('')}
+    </div>`
+  ).join('')||`<div style="color:var(--text-2);font-size:13px;padding:16px 0;text-align:center;">${q?'Sin resultados para "'+q+'"':'La biblioteca está vacía'}</div>`;
+  const modal=document.createElement('div');
+  modal.id='ex-picker-modal';
+  modal.className='q-modal-backdrop';
+  modal.innerHTML=`<div class="q-modal" style="max-width:480px;width:95%;">
+    <div class="q-modal__head">
+      <span style="font-weight:600;">Seleccionar ejercicio</span>
+      <button class="q-icon-btn" data-action="closeexpicker">✕</button>
+    </div>
+    <div style="padding:12px 16px;border-bottom:1px solid var(--line);">
+      <div class="q-att-toggle" style="margin-bottom:10px;">
+        <button class="b${tab==='global'?' on p':''}" data-action="expickertab" data-tab="global">Global</button>
+        <button class="b${tab==='personal'?' on p':''}" data-action="expickertab" data-tab="personal">Personal</button>
+      </div>
+      <input type="text" id="ex-picker-q" class="q-input" placeholder="Buscar ejercicio..." value="${S.exPickerQuery||''}" style="width:100%;">
+    </div>
+    <div style="padding:12px 16px;max-height:340px;overflow-y:auto;">${listHtml}</div>
+    <div style="padding:10px 16px;border-top:1px solid var(--line);">
+      <button class="q-btn q-btn--primary" data-action="savenewpersonalex" style="font-size:12px;width:100%;">+ Agregar "${S.exPickerQuery||'nuevo ejercicio'}" a mi biblioteca</button>
+    </div>
+  </div>`;
+  body.appendChild(modal);
+  document.querySelectorAll('#ex-picker-modal [data-action]').forEach(el=>el.addEventListener('click',handleAction));
+  const qi=document.getElementById('ex-picker-q');
+  if(qi){qi.focus();qi.addEventListener('input',e=>{S.exPickerQuery=e.target.value;const m=document.getElementById('ex-picker-modal');if(m)m.remove();renderExPickerModal();});}
+}
+
 function renderSessionLoad(){
   const sd=S.sessionDraft,cd=getCat(),ex=cd.sessions?.[S.date]||{};
   const editable=canEdit();
@@ -3200,7 +3668,7 @@ async function handleAction(e){
   else if(a==='reportplayerpid'){S.reportPlayerPid=el.dataset.pid;render();}
   else if(a==='prevreportweek'){S.reportWeekOffset=(S.reportWeekOffset||0)-1;render();}
   else if(a==='nextreportweek'){S.reportWeekOffset=(S.reportWeekOffset||0)+1;render();}
-  else if(a==='sessionsub'){S.sessionSub=el.dataset.sub;render();}
+  else if(a==='sessionsub'){S.sessionSub=el.dataset.sub;if(el.dataset.sub==='plan'){S.sessionPlans={};loadSessionPlans().then(()=>render());}else render();}
   else if(a==='rpemode'){S.rpeMode=el.dataset.mode;render();}
   else if(a==='sessiontype'){S.sessionDraft.sessionType=el.dataset.type;render();}
   else if(a==='cancelsearch'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;S.searchReturnView=null;S.searchReturnTeamId=null;render();}
@@ -3566,4 +4034,238 @@ async function handleAction(e){
     S.injForm={ak,ikey,data:{...injData}};render();
   }
   else if(a==='deleteinjury'){await deleteInjury(el.dataset.ak,el.dataset.ikey);}
+  // ── PROGRAMS ──────────────────────────────────────────────────
+  else if(a==='newprog'){S.programForm={mode:'new',name:''};render();}
+  else if(a==='cancelprogform'){S.programForm=null;render();}
+  else if(a==='saveprogform'){
+    const name=document.getElementById('prog-name-input')?.value.trim();
+    if(!name){alert('Ingresá un nombre para el programa.');return;}
+    const pid=S.programForm.progId||'prog_'+Date.now();
+    S.programForm=null;
+    await saveProgram(pid,{name,createdAt:Date.now(),days:S.programs[pid]?.days||{}});
+    render();
+  }
+  else if(a==='deleteprog'){
+    if(!confirm('¿Eliminar este programa y todos sus días?'))return;
+    await deleteProgram(el.dataset.pid);render();
+  }
+  else if(a==='openprog'){S.programView={progId:el.dataset.pid};S.programForm=null;render();}
+  else if(a==='backprograms'){S.programView=null;S.programForm=null;render();}
+  else if(a==='newprogday'){S.programForm={mode:'newday',progId:el.dataset.pid,dayName:''};render();}
+  else if(a==='savedayform'){
+    const pid=el.dataset.pid;
+    const name=document.getElementById('day-name-input')?.value.trim();
+    if(!name){alert('Ingresá un nombre para el día.');return;}
+    const did='day_'+Date.now();
+    const days=S.programs[pid]?.days||{};
+    const order=Object.keys(days).length;
+    S.programForm=null;
+    await saveProgramDay(pid,did,{name,order,blocks:{}});
+    render();
+  }
+  else if(a==='deleteprogday'){
+    if(!confirm('¿Eliminar este día?'))return;
+    await deleteProgramDay(el.dataset.pid,el.dataset.did);render();
+  }
+  else if(a==='openprogday'){
+    S.programView={progId:el.dataset.pid,dayId:el.dataset.did};S.programForm=null;render();
+  }
+  else if(a==='backprogdetail'){S.programView={progId:el.dataset.pid};S.programForm=null;render();}
+  // ── PLAN (session) ────────────────────────────────────────────
+  else if(a==='newplan'){
+    S.planForm={mode:'new',name:'',assignedToAll:false,assignedTo:{}};render();
+  }
+  else if(a==='cancelplanform'){S.planForm=null;render();}
+  else if(a==='plantoggleall'){
+    if(S.planForm){S.planForm.assignedToAll=!S.planForm.assignedToAll;if(S.planForm.assignedToAll)S.planForm.assignedTo={};render();}
+  }
+  else if(a==='plantoggleplayer'){
+    if(S.planForm&&!S.planForm.assignedToAll){
+      const pid=el.dataset.pid;
+      if(S.planForm.assignedTo[pid])delete S.planForm.assignedTo[pid];else S.planForm.assignedTo[pid]=true;
+      render();
+    }
+  }
+  else if(a==='saveplanform'){
+    const name=document.getElementById('planform-name')?.value.trim()||'Plan';
+    const planId=S.planForm.planId||'plan_'+Date.now();
+    const data={name,assignedToAll:S.planForm.assignedToAll,assignedTo:S.planForm.assignedTo||{},createdAt:S.planForm.planId?S.sessionPlans[planId]?.createdAt||Date.now():Date.now()};
+    S.planForm=null;
+    await saveSessionPlan(planId,data);
+    render();
+  }
+  else if(a==='editplanmeta'){
+    const planId=el.dataset.planid;
+    const plan=S.sessionPlans[planId];
+    if(!plan)return;
+    S.planForm={mode:'edit',planId,name:plan.name||'',assignedToAll:plan.assignedToAll||false,assignedTo:{...(plan.assignedTo||{})}};render();
+  }
+  else if(a==='deleteplan'){
+    if(!confirm('¿Eliminar este plan?'))return;
+    await deleteSessionPlan(el.dataset.planid);render();
+  }
+  else if(a==='newplanfromprogram'){
+    const progEntries=Object.entries(S.programs||{});
+    if(!progEntries.length){alert('No tenés programas guardados. Creá uno desde la sección Programas.');return;}
+    const opts=progEntries.map(([pid,p])=>{
+      const days=Object.entries(p.days||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+      return days.map(([did,d])=>`${pid}|${did}|${p.name} → ${d.name}`);
+    }).flat();
+    const choice=prompt('Elegí el día a cargar (número):\n'+opts.map((o,i)=>`${i+1}. ${o.split('|')[2]}`).join('\n'));
+    const idx=parseInt(choice)-1;
+    if(isNaN(idx)||idx<0||idx>=opts.length)return;
+    const [pid,did]=opts[idx].split('|');
+    const day=S.programs[pid]?.days?.[did];
+    if(!day)return;
+    const planId='plan_'+Date.now();
+    const planData={name:day.name,assignedToAll:false,assignedTo:{},createdAt:Date.now(),blocks:JSON.parse(JSON.stringify(day.blocks||{}))};
+    await saveSessionPlan(planId,planData);
+    render();
+  }
+  // ── BLOCKS ────────────────────────────────────────────────────
+  else if(a==='addblock'){
+    const ctx=el.dataset.ctx, planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
+    const bid='blk_'+Date.now();
+    const blockData={name:'Nuevo bloque',type:'custom',order:0,items:{}};
+    if(ctx==='session'){
+      const existing=S.sessionPlans[planId]?.blocks||{};
+      blockData.order=Object.keys(existing).length;
+      await addBlockToPlan(planId,bid,blockData);
+    } else {
+      const existing=S.programs[pid]?.days?.[did]?.blocks||{};
+      blockData.order=Object.keys(existing).length;
+      await saveBlockToDay(pid,did,bid,blockData);
+    }
+    S.planEditBlock={blockId:bid,planId:planId||null,progId:pid||null,dayId:did||null};
+    render();
+  }
+  else if(a==='editblockname'){
+    S.planEditBlock={blockId:el.dataset.bid,planId:el.dataset.planid||null,progId:el.dataset.pid||null,dayId:el.dataset.did||null};
+    render();
+  }
+  else if(a==='cancelblockname'){S.planEditBlock=null;render();}
+  else if(a==='saveblockname'){
+    const name=document.getElementById('block-name-input')?.value.trim()||'Bloque';
+    const ctx=el.dataset.ctx, bid=el.dataset.bid, planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
+    S.planEditBlock=null;
+    if(ctx==='session'){
+      await updateBlockInPlan(planId,bid,{name});
+    } else {
+      await saveBlockToDay(pid,did,bid,{name});
+    }
+    render();
+  }
+  else if(a==='deleteblock'){
+    if(!confirm('¿Eliminar este bloque y todos sus ejercicios?'))return;
+    const ctx=el.dataset.ctx, bid=el.dataset.bid, planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
+    if(ctx==='session') await deleteBlockFromPlan(planId,bid);
+    else await deleteBlockFromDay(pid,did,bid);
+    render();
+  }
+  else if(a==='toggleblock'){
+    const key=el.dataset.colkey;
+    S.planCollapsed[key]=!S.planCollapsed[key];render();
+  }
+  // ── EXERCISES ─────────────────────────────────────────────────
+  else if(a==='addexercise'){
+    S.exPicker={ctx:el.dataset.ctx,planId:el.dataset.planid||null,progId:el.dataset.pid||null,dayId:el.dataset.did||null,blockId:el.dataset.bid};
+    S.exPickerQuery='';S.exPickerTab='global';
+    render();
+  }
+  else if(a==='closeexpicker'){S.exPicker=null;render();}
+  else if(a==='expickertab'){S.exPickerTab=el.dataset.tab;const m=document.getElementById('ex-picker-modal');if(m)m.remove();renderExPickerModal();}
+  else if(a==='pickexercise'){
+    const exId=el.dataset.exid, exName=el.dataset.exname;
+    const picker=S.exPicker;
+    if(!picker)return;
+    S.exPicker=null;
+    const iid='item_'+Date.now();
+    const itemData={exId,exName,order:0,sets:{'0':{reps:'',weight:'',notes:''}}};
+    if(picker.ctx==='session'){
+      const existing=S.sessionPlans[picker.planId]?.blocks?.[picker.blockId]?.items||{};
+      itemData.order=Object.keys(existing).length;
+      await addItemToBlock(picker.planId,picker.blockId,iid,itemData);
+    } else {
+      const day=S.programs[picker.progId]?.days?.[picker.dayId];
+      if(!day?.blocks?.[picker.blockId])return;
+      const existing=day.blocks[picker.blockId].items||{};
+      itemData.order=Object.keys(existing).length;
+      if(!day.blocks[picker.blockId].items) day.blocks[picker.blockId].items={};
+      day.blocks[picker.blockId].items[iid]=itemData;
+      await dayItemRef(picker.progId,picker.dayId,picker.blockId,iid).set(itemData);
+    }
+    render();
+  }
+  else if(a==='removeitem'){
+    const ctx=el.dataset.ctx, bid=el.dataset.bid, iid=el.dataset.iid, planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
+    if(ctx==='session') await deleteItemFromBlock(planId,bid,iid);
+    else await deleteItemFromDay(pid,did,bid,iid);
+    render();
+  }
+  else if(a==='savenewpersonalex'){
+    const name=S.exPickerQuery?.trim();
+    if(!name){alert('Ingresá el nombre del ejercicio en el buscador.');return;}
+    const cat=prompt('Categoría (opcional):',EX_CATEGORIES[0])||'Otro';
+    const id=await savePersonalExercise(name,cat);
+    if(S.exPicker){const m=document.getElementById('ex-picker-modal');if(m)m.remove();S.exPickerTab='personal';renderExPickerModal();}
+  }
+  // ── SETS ──────────────────────────────────────────────────────
+  else if(a==='editsetcell'){
+    S.planEditSet={ctx:el.dataset.ctx,planId:el.dataset.planid||null,progId:el.dataset.pid||null,dayId:el.dataset.did||null,blockId:el.dataset.bid,itemId:el.dataset.iid,setIdx:parseInt(el.dataset.sidx)};
+    render();
+  }
+  else if(a==='savesetcell'){
+    const ctx=el.dataset.ctx, bid=el.dataset.bid, iid=el.dataset.iid, sidx=parseInt(el.dataset.sidx);
+    const planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
+    const reps=document.getElementById('set-reps-'+sidx)?.value.trim()||'';
+    const weight=document.getElementById('set-weight-'+sidx)?.value.trim()||'';
+    S.planEditSet=null;
+    if(ctx==='session'){
+      await saveSetInItem(planId,bid,iid,sidx,{reps,weight});
+    } else {
+      const item=S.programs[pid]?.days?.[did]?.blocks?.[bid]?.items?.[iid];
+      if(item){if(!item.sets)item.sets={};item.sets[String(sidx)]={reps,weight};}
+      await db.ref(`users/${currentUser.uid}/programs/${pid}/days/${did}/blocks/${bid}/items/${iid}/sets/${sidx}`).update({reps,weight});
+    }
+    render();
+  }
+  else if(a==='addset'){
+    const ctx=el.dataset.ctx, bid=el.dataset.bid, iid=el.dataset.iid, planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
+    let sets;
+    if(ctx==='session'){
+      sets=S.sessionPlans[planId]?.blocks?.[bid]?.items?.[iid]?.sets||{};
+    } else {
+      sets=S.programs[pid]?.days?.[did]?.blocks?.[bid]?.items?.[iid]?.sets||{};
+    }
+    const nextIdx=Object.keys(sets).length;
+    if(ctx==='session'){
+      await saveSetInItem(planId,bid,iid,nextIdx,{reps:'',weight:'',notes:''});
+    } else {
+      const item=S.programs[pid]?.days?.[did]?.blocks?.[bid]?.items?.[iid];
+      if(item){if(!item.sets)item.sets={};item.sets[String(nextIdx)]={reps:'',weight:'',notes:''};}
+      await db.ref(`users/${currentUser.uid}/programs/${pid}/days/${did}/blocks/${bid}/items/${iid}/sets/${nextIdx}`).set({reps:'',weight:'',notes:''});
+    }
+    render();
+  }
+  else if(a==='removelastset'){
+    const ctx=el.dataset.ctx, bid=el.dataset.bid, iid=el.dataset.iid, planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
+    let sets;
+    if(ctx==='session'){
+      sets=S.sessionPlans[planId]?.blocks?.[bid]?.items?.[iid]?.sets||{};
+    } else {
+      sets=S.programs[pid]?.days?.[did]?.blocks?.[bid]?.items?.[iid]?.sets||{};
+    }
+    const keys=Object.keys(sets).map(Number).sort((a,b)=>b-a);
+    if(!keys.length)return;
+    const lastIdx=keys[0];
+    if(ctx==='session'){
+      delete S.sessionPlans[planId].blocks[bid].items[iid].sets[String(lastIdx)];
+      await planSetRef(planId,bid,iid,lastIdx).remove();
+    } else {
+      const item=S.programs[pid]?.days?.[did]?.blocks?.[bid]?.items?.[iid];
+      if(item?.sets) delete item.sets[String(lastIdx)];
+      await db.ref(`users/${currentUser.uid}/programs/${pid}/days/${did}/blocks/${bid}/items/${iid}/sets/${lastIdx}`).remove();
+    }
+    render();
+  }
 }

@@ -574,3 +574,52 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .q-bodymap-panel{max-width:160px}
   .bm-svg{max-width:120px}
 }
+
+/* ── Programs & Plan ────────────────────────────────────────── */
+.q-tree__section-label{padding:8px 12px 4px;font-size:10px;font-weight:700;color:var(--text-2);letter-spacing:.8px;text-transform:uppercase;}
+.q-prog-card{cursor:pointer;transition:border-color .15s;}
+.q-prog-card:hover{border-color:var(--accent);}
+.q-day-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:var(--r-pill);background:var(--bg-3);border:1px solid var(--line);font-size:11px;font-weight:500;color:var(--text-1);cursor:pointer;transition:background .12s,border-color .12s;}
+.q-day-chip:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+.q-empty-state{text-align:center;padding:40px 16px;color:var(--text-2);}
+
+/* Plan cards in session */
+.q-plan-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-3);overflow:hidden;margin-bottom:12px;}
+.q-plan-card__head{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--bg-1);}
+
+/* Block cards */
+.q-block-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);margin-bottom:8px;overflow:hidden;}
+.q-block-card__head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg-1);border-bottom:1px solid var(--line);}
+.q-plan-blocks{padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+.q-add-block-btn{width:100%;margin-top:4px;font-size:13px;border-style:dashed;color:var(--text-2);}
+.q-add-block-btn:hover{color:var(--text-0);border-color:var(--accent);}
+
+/* Block type tag */
+.q-block-type-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:var(--r-pill);letter-spacing:.5px;flex-shrink:0;}
+
+/* Plan table */
+.q-plan-table{width:100%;border-collapse:collapse;font-size:13px;}
+.q-plan-table th{padding:4px 8px;text-align:center;font-size:11px;font-weight:600;color:var(--text-2);border-bottom:1px solid var(--line);}
+.q-plan-table td{padding:0;}
+.q-ex-name{padding:8px 10px;font-weight:500;color:var(--text-0);min-width:140px;max-width:200px;}
+.q-set-cell{padding:6px 8px;text-align:center;color:var(--text-1);border-left:1px solid var(--line);font-size:13px;min-width:80px;}
+.q-set-cell.clickable{cursor:pointer;transition:background .1s;}
+.q-set-cell.clickable:hover{background:var(--bg-3);}
+.q-set-cell.editing{background:var(--bg-3);padding:4px 6px;min-width:160px;}
+.q-set-input{width:52px !important;padding:3px 6px !important;font-size:12px !important;height:28px;}
+.q-plan-table tr:not(:last-child) td{border-bottom:1px solid var(--line);}
+
+/* Icon button (small action button) */
+.q-icon-btn{background:transparent;border:none;cursor:pointer;padding:4px 6px;border-radius:var(--r-1);color:var(--text-2);font-size:14px;line-height:1;transition:color .12s,background .12s;}
+.q-icon-btn:hover{background:var(--bg-3);color:var(--text-0);}
+
+/* Exercise picker modal */
+.q-modal__head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);}
+.q-ex-pick-item{padding:8px 12px;border-radius:var(--r-1);cursor:pointer;font-size:13px;color:var(--text-1);transition:background .1s;}
+.q-ex-pick-item:hover{background:var(--bg-3);color:var(--text-0);}
+
+@media(max-width:899px){
+  .q-plan-table{font-size:12px;}
+  .q-ex-name{min-width:100px;}
+  .q-set-cell{min-width:64px;}
+}
