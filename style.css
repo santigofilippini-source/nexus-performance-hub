@@ -298,7 +298,7 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .team-card,.cat-card{box-shadow:var(--shadow-card)}
   /* Header: ocultar logo y botones en desktop, el sidebar los reemplaza */
   #header-logo{display:none}
-  body.is-auth .header .icon-btn,body.is-auth .header .logout-btn{display:none}
+  body.is-auth .header .icon-btn,body.is-auth .header .logout-btn{display:none!important}
   .header-info{padding-left:0}
   .nxs-pd{background:var(--bg-3);border:1px solid var(--line);border-radius:4px;color:var(--fg-3);font-size:10px;font-weight:500;padding:2px 6px;cursor:pointer;font-family:var(--font-ui);transition:background .15s,color .15s,border-color .15s;}
   .nxs-pd.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
