@@ -23,6 +23,7 @@ html{background:#0A0B0D}body{font-family:var(--font);background:var(--bg-0);colo
 .header-user{font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
 .logout-btn,.back-btn{padding:5px 11px;border-radius:7px;background:var(--bg2);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer;font-family:var(--font);flex-shrink:0}
 .sync-bar{background:var(--bg-1);color:var(--text3);font-size:11px;padding:5px 14px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;border-bottom:1px solid var(--border)}
+.q-sidebar__sync{display:none}
 .dot-green{width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0}
 .dot-yellow{width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;flex-shrink:0}
 /* CARDS */
@@ -272,6 +273,7 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .q-tree__cat.active .dot{background:var(--accent)}
   .q-tree__cat .label{flex:1}
   .q-tree__cat .n{font:500 10px var(--font-mono);color:var(--text-2)}
+  .q-sidebar__sync{padding:6px 16px;font-size:10.5px;color:var(--text-3);display:flex;align-items:center;gap:6px;flex-shrink:0;border-top:1px solid var(--line);}
   .q-sidebar__foot{border-top:1px solid var(--line);padding:10px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0}
   .q-sidebar__foot .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF6A1A,#C0421A);display:grid;place-items:center;font:600 11px var(--font-ui);color:#fff;flex-shrink:0}
   .q-sidebar__foot .who{flex:1;min-width:0}
@@ -300,6 +302,8 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .team-card,.cat-card{box-shadow:var(--shadow-card)}
   /* Header: completamente oculto en desktop, el sidebar lo reemplaza */
   body.is-auth .header{display:none!important}
+  body.is-auth .sync-bar{display:none!important}
+  .q-sidebar__sync{display:flex;}
   .header-info{padding-left:0}
   .nxs-pd{background:var(--bg-3);border:1px solid var(--line);border-radius:4px;color:var(--fg-3);font-size:10px;font-weight:500;padding:2px 6px;cursor:pointer;font-family:var(--font-ui);transition:background .15s,color .15s,border-color .15s;}
   .nxs-pd.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
