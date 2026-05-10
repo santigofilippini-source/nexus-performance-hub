@@ -1251,7 +1251,7 @@ function renderHome(){
         </div>
         <div style="margin-top:7px;">${statusEl}</div>
       </div>`:`<div style="font-size:12px;color:var(--text-2);margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">Sin registros</div>`;
-    const cardInner=`<button class="team-card" data-action="openteam" data-tid="${tid}" style="--c:${color};${_nonOwner?'margin-bottom:0;border-radius:14px 14px 0 0;':''}">
+    const cardInner=`<button class="team-card" data-action="openteam" data-tid="${tid}" style="--c:${color};${_nonOwner?'margin-bottom:0;border-radius:14px 14px 0 0;flex:1;':''}">
       <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:${color};border-radius:2px 0 0 2px;"></div>
       <div style="display:flex;align-items:center;gap:10px;">
         ${logoEl}
@@ -1264,7 +1264,7 @@ function renderHome(){
       ${kpiSection}
     </button>`;
     return _nonOwner
-      ?`<div style="grid-column:auto">${cardInner}<button style="width:100%;padding:5px 10px;font-size:11px;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent);border-top:none;border-radius:0 0 14px 14px;cursor:pointer;font-family:var(--font-ui);letter-spacing:.01em;margin-bottom:10px;transition:background .15s;" data-action="leaveteam" data-tid="${tid}">↩ Salir del equipo</button></div>`
+      ?`<div style="grid-column:auto;display:flex;flex-direction:column;">${cardInner}<button style="width:100%;padding:5px 10px;font-size:11px;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent);border-top:none;border-radius:0 0 14px 14px;cursor:pointer;font-family:var(--font-ui);letter-spacing:.01em;margin-bottom:10px;transition:background .15s;flex-shrink:0;" data-action="leaveteam" data-tid="${tid}">↩ Salir del equipo</button></div>`
       :cardInner;
   }).join('');
 

@@ -419,7 +419,7 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 /* ── Home alerts strip ─────────────────────────────────────── */
 .q-alerts-strip{display:flex;align-items:center;gap:10px;margin-bottom:16px;min-width:0;}
 .q-alerts-strip__hd{font-size:11px;font-weight:700;color:var(--text-2);white-space:nowrap;flex-shrink:0;}
-.q-alerts-strip__scroll{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px;}
+.q-alerts-strip__scroll{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px;min-width:0;flex:1;}
 .q-alerts-strip__scroll::-webkit-scrollbar{display:none;}
 .q-alert-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;white-space:nowrap;flex-shrink:0;cursor:default;}
 .q-alert-chip--danger{background:#dc262614;border:1px solid #dc262645;color:#fca5a5;}
