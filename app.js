@@ -1158,7 +1158,7 @@ function renderHome(){
       </div>`;
     }
     const _nonOwner=role==='editor'||role==='viewer';
-    return`<button class="team-card" data-action="openteam" data-tid="${tid}" style="--c:${color};${_nonOwner?'margin-bottom:0;border-radius:14px 14px 0 0;':''}">
+    const cardInner=`<button class="team-card" data-action="openteam" data-tid="${tid}" style="--c:${color};${_nonOwner?'margin-bottom:0;border-radius:14px 14px 0 0;':''}">
       <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:${color};border-radius:2px 0 0 2px;"></div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
           ${t.logo?`<img src="${t.logo}" style="width:36px;height:36px;border-radius:9px;object-fit:cover;flex-shrink:0;">`:`<div style="width:36px;height:36px;border-radius:9px;background:${color}33;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><img src=\"public/brand/logo-icon.png\" style=\"width:28px;height:28px;object-fit:contain;\"></div>`}
@@ -1172,7 +1172,10 @@ function renderHome(){
         <span>${totalPlayers} jugadores</span>
         ${lastDate?`<span>Última: ${fmtDate(lastDate)}</span>`:'<span>Sin registros</span>'}
       </div>
-    </button>${_nonOwner?`<button style="width:100%;padding:6px 10px;font-size:12px;color:#fca5a5;background:var(--bg2);border:1px solid var(--border);border-top:none;margin-bottom:10px;border-radius:0 0 14px 14px;cursor:pointer;font-family:var(--font);" data-action="leaveteam" data-tid="${tid}">↩ Salir del equipo</button>`:''}`;
+    </button>`;
+    return _nonOwner
+      ?`<div>${cardInner}<button style="width:100%;padding:5px 10px;font-size:11px;color:var(--text-3);background:var(--bg-2);border:1px solid var(--line);border-top:none;border-radius:0 0 14px 14px;cursor:pointer;font-family:var(--font-ui);letter-spacing:.01em;margin-bottom:10px;" data-action="leaveteam" data-tid="${tid}">Salir del equipo</button></div>`
+      :cardInner;
   }).join('');
 
   const empty=!teamIds.length?`<div class="empty-state" style="padding:60px 20px;">
@@ -1184,7 +1187,7 @@ function renderHome(){
   return`<div class="wrap">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div style="font-size:13px;font-weight:600;color:var(--text2);">MIS EQUIPOS</div>
-      <button class="add-btn" data-action="newteam">+ Nuevo equipo</button>
+      <button class="sm-btn" data-action="newteam">+ Nuevo equipo</button>
     </div>
     ${S.teamFormMode?renderTeamForm():''}
     ${cards}${empty}
