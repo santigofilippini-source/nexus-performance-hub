@@ -1133,6 +1133,44 @@ function render(){
 }
 
 // ── HOME: Teams list ──────────────────────────────────────────
+function renderHomeAlerts(){
+  const alerts=[];
+  Object.keys(S.teams).forEach(tid=>{
+    const t=getTeam(tid);
+    if(t._legacyPending)return;
+    getCats(tid).forEach(cid=>{
+      const cd=getCat(cid,tid);
+      if(!cd.players.length)return;
+      const stats=getStats(cd.players,cd.attendance);
+      const ctx=`${t.name} · ${cd.name||cid}`;
+      cd.players.forEach(p=>{
+        const m=calcMetrics(cd,p.id);
+        if(!m.hasData)return;
+        const st=stats.find(s=>s.id===p.id);
+        if(m.acwr!==null&&m.acwr>1.5)
+          alerts.push({lvl:'danger',icon:'🔥',msg:`${p.name} — carga muy alta (ACWR ${m.acwr})`,ctx});
+        if(m.wellAvg!==null&&m.wellAvg<2.5)
+          alerts.push({lvl:'warn',icon:'😴',msg:`${p.name} — wellness bajo (${m.wellAvg}/5)`,ctx});
+        if(st&&st.consec>=3)
+          alerts.push({lvl:'warn',icon:'📋',msg:`${p.name} — ${st.consec} ausencias seguidas`,ctx});
+      });
+    });
+  });
+  if(!alerts.length)return'';
+  alerts.sort((a,b)=>a.lvl==='danger'&&b.lvl!=='danger'?-1:1);
+  const shown=alerts.slice(0,6);
+  const extra=alerts.length>6?`<div style="font-size:11px;color:var(--text-2);padding:2px 2px 0;">${alerts.length-6} alerta${alerts.length-6!==1?'s':''} más…</div>`:'';
+  return`<div class="q-alerts">
+    <div class="q-alerts__hd">Alertas</div>
+    ${shown.map(a=>`<div class="q-alert q-alert--${a.lvl}">
+      <span class="q-alert__icon">${a.icon}</span>
+      <div class="q-alert__body">
+        <span class="q-alert__msg">${a.msg}</span>
+        <span class="q-alert__ctx">${a.ctx}</span>
+      </div>
+    </div>`).join('')}${extra}
+  </div>`;
+}
 function renderHome(){
   const teamIds=Object.keys(S.teams);
   const cards=teamIds.map(tid=>{
@@ -1189,6 +1227,7 @@ function renderHome(){
       <div style="font-size:13px;font-weight:500;color:var(--text2);">${(()=>{const n=new Date();const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return`Hoy · ${dias[n.getDay()]} ${n.getDate()} de ${meses[n.getMonth()]}`;})()}</div>
       <button class="sm-btn" data-action="newteam">+ Nuevo equipo</button>
     </div>
+    ${renderHomeAlerts()}
     ${S.teamFormMode?renderTeamForm():''}
     ${cards}${empty}
   </div>`;
