@@ -2037,8 +2037,31 @@ function renderReports(){
         <span style="font-size:11px;color:${_fmsTotal>=14?'var(--ok)':_fmsTotal>=10?'var(--warn)':'var(--bad)'};font-weight:600;">${_fmsTotal>=14?'Óptimo':_fmsTotal>=10?'Aceptable':'Revisar'}</span>
       </div>
     </div>`:'';
-    _rpdDash=_hd+_kpi+_spark+_strip+_body+_jumps+_fms;
-    if(!_body&&!_jumps&&!_fms)_rpdDash+=`<div style="padding:14px 18px;font-size:12px;color:var(--text-3);">Sin evaluaciones físicas registradas.</div>`;
+    // Injuries section
+    let _injuries='';
+    if(selKey){
+      const sixMonthsAgo=new Date(TODAY+'T12:00:00');sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
+      const cutoff=sixMonthsAgo.toISOString().split('T')[0];
+      if(S.medInjuries[selKey]===undefined){
+        loadPlayerInjuries(selKey);
+        _injuries='<div style="padding:12px 18px;border-top:1px solid var(--line);"><div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:6px;">Lesiones</div><div style="font-size:11px;color:var(--text-3);">Cargando…</div></div>';
+      } else {
+        const playerInjs=Object.values(S.medInjuries[selKey]||{}).filter(inj=>inj.status==='activa'||inj.status==='en_rehab'||(inj.date&&inj.date>=cutoff)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+        if(playerInjs.length){
+          const injRows=playerInjs.map(inj=>{
+            const sc=injSevColor(inj.severity||1);
+            const stCl=inj.status==='activa'?'var(--bad)':inj.status==='en_rehab'?'var(--warn)':'var(--ok)';
+            const stLbl=inj.status==='activa'?'Activa':inj.status==='en_rehab'?'En rehab':'Recuperada';
+            const typeStr=inj.type?' · <span style="font-weight:400;color:var(--text-2);">'+inj.type+'</span>':'';
+            const dateStr=inj.date?'<span style="font-size:10px;color:var(--text-3);">'+fmtDate(inj.date)+'</span>':'';
+            return'<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:var(--bg-3);border-radius:var(--r-2);border-left:3px solid '+sc+';"><div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:var(--text-0);">'+regionLabel(inj.region||'')+typeStr+'</div><div style="display:flex;align-items:center;gap:8px;margin-top:3px;"><span style="font-size:10px;color:'+stCl+';font-weight:600;">'+stLbl+'</span>'+dateStr+'</div></div><span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:var(--r-pill);background:'+sc+'20;color:'+sc+';flex-shrink:0;">N'+(inj.severity||1)+'</span></div>';
+          }).join('');
+          _injuries='<div style="padding:12px 18px;border-top:1px solid var(--line);"><div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;">Lesiones activas / recientes</div><div style="display:flex;flex-direction:column;gap:6px;">'+injRows+'</div></div>';
+        }
+      }
+    }
+    _rpdDash=_hd+_kpi+_spark+_strip+_body+_jumps+_fms+_injuries;
+    if(!_body&&!_jumps&&!_fms&&!_injuries)_rpdDash+=`<div style="padding:14px 18px;font-size:12px;color:var(--text-3);">Sin evaluaciones físicas registradas.</div>`;
   }
   const jugadoresTab=`<div class="q-rpd">${_rpdList}<div class="q-rpd-dash q-card" style="overflow-y:auto;">${_rpdDash}</div></div>`;
   // ── Por mes tab ──
@@ -2070,63 +2093,63 @@ function renderReports(){
 
 // Body region SVG paths — viewBox "0 0 120 295"
 const BM_FRONT={
-  cabeza:       'M74,21 A14,17,0,1,0,46,21 A14,17,0,1,0,74,21Z',
-  cuello:       'M54,39 L66,39 L67,52 L53,52Z',
-  hombro_izq:   'M53,52 Q36,51 20,62 L26,70 Q38,68 46,70 L53,70Z',
-  hombro_der:   'M67,52 Q84,51 100,62 L94,70 Q82,68 74,70 L67,70Z',
-  pecho:        'M46,70 L74,70 L74,95 Q60,99 46,95Z',
-  brazo_izq:    'M20,62 L28,70 L22,110 L14,107Z',
-  brazo_der:    'M100,62 L92,70 L98,110 L106,107Z',
-  codo_izq:     'M14,107 L22,110 L20,122 L12,119Z',
-  codo_der:     'M106,107 L98,110 L100,122 L108,119Z',
-  antebrazo_izq:'M12,119 L20,122 L18,162 L10,159Z',
-  antebrazo_der:'M108,119 L100,122 L102,162 L110,159Z',
-  muneca_izq:   'M10,159 L18,162 L16,186 Q10,192 6,187 Q4,178 8,172Z',
-  muneca_der:   'M110,159 L102,162 L104,186 Q110,192 114,187 Q116,178 112,172Z',
-  abdomen:      'M46,95 Q60,99 74,95 L74,122 L46,122Z',
-  cadera_izq:   'M46,122 L60,122 L57,148 L40,148Z',
-  cadera_der:   'M60,122 L74,122 L80,148 L63,148Z',
-  cuad_izq:     'M40,148 L57,148 L55,210 L38,210Z',
-  cuad_der:     'M63,148 L80,148 L82,210 L65,210Z',
-  rodilla_izq:  'M38,210 L55,210 L53,228 L36,228Z',
-  rodilla_der:  'M65,210 L82,210 L84,228 L67,228Z',
-  tibial_izq:   'M36,228 L53,228 L51,270 L34,270Z',
-  tibial_der:   'M67,228 L84,228 L86,270 L69,270Z',
-  tobillo_izq:  'M34,270 L51,270 L50,282 L32,282Z',
-  tobillo_der:  'M69,270 L86,270 L88,282 L70,282Z',
-  pie_izq:      'M24,282 L51,282 L50,292 L22,292Z',
-  pie_der:      'M69,282 L96,282 L98,292 L67,292Z',
-};
-const BM_BACK={
-  cabeza:       'M74,21 A14,17,0,1,0,46,21 A14,17,0,1,0,74,21Z',
-  cuello:       'M54,39 L66,39 L67,52 L53,52Z',
-  hombro_izq:   'M53,52 Q36,51 20,62 L26,70 Q38,68 46,70 L53,70Z',
-  hombro_der:   'M67,52 Q84,51 100,62 L94,70 Q82,68 74,70 L67,70Z',
-  espalda_alta: 'M46,70 L74,70 L74,95 Q60,99 46,95Z',
-  brazo_izq:    'M20,62 L28,70 L22,110 L14,107Z',
-  brazo_der:    'M100,62 L92,70 L98,110 L106,107Z',
-  codo_izq:     'M14,107 L22,110 L20,122 L12,119Z',
-  codo_der:     'M106,107 L98,110 L100,122 L108,119Z',
-  antebrazo_izq:'M12,119 L20,122 L18,162 L10,159Z',
-  antebrazo_der:'M108,119 L100,122 L102,162 L110,159Z',
-  muneca_izq:   'M10,159 L18,162 L16,186 Q10,192 6,187 Q4,178 8,172Z',
-  muneca_der:   'M110,159 L102,162 L104,186 Q110,192 114,187 Q116,178 112,172Z',
-  espalda_baja: 'M46,95 Q60,99 74,95 L74,122 L46,122Z',
-  gluteo_izq:   'M46,122 L60,122 L57,150 L38,150Z',
-  gluteo_der:   'M60,122 L74,122 L82,150 L63,150Z',
-  isquio_izq:   'M38,150 L57,150 L55,210 L36,210Z',
-  isquio_der:   'M63,150 L82,150 L84,210 L65,210Z',
+  cabeza:       'M75,19 A15,18,0,1,0,45,19 A15,18,0,1,0,75,19Z',
+  cuello:       'M54,37 L66,37 L67,50 L53,50Z',
+  hombro_izq:   'M53,50 Q34,48 14,62 L20,72 Q32,68 42,70 L53,70Z',
+  hombro_der:   'M67,50 Q86,48 106,62 L100,72 Q88,68 78,70 L67,70Z',
+  pecho:        'M42,70 L78,70 L78,97 Q60,102 42,97Z',
+  brazo_izq:    'M14,62 L27,70 L21,112 L8,108Z',
+  brazo_der:    'M106,62 L93,70 L99,112 L112,108Z',
+  codo_izq:     'M8,108 L21,112 L19,124 L6,120Z',
+  codo_der:     'M112,108 L99,112 L101,124 L114,120Z',
+  antebrazo_izq:'M6,120 L19,124 L17,163 L4,159Z',
+  antebrazo_der:'M114,120 L101,124 L103,163 L116,159Z',
+  muneca_izq:   'M4,159 L17,163 L15,187 Q9,193 5,188 Q3,179 7,173Z',
+  muneca_der:   'M116,159 L103,163 L105,187 Q111,193 115,188 Q117,179 113,173Z',
+  abdomen:      'M42,97 Q60,102 78,97 L78,125 L42,125Z',
+  cadera_izq:   'M42,125 L60,125 L57,150 L38,150Z',
+  cadera_der:   'M60,125 L78,125 L82,150 L63,150Z',
+  cuad_izq:     'M38,150 L57,150 L55,210 L36,210Z',
+  cuad_der:     'M63,150 L82,150 L84,210 L65,210Z',
   rodilla_izq:  'M36,210 L55,210 L53,228 L34,228Z',
   rodilla_der:  'M65,210 L84,210 L86,228 L67,228Z',
   tibial_izq:   'M34,228 L53,228 L51,270 L32,270Z',
   tibial_der:   'M67,228 L86,228 L88,270 L69,270Z',
   tobillo_izq:  'M32,270 L51,270 L50,282 L30,282Z',
   tobillo_der:  'M69,270 L88,270 L90,282 L70,282Z',
-  pie_izq:      'M22,282 L51,282 L50,292 L20,292Z',
-  pie_der:      'M69,282 L98,282 L100,292 L67,292Z',
+  pie_izq:      'M21,282 L51,282 L50,292 L19,292Z',
+  pie_der:      'M69,282 L99,282 L101,292 L67,292Z',
 };
-// Silhouette outline (stroke on top) + head ellipse
-const BM_OUTLINE='M20,62 Q38,50 53,52 L54,38 L66,38 L67,52 Q82,50 100,62 L105,107 Q107,115 105,119 L103,159 Q106,173 111,181 Q116,185 115,189 Q111,193 107,185 L101,161 Q99,147 97,119 Q95,111 97,107 L94,70 L75,70 Q74,88 74,122 Q78,134 82,148 L84,210 Q86,218 84,228 L84,270 Q86,277 98,282 Q102,285 102,292 L67,292 Q68,283 70,278 L70,228 Q68,218 66,210 L63,148 Q60,130 57,148 L54,210 Q52,218 50,228 L50,278 Q52,283 53,292 L18,292 Q18,285 22,282 Q34,277 36,270 L36,228 Q34,218 36,210 L38,148 Q42,134 46,122 Q46,88 45,70 L26,70 L23,107 Q25,111 23,119 L19,161 L13,185 Q9,193 5,189 Q4,185 9,181 Q14,173 17,159 L15,119 Q13,115 15,107 Z';
+const BM_BACK={
+  cabeza:       'M75,19 A15,18,0,1,0,45,19 A15,18,0,1,0,75,19Z',
+  cuello:       'M54,37 L66,37 L67,50 L53,50Z',
+  hombro_izq:   'M53,50 Q34,48 14,62 L20,72 Q32,68 42,70 L53,70Z',
+  hombro_der:   'M67,50 Q86,48 106,62 L100,72 Q88,68 78,70 L67,70Z',
+  espalda_alta: 'M42,70 L78,70 L78,97 Q60,102 42,97Z',
+  brazo_izq:    'M14,62 L27,70 L21,112 L8,108Z',
+  brazo_der:    'M106,62 L93,70 L99,112 L112,108Z',
+  codo_izq:     'M8,108 L21,112 L19,124 L6,120Z',
+  codo_der:     'M112,108 L99,112 L101,124 L114,120Z',
+  antebrazo_izq:'M6,120 L19,124 L17,163 L4,159Z',
+  antebrazo_der:'M114,120 L101,124 L103,163 L116,159Z',
+  muneca_izq:   'M4,159 L17,163 L15,187 Q9,193 5,188 Q3,179 7,173Z',
+  muneca_der:   'M116,159 L103,163 L105,187 Q111,193 115,188 Q117,179 113,173Z',
+  espalda_baja: 'M42,97 Q60,102 78,97 L78,125 L42,125Z',
+  gluteo_izq:   'M42,125 L60,125 L57,152 L36,152Z',
+  gluteo_der:   'M60,125 L78,125 L84,152 L63,152Z',
+  isquio_izq:   'M36,152 L57,152 L55,210 L34,210Z',
+  isquio_der:   'M63,152 L84,152 L86,210 L65,210Z',
+  rodilla_izq:  'M34,210 L55,210 L53,228 L32,228Z',
+  rodilla_der:  'M65,210 L86,210 L88,228 L67,228Z',
+  tibial_izq:   'M32,228 L53,228 L51,270 L30,270Z',
+  tibial_der:   'M67,228 L88,228 L90,270 L69,270Z',
+  tobillo_izq:  'M30,270 L51,270 L50,282 L28,282Z',
+  tobillo_der:  'M69,270 L90,270 L92,282 L70,282Z',
+  pie_izq:      'M19,282 L51,282 L50,292 L17,292Z',
+  pie_der:      'M69,282 L101,282 L103,292 L67,292Z',
+};
+// Silhouette outline — wider athletic figure (stroke on top of regions)
+const BM_OUTLINE='M14,62 Q32,48 53,50 L54,37 L66,37 L67,50 Q88,48 106,62 L112,108 Q114,116 112,120 L110,161 Q113,175 118,183 Q122,187 121,191 Q117,195 113,187 L105,163 Q103,149 101,120 Q99,112 101,108 L92,70 L78,70 Q77,90 77,125 Q80,136 82,150 L84,210 Q86,219 84,228 L84,270 Q86,278 100,282 Q104,286 104,292 L67,292 Q68,284 70,280 L70,228 Q68,219 66,210 L63,150 Q60,130 57,150 L54,210 Q52,219 50,228 L50,280 Q51,284 53,292 L18,292 Q16,286 20,282 Q34,278 36,270 L36,228 Q34,219 36,210 L38,150 Q40,136 43,125 Q43,90 42,70 L28,70 L21,112 Q23,116 21,120 L17,163 Q13,187 8,191 Q4,193 1,187 Q4,179 8,173 L12,120 Q10,116 12,108 Z';
 
 function injSevColor(sev){
   if(sev===3)return'var(--bad)';
@@ -2198,6 +2221,19 @@ async function loadMedical(){
     }));
     setSyncBar('ok');
   }catch(e){setSyncBar('error','Error al cargar lesiones');}
+  render();
+}
+
+async function loadPlayerInjuries(key){
+  const tid=key.split('__')[0];
+  try{
+    const snap=await db.ref(`teams/${tid}/athletes/${key}/injuries`).once('value');
+    if(!S.medInjuries)S.medInjuries={};
+    S.medInjuries[key]=snap.exists()?snap.val():{};
+  }catch(e){
+    if(!S.medInjuries)S.medInjuries={};
+    S.medInjuries[key]={};
+  }
   render();
 }
 
@@ -3511,7 +3547,18 @@ async function handleAction(e){
   else if(a==='medclearregion'){S.medRegion='';render();}
   else if(a==='openinjuryform'){S.injForm={data:{severity:1,status:'activa',date:TODAY}};render();}
   else if(a==='closeinjuryform'){S.injForm=null;render();}
-  else if(a==='injsev'){if(S.injForm){S.injForm.data=S.injForm.data||{};S.injForm.data.severity=parseInt(el.dataset.val);render();}}
+  else if(a==='injsev'){if(S.injForm){
+    if(!S.injForm.data)S.injForm.data={};
+    const pid=document.getElementById('inj-player')?.value;if(pid!==undefined)S.injForm.data._pid=pid;
+    S.injForm.data.region=document.getElementById('inj-region')?.value||S.injForm.data.region||'';
+    S.injForm.data.date=document.getElementById('inj-date')?.value||S.injForm.data.date||TODAY;
+    S.injForm.data.type=document.getElementById('inj-type')?.value||S.injForm.data.type||'';
+    S.injForm.data.mechanism=document.getElementById('inj-mech')?.value||S.injForm.data.mechanism||'';
+    S.injForm.data.status=document.getElementById('inj-status')?.value||S.injForm.data.status||'activa';
+    S.injForm.data.notes=document.getElementById('inj-notes')?.value||S.injForm.data.notes||'';
+    S.injForm.data.severity=parseInt(el.dataset.val);
+    render();
+  }}
   else if(a==='saveinjury'){await saveInjury();}
   else if(a==='editinjury'){
     const ak=el.dataset.ak,ikey=el.dataset.ikey;
