@@ -42,7 +42,7 @@ let S = {
   tab:'attend', date:TODAY,
   sess:{}, absenceReasons:{}, sessionDraft:{duration:'',teamRPE:null,playerRPE:{},playerDuration:{},sessionType:null},
   wellnessDraft:{}, wellnessExpanded:{}, sessionSub:'load', rpeMode:'team',
-  reportSub:'semanal', reportWeekOffset:0, confirmDel:null, editId:null,
+  reportSub:'semanal', reportWeekOffset:0, reportPlayerPid:null, confirmDel:null, editId:null,
   loadFilter:'7d', loadFrom:'', loadTo:'',
   athletes:{}, athleteKey:null, athleteTab:'perfil', athleteForm:null, editingEvalId:null,
   prevView:'home', prevTeamId:null, prevCat:null,
@@ -1913,31 +1913,89 @@ function renderReports(){
     </div>`).join('')}</div>
   </div>`;
   // ── Jugadores tab ──
-  const arCounts={};cd.players.forEach(p=>{const rc={};Object.values(cd.attendance).forEach(d=>{if(d?.[p.id]==='A'&&d?.absenceReasons?.[p.id]){const r=d.absenceReasons[p.id];rc[r]=(rc[r]||0)+1;}});arCounts[p.id]=rc;});
-  const COL='minmax(0,1fr) 70px 60px 60px 90px 60px';
-  const jugadoresTab=`<div class="q-card">
-    <div style="display:grid;grid-template-columns:${COL};gap:12px;padding:9px 16px;background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">
-      <span>Atleta</span><span>Pres.</span><span>Aus.</span><span>Total</span><span>% Asist.</span><span>Racha</span>
-    </div>
-    ${!stats.length?`<div class="empty-state">Sin jugadores.</div>`:stats.map((p,i)=>{
-      const rc=arCounts[p.id]||{};const rcKeys=Object.keys(rc);
-      const _arBadge='font-size:10px;padding:2px 7px;border-radius:12px;background:var(--bad-soft);color:var(--bad);border:.5px solid var(--bad);font-weight:500;';
-      const reasonBadges=rcKeys.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">${rcKeys.map(k=>{const rd=ABSENCE_REASONS.find(r=>r.id===k);return rd?`<span style="${_arBadge}">${rd.icon} ${rd.label} ×${rc[k]}</span>`:''}).join('')}</div>`:'';
-      const pctCol=p.pct!==null?(p.pct>=85?'var(--ok)':p.pct>=70?'var(--warn)':'var(--bad)'):'var(--text-2)';
-      return`<div style="padding:10px 16px;border-bottom:${i<stats.length-1?'1px solid var(--line)':'0'};">
-        <div style="display:grid;grid-template-columns:${COL};gap:12px;align-items:center;">
-          <span style="font-weight:500;font-size:13px;">${p.name}</span>
-          <span style="font-family:var(--font-mono);font-size:12px;color:var(--ok);">${p.P}</span>
-          <span style="font-family:var(--font-mono);font-size:12px;color:var(--bad);">${p.A}</span>
-          <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);">${p.total}</span>
-          <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${pctCol};">${p.pct!==null?p.pct+'%':'—'}</span>
-          <span style="font-family:var(--font-mono);font-size:12px;color:${p.consec>=ALERT_N?'var(--bad)':'var(--text-2)'};">${p.consec>=ALERT_N?'⚠ '+p.consec:'—'}</span>
-        </div>
-        ${reasonBadges}
-        ${p.pct!==null?`<div style="height:3px;background:var(--bg-3);border-radius:99px;margin-top:6px;"><div style="height:100%;width:${p.pct}%;background:${pctCol};border-radius:99px;"></div></div>`:''}
-      </div>`;
-    }).join('')}
-  </div>`;
+  if(!S.reportPlayerPid||!cd.players.find(p=>p.id===S.reportPlayerPid))S.reportPlayerPid=stats[0]?.id||cd.players[0]?.id||null;
+  const selPid=S.reportPlayerPid;
+  const selPlayer=cd.players.find(p=>p.id===selPid)||null;
+  const selStat=stats.find(s=>s.id===selPid)||null;
+  const selKey=selPid?athleteKey(S.teamId,S.cat,selPid):null;
+  const selAth=selKey?getAthlete(selKey):null;
+  const selM=selPid?calcMetrics(cd,selPid):null;
+  const _rpdList=`<div class="q-rpd-list">${stats.map(p=>{
+    const pc=p.pct!==null?(p.pct>=85?'var(--ok)':p.pct>=70?'var(--warn)':'var(--bad)'):'var(--text-2)';
+    return`<button class="q-rpd-player${p.id===selPid?' q-rpd-player--sel':''}" data-action="reportplayerpid" data-pid="${p.id}">
+      <span style="flex:1;text-align:left;font-size:12.5px;font-weight:${p.id===selPid?'600':'400'};">${p.name}</span>
+      <span style="font-family:var(--font-mono);font-size:11px;color:${pc};">${p.pct!==null?p.pct+'%':'—'}</span>
+    </button>`;
+  }).join('')}</div>`;
+  let _rpdDash='<div style="padding:48px 24px;text-align:center;color:var(--text-2);font-size:13px;">Seleccioná un jugador</div>';
+  if(selPlayer&&selM){
+    const age=selAth?.personal?.birthdate?calcAge(selAth.personal.birthdate):null;
+    const pos=selPlayer.position||selAth?.personal?.position||'';
+    const num=selPlayer.number||selAth?.personal?.number||'';
+    const meta=[pos,age?age+' años':null,num?'#'+num:null].filter(Boolean).join(' · ');
+    const _hd=`<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line);">
+      <div style="width:42px;height:42px;border-radius:50%;background:var(--accent-soft);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:var(--accent);flex-shrink:0;">${selPlayer.name.charAt(0).toUpperCase()}</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">${selPlayer.name}</div><div style="font-size:11px;color:var(--text-2);margin-top:2px;">${meta||'Sin info personal'}</div></div>
+      <button class="q-btn q-btn--ghost q-btn--sm" data-action="openathlete" data-pid="${selPid}">Ver ficha →</button>
+    </div>`;
+    const acZ=acwrZone(selM.acwr);
+    const _kpi=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line);">
+      <div class="q-stat" style="border-radius:0;border:0;padding:10px 12px;"><div class="q-stat__row"><span class="q-stat__label">Asistencia</span></div><div class="q-stat__val" style="font-size:18px;color:${selStat?.pct!=null?(selStat.pct>=85?'var(--ok)':selStat.pct>=70?'var(--warn)':'var(--bad)'):'var(--text-0)'};">${selStat?.pct!=null?selStat.pct+'%':'—'}</div><div class="q-stat__sub"><span>${selStat?.P??0}P · ${selStat?.A??0}A</span></div></div>
+      <div class="q-stat" style="border-radius:0;border:0;padding:10px 12px;"><div class="q-stat__row"><span class="q-stat__label">Carga 7D</span></div><div class="q-stat__val" style="font-size:18px;">${selM.ac}<span class="u">UA</span></div><div class="q-stat__sub"><span>crónica: ${selM.cc}</span></div></div>
+      <div class="q-stat" style="border-radius:0;border:0;padding:10px 12px;"><div class="q-stat__row"><span class="q-stat__label">ACWR</span></div><div class="q-stat__val" style="font-size:18px;color:${acZ.fg};">${selM.acwr!==null?selM.acwr:'—'}</div><div class="q-stat__sub"><span style="color:${acZ.fg};">${acZ.label}</span></div></div>
+      <div class="q-stat" style="border-radius:0;border:0;padding:10px 12px;"><div class="q-stat__row"><span class="q-stat__label">Wellness</span></div><div class="q-stat__val" style="font-size:18px;color:${wellZone(selM.wellAvg).fg};">${selM.wellAvg!==null?selM.wellAvg:'—'}<span class="u">/5</span></div><div class="q-stat__sub"><span>7 días</span></div></div>
+    </div>`;
+    const _l7=selM.l7;const _maxL=Math.max(..._l7,1);
+    const _sparkDays=Array.from({length:7},(_,i)=>{const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-6+i);return d.toISOString().split('T')[0];});
+    const _DAY=['D','L','M','X','J','V','S'];
+    const _spark=`<div style="padding:12px 18px;border-bottom:1px solid var(--line);">
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;">Carga últimos 7 días</div>
+      <div style="display:flex;gap:3px;align-items:flex-end;height:52px;">
+        ${_l7.map((v,i)=>{const h=_maxL>0?Math.max(Math.round(v/_maxL*40),v>0?3:0):0;const col=v?sparkColor(v,_maxL):'var(--bg-3)';const ds=_sparkDays[i];const dow=new Date(ds+'T12:00:00').getDay();return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="font-size:8.5px;color:var(--text-3);line-height:1;">${v?v:''}</div><div style="width:100%;background:${col};border-radius:3px 3px 0 0;height:${h}px;"></div><div style="font-size:8.5px;color:var(--text-3);line-height:1;">${_DAY[dow]}</div></div>`;}).join('')}
+      </div>
+    </div>`;
+    const _att30=Array.from({length:30},(_,i)=>{const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-29+i);return d.toISOString().split('T')[0];});
+    const _strip=`<div style="padding:12px 18px;border-bottom:1px solid var(--line);">
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;">Asistencia últimos 30 días</div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;">
+        ${_att30.map(ds=>{const s=cd.attendance[ds]?.[selPid];const col=!s?'var(--bg-3)':(s==='P'||s==='T')?'var(--ok)':s==='L'||s==='J'?'var(--warn)':'var(--bad)';return`<div title="${ds}: ${s||'—'}" style="width:13px;height:13px;border-radius:2px;background:${col};flex-shrink:0;cursor:default;"></div>`;}).join('')}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
+        ${[['var(--ok)','Presente'],['var(--bad)','Ausente'],['var(--warn)','Licencia'],['var(--bg-3)','Sin registro']].map(([c,l])=>`<span style="display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--text-3);"><span style="width:8px;height:8px;border-radius:1.5px;background:${c};display:inline-block;flex-shrink:0;"></span>${l}</span>`).join('')}
+      </div>
+    </div>`;
+    const _morphKeys=Object.keys(selAth?.morphology||{}).sort().reverse();
+    const _anthrKeys=Object.keys(selAth?.anthropometry||{}).sort().reverse();
+    const _lm=_morphKeys[0]?selAth.morphology[_morphKeys[0]]:null;
+    const _la=_anthrKeys[0]?selAth.anthropometry[_anthrKeys[0]]:null;
+    const _bodyStats=[
+      _lm?.weight!=null?{l:'Peso',v:_lm.weight,u:'kg'}:null,
+      _lm?.height!=null?{l:'Talla',v:_lm.height,u:'cm'}:null,
+      _lm?.fatMass!=null?{l:'% Grasa',v:_lm.fatMass,u:'%'}:null,
+      _lm?.muscleMass!=null?{l:'% Músculo',v:_lm.muscleMass,u:'%'}:null,
+      _la?.sumSkinfolds!=null?{l:'Σ Pliegues',v:_la.sumSkinfolds,u:'mm'}:null,
+    ].filter(Boolean);
+    const _body=_bodyStats.length?`<div style="padding:12px 18px;border-bottom:1px solid var(--line);">
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;">Composición corporal${_morphKeys[0]?` <span style="font-weight:400;text-transform:none;letter-spacing:0;">· ${fmtDate(_morphKeys[0])}</span>`:''}</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;">${_bodyStats.map(s=>`<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:15px;font-weight:600;">${s.v}</div><div style="font-size:10px;color:var(--text-2);margin-top:2px;">${s.l}</div></div>`).join('')}</div>
+    </div>`:'';
+    const _jumpKeys=Object.keys(selAth?.jumpTests||{}).sort().reverse();
+    const _lj=_jumpKeys[0]?selAth.jumpTests[_jumpKeys[0]]:null;
+    const _rsi=_lj?.djHeight&&_lj?.djTc?Math.round((_lj.djHeight/100)/(_lj.djTc/1000)*100)/100:null;
+    const _jumpStats=[
+      _lj?.sj!=null?{l:'SJ',v:_lj.sj,u:'cm',c:'var(--text-0)'}:null,
+      _lj?.cmj!=null?{l:'CMJ',v:_lj.cmj,u:'cm',c:'var(--accent)'}:null,
+      _lj?.abk!=null?{l:'ABK',v:_lj.abk,u:'cm',c:'var(--text-0)'}:null,
+      _rsi!=null?{l:'RSI',v:_rsi,u:'',c:_rsi>=2?'var(--ok)':_rsi>=1.5?'var(--warn)':'var(--bad)'}:null,
+    ].filter(Boolean);
+    const _jumps=_jumpStats.length?`<div style="padding:12px 18px;">
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;">Saltos${_jumpKeys[0]?` <span style="font-weight:400;text-transform:none;letter-spacing:0;">· ${fmtDate(_jumpKeys[0])}</span>`:''}</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;">${_jumpStats.map(s=>`<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:15px;font-weight:600;color:${s.c};">${s.v}${s.u?`<span style="font-size:10px;font-weight:400;color:var(--text-2);margin-left:2px;">${s.u}</span>`:''}</div><div style="font-size:10px;color:var(--text-2);margin-top:2px;">${s.l}</div></div>`).join('')}</div>
+    </div>`:'';
+    _rpdDash=_hd+_kpi+_spark+_strip+_body+_jumps;
+    if(!_body&&!_jumps)_rpdDash+=`<div style="padding:14px 18px;font-size:12px;color:var(--text-3);">Sin evaluaciones físicas registradas.</div>`;
+  }
+  const jugadoresTab=`<div class="q-rpd">${_rpdList}<div class="q-rpd-dash q-card" style="overflow-y:auto;">${_rpdDash}</div></div>`;
   // ── Por mes tab ──
   const monthly=getMonthly(cd.players,cd.attendance);
   const mesesTab=`<div class="q-card">${!monthly.length?`<div class="empty-state">Sin datos.</div>`:monthly.reverse().map((m,i)=>{
@@ -2734,6 +2792,7 @@ async function handleAction(e){
   }
   else if(a==='tab'){S.tab=el.dataset.tab;if(S.tab==='attend')loadSession();if(S.tab==='session')loadSessionDraft();render();}
   else if(a==='reportsub'){S.reportSub=el.dataset.sub;render();}
+  else if(a==='reportplayerpid'){S.reportPlayerPid=el.dataset.pid;render();}
   else if(a==='prevreportweek'){S.reportWeekOffset=(S.reportWeekOffset||0)-1;render();}
   else if(a==='nextreportweek'){S.reportWeekOffset=(S.reportWeekOffset||0)+1;render();}
   else if(a==='sessionsub'){S.sessionSub=el.dataset.sub;render();}
