@@ -71,6 +71,36 @@ const BLOCK_TYPES = [
 ];
 function blockTypeInfo(id){return BLOCK_TYPES.find(b=>b.id===id)||BLOCK_TYPES[BLOCK_TYPES.length-1];}
 
+// ── Default exercise library (always visible in Global tab) ───
+const DEFAULT_EXERCISES = {
+  'def_sq':   {name:'Sentadilla con barra',       category:'Tren inferior'},
+  'def_rdl':  {name:'Peso muerto rumano',          category:'Tren inferior'},
+  'def_leg':  {name:'Prensa de piernas',           category:'Tren inferior'},
+  'def_lunge':{name:'Estocada con mancuernas',     category:'Tren inferior'},
+  'def_nordic':{name:'Nordic curl',               category:'Tren inferior'},
+  'def_hipth':{name:'Hip thrust con barra',        category:'Tren inferior'},
+  'def_bp':   {name:'Press de banca plano',        category:'Tren superior'},
+  'def_row':  {name:'Remo con barra',              category:'Tren superior'},
+  'def_pull': {name:'Dominadas / Pull-up',         category:'Tren superior'},
+  'def_ohp':  {name:'Press militar con barra',     category:'Tren superior'},
+  'def_dips': {name:'Fondos en paralelas',         category:'Tren superior'},
+  'def_curl': {name:'Curl de bíceps con mancuerna',category:'Tren superior'},
+  'def_tri':  {name:'Extensión de tríceps en polea',category:'Tren superior'},
+  'def_plank':{name:'Plancha isométrica',          category:'Core'},
+  'def_dead': {name:'Peso muerto convencional',    category:'Core'},
+  'def_ab':   {name:'Abdominales en suelo',        category:'Core'},
+  'def_russ': {name:'Russian twist',               category:'Core'},
+  'def_sprint':{name:'Sprint 30m',                 category:'Cardio / Metabólico'},
+  'def_rondo':{name:'Rondo 5v2',                   category:'Cardio / Metabólico'},
+  'def_hitt': {name:'HIIT 30-30',                  category:'Cardio / Metabólico'},
+  'def_cmj':  {name:'Salto CMJ',                   category:'Potencia / Pliometría'},
+  'def_box':  {name:'Box jump',                    category:'Potencia / Pliometría'},
+  'def_drop': {name:'Drop jump',                   category:'Potencia / Pliometría'},
+  'def_foam': {name:'Foam roller — MMII',          category:'Movilidad / Elongación'},
+  'def_mob':  {name:'Movilidad articular guiada',  category:'Movilidad / Elongación'},
+  'def_elon': {name:'Elongación isquiotibial',     category:'Movilidad / Elongación'},
+};
+
 // ── State ─────────────────────────────────────────────────────
 let currentUser = null;
 let S = {
@@ -98,7 +128,7 @@ let S = {
   sessionPlans:{},       // { planId: { name, assignedToAll, assignedTo:{}, blocks:{} } }
   planForm:null,         // null | { mode:'new'|'edit', planId?, name, assignedToAll, assignedTo:{} }
   exPicker:null,         // null | { planId, blockId } or { progId, dayId, blockId }
-  exPickerQuery:'', exPickerTab:'global',
+  exPickerQuery:'', exPickerTab:'global', exPickerAddForm:null,
   planEditBlock:null,    // { planId, blockId } block name being edited
   planEditSet:null,      // { planId, blockId, itemId, setIdx, field } cell in edit
   planCollapsed:{},      // { 'planId__blockId': true }
@@ -1932,6 +1962,7 @@ function renderPlanBlock(bid, block, ctx){
     </div>`;
   const maxSets=items.length?Math.max(...items.map(([,it])=>Object.keys(it.sets||{}).length)):0;
   const setHeaders=maxSets?Array.from({length:maxSets},(_,i)=>`<th>#${i+1}</th>`).join(''):'';
+  const ctxAttrs=`data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}"`;
   const itemRows=items.map(([iid,item])=>{
     const sets=item.sets||{};
     const setCount=Object.keys(sets).length;
@@ -1942,25 +1973,25 @@ function renderPlanBlock(bid, block, ctx){
         return`<td class="q-set-cell editing">
           <input type="text" id="set-reps-${i}" value="${s.reps||''}" placeholder="Reps" style="width:52px;" class="q-input q-set-input">
           <input type="text" id="set-weight-${i}" value="${s.weight||''}" placeholder="Peso" style="width:52px;" class="q-input q-set-input">
-          <button data-action="savesetcell" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" data-iid="${iid}" data-sidx="${i}" style="font-size:11px;" class="q-btn q-btn--primary">OK</button>
+          <button data-action="savesetcell" ${ctxAttrs} data-iid="${iid}" data-sidx="${i}" style="font-size:11px;" class="q-btn q-btn--primary">OK</button>
         </td>`;
       }
       const display=(s.reps||s.weight)?[(s.reps||''),s.weight?(s.weight+'kg'):''].filter(Boolean).join(' × '):'—';
-      return`<td class="q-set-cell${editable?' clickable':''}" ${editable?`data-action="editsetcell" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" data-iid="${iid}" data-sidx="${i}"`:''}>${display}</td>`;
+      return`<td class="q-set-cell${editable?' clickable':''}" ${editable?`data-action="editsetcell" ${ctxAttrs} data-iid="${iid}" data-sidx="${i}"`:''}>${display}</td>`;
     }).join('');
     return`<tr>
       <td class="q-ex-name">${item.exName||'Ejercicio'}</td>
       ${setCells}
-      ${editable?`<td class="q-set-cell" style="white-space:nowrap;">
-        <button class="q-icon-btn" data-action="addset" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" data-iid="${iid}" title="Agregar serie">+</button>
-        <button class="q-icon-btn" data-action="removelastset" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" data-iid="${iid}" title="Quitar serie">−</button>
-        <button class="q-icon-btn" data-action="removeitem" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" data-iid="${iid}" title="Eliminar ejercicio">🗑</button>
+      ${editable?`<td class="q-set-cell q-set-actions">
+        <button class="q-set-pill q-set-pill--add" data-action="addset" ${ctxAttrs} data-iid="${iid}" title="Agregar serie">+ Serie</button>
+        ${setCount>1?`<button class="q-set-pill q-set-pill--rem" data-action="removelastset" ${ctxAttrs} data-iid="${iid}" title="Quitar última serie">− Serie</button>`:''}
+        <button class="q-icon-btn" data-action="removeitem" ${ctxAttrs} data-iid="${iid}" title="Eliminar ejercicio" style="color:var(--bad);opacity:.7;">🗑</button>
       </td>`:''}
     </tr>`;
   }).join('');
   const tableHtml=items.length?`<div style="overflow-x:auto;margin-top:8px;">
     <table class="q-plan-table">
-      <thead><tr><th style="text-align:left;">Ejercicio</th>${setHeaders}${editable?'<th></th>':''}</tr></thead>
+      <thead><tr><th style="text-align:left;">Ejercicio</th>${setHeaders}${editable?'<th style="min-width:140px;"></th>':''}</tr></thead>
       <tbody>${itemRows}</tbody>
     </table>
   </div>`:'';
@@ -1980,13 +2011,11 @@ function renderPlanBlock(bid, block, ctx){
   </div>`;
 }
 
-function renderExPickerModal(){
-  const body=document.getElementById('app-body');
-  if(!body||!S.exPicker) return;
+function buildExPickerList(){
   const q=(S.exPickerQuery||'').toLowerCase();
   const tab=S.exPickerTab||'global';
-  const allEx=S.exercises[tab]||{};
-  const filtered=Object.entries(allEx).filter(([,ex])=>
+  const base=tab==='global'?Object.assign({},DEFAULT_EXERCISES,S.exercises.global):S.exercises.personal||{};
+  const filtered=Object.entries(base).filter(([,ex])=>
     !q||ex.name?.toLowerCase().includes(q)||(ex.category||'').toLowerCase().includes(q)
   );
   const grouped={};
@@ -1995,12 +2024,36 @@ function renderExPickerModal(){
     if(!grouped[cat]) grouped[cat]=[];
     grouped[cat].push({id,...ex});
   });
-  const listHtml=Object.entries(grouped).map(([cat,exs])=>
+  return Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,exs])=>
     `<div style="margin-bottom:12px;">
-      <div style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">${cat}</div>
+      <div style="font-size:10px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">${cat}</div>
       ${exs.map(ex=>`<div class="q-ex-pick-item" data-action="pickexercise" data-exid="${ex.id}" data-exname="${ex.name}">${ex.name}</div>`).join('')}
     </div>`
-  ).join('')||`<div style="color:var(--text-2);font-size:13px;padding:16px 0;text-align:center;">${q?'Sin resultados para "'+q+'"':'La biblioteca está vacía'}</div>`;
+  ).join('')||`<div style="color:var(--text-2);font-size:13px;padding:20px 0;text-align:center;">${q?`Sin resultados para "${S.exPickerQuery}"`:'Sin ejercicios en esta biblioteca'}</div>`;
+}
+
+function renderExPickerModal(){
+  const body=document.getElementById('app-body');
+  if(!body||!S.exPicker) return;
+  const existing=document.getElementById('ex-picker-modal');
+  if(existing){_updateExPickerList();return;}
+  const tab=S.exPickerTab||'global';
+  const addForm=S.exPickerAddForm;
+  const footerHtml=addForm?
+    `<div style="padding:12px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text-1);">Agregar a mi biblioteca personal</div>
+      <input type="text" id="ex-add-name" class="q-input" placeholder="Nombre del ejercicio" value="${addForm.name||''}">
+      <select id="ex-add-cat" class="q-input" style="padding:6px 10px;">
+        ${EX_CATEGORIES.map(c=>`<option value="${c}"${addForm.category===c?' selected':''}>${c}</option>`).join('')}
+      </select>
+      <div style="display:flex;gap:8px;">
+        <button class="q-btn q-btn--primary" data-action="confirmaddex" style="flex:1;">Guardar ejercicio</button>
+        <button class="q-btn" data-action="canceladdex">Omitir</button>
+      </div>
+    </div>`:
+    `<div style="padding:10px 16px;border-top:1px solid var(--line);">
+      <button class="q-btn q-btn--ghost" data-action="savenewpersonalex" style="font-size:12px;width:100%;border-style:dashed;">+ Agregar "${S.exPickerQuery||'nuevo ejercicio'}" a mi biblioteca</button>
+    </div>`;
   const modal=document.createElement('div');
   modal.id='ex-picker-modal';
   modal.className='q-modal-backdrop';
@@ -2014,17 +2067,29 @@ function renderExPickerModal(){
         <button class="b${tab==='global'?' on p':''}" data-action="expickertab" data-tab="global">Global</button>
         <button class="b${tab==='personal'?' on p':''}" data-action="expickertab" data-tab="personal">Personal</button>
       </div>
-      <input type="text" id="ex-picker-q" class="q-input" placeholder="Buscar ejercicio..." value="${S.exPickerQuery||''}" style="width:100%;">
+      <input type="text" id="ex-picker-q" class="q-input" placeholder="Buscar ejercicio..." value="${S.exPickerQuery||''}" style="width:100%;" autocomplete="off">
     </div>
-    <div style="padding:12px 16px;max-height:340px;overflow-y:auto;">${listHtml}</div>
-    <div style="padding:10px 16px;border-top:1px solid var(--line);">
-      <button class="q-btn q-btn--primary" data-action="savenewpersonalex" style="font-size:12px;width:100%;">+ Agregar "${S.exPickerQuery||'nuevo ejercicio'}" a mi biblioteca</button>
-    </div>
+    <div id="ex-picker-list" style="padding:12px 16px;max-height:300px;overflow-y:auto;">${buildExPickerList()}</div>
+    ${footerHtml}
   </div>`;
   body.appendChild(modal);
   document.querySelectorAll('#ex-picker-modal [data-action]').forEach(el=>el.addEventListener('click',handleAction));
   const qi=document.getElementById('ex-picker-q');
-  if(qi){qi.focus();qi.addEventListener('input',e=>{S.exPickerQuery=e.target.value;const m=document.getElementById('ex-picker-modal');if(m)m.remove();renderExPickerModal();});}
+  if(qi){
+    qi.focus();
+    qi.addEventListener('input',e=>{
+      S.exPickerQuery=e.target.value;
+      _updateExPickerList();
+      const footBtn=document.querySelector('#ex-picker-modal [data-action="savenewpersonalex"]');
+      if(footBtn) footBtn.textContent=`+ Agregar "${S.exPickerQuery||'nuevo ejercicio'}" a mi biblioteca`;
+    });
+  }
+}
+
+function _updateExPickerList(){
+  const listEl=document.getElementById('ex-picker-list');
+  if(listEl) listEl.innerHTML=buildExPickerList();
+  document.querySelectorAll('#ex-picker-list [data-action]').forEach(el=>el.addEventListener('click',handleAction));
 }
 
 function renderSessionLoad(){
@@ -4172,8 +4237,8 @@ async function handleAction(e){
     S.exPickerQuery='';S.exPickerTab='global';
     render();
   }
-  else if(a==='closeexpicker'){S.exPicker=null;render();}
-  else if(a==='expickertab'){S.exPickerTab=el.dataset.tab;const m=document.getElementById('ex-picker-modal');if(m)m.remove();renderExPickerModal();}
+  else if(a==='closeexpicker'){S.exPicker=null;S.exPickerAddForm=null;S.exPickerQuery='';render();}
+  else if(a==='expickertab'){S.exPickerTab=el.dataset.tab;S.exPickerAddForm=null;const m=document.getElementById('ex-picker-modal');if(m)m.remove();renderExPickerModal();}
   else if(a==='pickexercise'){
     const exId=el.dataset.exid, exName=el.dataset.exname;
     const picker=S.exPicker;
@@ -4204,10 +4269,23 @@ async function handleAction(e){
   }
   else if(a==='savenewpersonalex'){
     const name=S.exPickerQuery?.trim();
-    if(!name){alert('Ingresá el nombre del ejercicio en el buscador.');return;}
-    const cat=prompt('Categoría (opcional):',EX_CATEGORIES[0])||'Otro';
-    const id=await savePersonalExercise(name,cat);
-    if(S.exPicker){const m=document.getElementById('ex-picker-modal');if(m)m.remove();S.exPickerTab='personal';renderExPickerModal();}
+    S.exPickerAddForm={name:name||'',category:EX_CATEGORIES[0]};
+    const m=document.getElementById('ex-picker-modal');if(m)m.remove();
+    renderExPickerModal();
+  }
+  else if(a==='canceladdex'){
+    S.exPickerAddForm=null;
+    const m=document.getElementById('ex-picker-modal');if(m)m.remove();
+    renderExPickerModal();
+  }
+  else if(a==='confirmaddex'){
+    const name=(document.getElementById('ex-add-name')?.value||'').trim();
+    const cat=document.getElementById('ex-add-cat')?.value||'Otro';
+    if(!name){alert('Ingresá un nombre para el ejercicio.');return;}
+    await savePersonalExercise(name,cat);
+    S.exPickerAddForm=null;S.exPickerTab='personal';S.exPickerQuery='';
+    const m=document.getElementById('ex-picker-modal');if(m)m.remove();
+    renderExPickerModal();
   }
   // ── SETS ──────────────────────────────────────────────────────
   else if(a==='editsetcell'){

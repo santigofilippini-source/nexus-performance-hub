@@ -613,6 +613,14 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 .q-icon-btn{background:transparent;border:none;cursor:pointer;padding:4px 6px;border-radius:var(--r-1);color:var(--text-2);font-size:14px;line-height:1;transition:color .12s,background .12s;}
 .q-icon-btn:hover{background:var(--bg-3);color:var(--text-0);}
 
+/* Set action pills — visible add/remove per exercise */
+.q-set-actions{white-space:nowrap;vertical-align:middle;}
+.q-set-pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:var(--r-pill);font-size:11px;font-weight:600;cursor:pointer;border:1px solid;transition:background .12s,opacity .12s;margin-right:3px;}
+.q-set-pill--add{background:var(--bg-3);border-color:var(--line-strong);color:var(--ok);}
+.q-set-pill--add:hover{background:var(--ok);color:#fff;border-color:var(--ok);}
+.q-set-pill--rem{background:var(--bg-3);border-color:var(--line-strong);color:var(--text-2);}
+.q-set-pill--rem:hover{background:var(--bg-4);color:var(--bad);}
+
 /* Exercise picker modal */
 .q-modal__head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);}
 .q-ex-pick-item{padding:8px 12px;border-radius:var(--r-1);cursor:pointer;font-size:13px;color:var(--text-1);transition:background .1s;}
