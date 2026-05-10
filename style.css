@@ -412,6 +412,10 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 .q-pdur-input{width:50px;padding:3px 6px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-1);color:var(--text-1);font:500 12px var(--font-mono);text-align:center;outline:none;transition:border-color .15s,color .15s;}
 .q-pdur-input:focus{border-color:var(--accent);}
 .q-pdur-input:disabled{opacity:.45;cursor:default;}
+/* ── Team card KPIs ────────────────────────────────────────── */
+.q-ckpi{display:flex;flex-direction:column;gap:3px;padding-right:14px;}
+.q-ckpi__lbl{font-size:9px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.09em;white-space:nowrap;}
+.q-ckpi__val{font-size:20px;font-weight:600;font-family:var(--font-mono);letter-spacing:-.02em;color:var(--text-0);line-height:1;}
 /* ── Home alerts strip ─────────────────────────────────────── */
 .q-alerts-strip{display:flex;align-items:center;gap:10px;margin-bottom:16px;min-width:0;}
 .q-alerts-strip__hd{font-size:11px;font-weight:700;color:var(--text-2);white-space:nowrap;flex-shrink:0;}
