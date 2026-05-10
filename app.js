@@ -1186,7 +1186,7 @@ function renderHome(){
 
   return`<div class="wrap">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-size:13px;font-weight:600;color:var(--text2);">MIS EQUIPOS</div>
+      <div style="font-size:13px;font-weight:500;color:var(--text2);">${(()=>{const n=new Date();const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return`Hoy · ${dias[n.getDay()]} ${n.getDate()} de ${meses[n.getMonth()]}`;})()}</div>
       <button class="sm-btn" data-action="newteam">+ Nuevo equipo</button>
     </div>
     ${S.teamFormMode?renderTeamForm():''}
