@@ -3831,12 +3831,13 @@ function _renderConfirmOverlay(){
   if(!el){el=document.createElement('div');el.id='app-confirm-overlay';document.body.appendChild(el);}
   if(!S.confirmModal){el.innerHTML='';return;}
   el.innerHTML=`
-    <div class="q-modal-backdrop" style="z-index:9990;"></div>
-    <div class="q-modal" style="z-index:9991;max-width:380px;padding:0;border-radius:14px;overflow:hidden;">
-      <div style="padding:20px 20px 12px;font-size:14px;color:var(--text-1);line-height:1.5;">${S.confirmModal.msg}</div>
-      <div style="padding:12px 20px 18px;display:flex;gap:8px;justify-content:flex-end;">
-        <button class="q-btn" id="confirm-cancel-btn" style="min-width:90px;">Cancelar</button>
-        <button class="q-btn" id="confirm-ok-btn" style="min-width:90px;background:var(--bad);color:#fff;border-color:var(--bad);">Aceptar</button>
+    <div class="q-modal-backdrop" style="z-index:9990;">
+      <div class="q-modal" style="max-width:360px;padding:0;border-radius:14px;overflow:hidden;animation:q-pop-in .15s ease;">
+        <div style="padding:22px 22px 14px;font-size:14px;color:var(--text-1);line-height:1.6;">${S.confirmModal.msg}</div>
+        <div style="padding:10px 22px 20px;display:flex;gap:8px;justify-content:flex-end;">
+          <button class="q-btn" id="confirm-cancel-btn" style="min-width:88px;">Cancelar</button>
+          <button class="q-btn" id="confirm-ok-btn" style="min-width:88px;background:var(--bad);color:#fff;border-color:var(--bad);">Aceptar</button>
+        </div>
       </div>
     </div>`;
   document.getElementById('confirm-cancel-btn').onclick=()=>{S.confirmModal=null;_renderConfirmOverlay();};
