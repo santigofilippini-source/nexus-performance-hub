@@ -213,6 +213,10 @@ let S = {
   subscriptionModal:false, // true = show subscription/plans modal
 };
 
+// ── Admin ──────────────────────────────────────────────────────
+const ADMIN_EMAIL = 'santigofilippini@gmail.com';
+function isAdmin(){ return currentUser?.email === ADMIN_EMAIL; }
+
 // ── Tier helpers ───────────────────────────────────────────────
 function getEffectiveTier(tid=S.teamId){
   if(S.betaMode) return 'elite';
@@ -623,6 +627,84 @@ const ROLES = ['Entrenador Principal','Asistente Técnico','Preparador Físico',
 
 function openProfile() { S.profileView = true; render(); }
 
+// ── Admin actions ──────────────────────────────────────────────
+async function toggleBetaMode(){
+  if(!isAdmin()) return;
+  const next = !S.betaMode;
+  try {
+    await db.ref('config/app/betaMode').set(next);
+    S.betaMode = next;
+    showToast(next ? 'Beta activada — todos en Elite' : 'Beta desactivada — tiers reales activos');
+    render();
+  } catch(e){ showAlert('Error al actualizar betaMode: ' + e.message); }
+}
+
+async function setTeamTierOverride(tid, tier){
+  if(!isAdmin()) return;
+  const sub = {
+    tier,
+    status: 'active',
+    manualOverride: true,
+    overrideReason: 'Admin override',
+    overrideBy: currentUser.uid,
+    overrideAt: TODAY,
+  };
+  try {
+    await db.ref(`teams/${tid}/subscription`).update(sub);
+    if(!S.teams[tid]) S.teams[tid]={};
+    S.teams[tid].subscription = {...(S.teams[tid].subscription||{}), ...sub};
+    showToast(`Tier de "${S.teams[tid]?.name||tid}" actualizado a ${tier}`);
+    render();
+  } catch(e){ showAlert('Error al actualizar tier: ' + e.message); }
+}
+
+function renderAdminPanel(){
+  if(!isAdmin()) return '';
+  const betaOn = S.betaMode;
+  const tids = Object.keys(S.teams).filter(tid=>!S.teams[tid]?._legacyPending);
+  const teamRows = tids.length ? tids.map(tid=>{
+    const t = S.teams[tid];
+    const sub = t.subscription || {};
+    const currentTier = sub.tier || 'free';
+    const isOverride = !!sub.manualOverride;
+    return `<div class="q-admin-team-row">
+      <div class="q-admin-team-info">
+        <span class="q-admin-team-name">${t.name}</span>
+        ${isOverride?`<span class="q-admin-override-badge">override</span>`:''}
+      </div>
+      <select class="q-admin-tier-select" onchange="setTeamTierOverride('${tid}',this.value)">
+        ${['free','pro','elite'].map(tier=>`<option value="${tier}"${currentTier===tier?' selected':''}>${TIER_CONFIG[tier].label}</option>`).join('')}
+      </select>
+    </div>`;
+  }).join('') : '<div style="font-size:12px;color:var(--text-2);padding:8px 0;">Sin equipos visibles</div>';
+
+  return `<div class="q-admin-panel">
+    <div class="q-admin-panel__header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Panel de Admin
+    </div>
+
+    <div class="q-admin-section">
+      <div class="q-admin-section__label">Modo Beta</div>
+      <div class="q-admin-beta-row">
+        <div>
+          <div style="font-size:13px;color:var(--text-0);font-weight:500;">${betaOn ? 'Activo — todos en Elite' : 'Inactivo — tiers reales'}</div>
+          <div style="font-size:11px;color:var(--text-2);margin-top:2px;">${betaOn ? 'Ningún usuario ve restricciones.' : 'Los límites de cada plan están activos.'}</div>
+        </div>
+        <button class="q-admin-toggle${betaOn?' q-admin-toggle--on':''}" onclick="toggleBetaMode()">
+          <span class="q-admin-toggle__dot"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="q-admin-section">
+      <div class="q-admin-section__label">Override de tier por equipo</div>
+      <div style="font-size:11px;color:var(--text-2);margin-bottom:10px;">Ignorado mientras betaMode esté activo.</div>
+      ${teamRows}
+    </div>
+  </div>`;
+}
+
 function renderProfileView() {
   const p = S.userProfile || {};
   return `<div class="wrap">
@@ -661,6 +743,7 @@ function renderProfileView() {
     <div style="margin-top:8px;text-align:center;">
       <button class="sm-btn" style="color:#fca5a5;border-color:#991b1b;" onclick="doLogout()">Cerrar sesión</button>
     </div>
+    ${isAdmin() ? renderAdminPanel() : ''}
   </div>`;
 }
 
