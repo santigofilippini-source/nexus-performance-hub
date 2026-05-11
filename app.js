@@ -138,6 +138,23 @@ const DEFAULT_EXERCISES = {
   'def_foam':    {name:'Foam roller — MMII',              category:'Movilidad / Elongación'},
   'def_mob':     {name:'Movilidad articular guiada',      category:'Movilidad / Elongación'},
   'def_elon':    {name:'Elongación isquiotibial',         category:'Movilidad / Elongación'},
+  // ── Nuevos ────────────────────────────────────────────────────
+  'def_ringrow': {name:'Remo en anillas (Ring Row)',                    category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=sEAOZc77wk8'},
+  'def_dbohsq':  {name:'Sentadilla sobre cabeza con mancuerna (OHS)',  category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=azumEfnk-GI'},
+  'def_absit':   {name:'Abdominales con AbMat (AbMat Sit-Up)',         category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=VIZX2Ru9qU8'},
+  'def_hpccpj':  {name:'Cargada desde colgado y envión (HPC + Push Jerk)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=8IYt7AtP8BI'},
+  'def_zercher': {name:'Sentadilla Zercher (Zercher Squat)',           category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=nwx6Ip7hd3I'},
+  'def_lsit':    {name:'L-Sit colgado (Hanging L-Sit)',               category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=WHi1bvZLwlw'},
+  'def_ctb':     {name:'Dominada pecho a la barra (Chest-to-Bar)',    category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=xf69XHAs5w8'},
+  'def_broadjmp':{name:'Salto en largo (Broad Jump)',                 category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=AOkmLTD8J24'},
+  'def_cqsjmp':  {name:'Salto concéntrico en cuarto sentadilla',      category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=jDmNzL_jctc'},
+  'def_depthdrop':{name:'Caída de profundidad (Depth Drop)',          category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=GZLyZCqF8BQ'},
+  'def_depthjmp':{name:'Salto de profundidad (Depth Jump)',           category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=GeN0S3XCZnM'},
+  'def_pausebox':{name:'Salto al cajón con pausa (Pause Box Jump)',   category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=OupSuT2VFTk'},
+  'def_seatedbox':{name:'Salto al cajón sentado (Seated Box Jump)',   category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=yhBwqIvXHgw'},
+  'def_seatedvj':{name:'Salto vertical sentado (Seated Vertical Jump)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=3x_mz9qztMI'},
+  'def_sqboxjmp':{name:'Salto al cajón desde sentadilla (Squat Box Jump)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=sUK1NDgjIcg'},
+  'def_vertjmp': {name:'Salto vertical (Vertical Jump)',              category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=85FvMEHl3Vo'},
 };
 
 // ── State ─────────────────────────────────────────────────────
