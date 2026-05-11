@@ -3831,7 +3831,7 @@ function exportPlanPDF(planData, meta){
   const blocks=Object.entries(planData.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
   const BLOCK_COLORS={'warmup':'#0891b2','strength':'#7c3aed','power':'#ea580c','cardio':'#16a34a','tactical':'#2563eb','cooldown':'#475569','custom':'#d97706'};
   function fmtSet(s){
-    if(!s) return '';
+    if(!s) return '<span style="color:#ccc;">—</span>';
     const type=s.type||'reps';
     const val=type==='time'?(s.time?s.time+'s':''):(s.reps||'');
     const w=s.weight?s.weight+' kg':'';
@@ -3844,58 +3844,83 @@ function exportPlanPDF(planData, meta){
     if(!items.length) return '';
     const maxSets=Math.max(...items.map(([,it])=>Object.keys(it.sets||{}).length),1);
     const color=BLOCK_COLORS[block.type||'custom']||'#d97706';
-    const setHeaders=Array.from({length:maxSets},(_,i)=>`<th style="color:#f97316;">Serie #${i+1}</th>`).join('');
-    const itemRows=items.map(([,item])=>{
+    const setHeaders=Array.from({length:maxSets},(_,i)=>`<th>Serie #${i+1}</th>`).join('');
+    const itemRows=items.map(([,item],idx)=>{
       const sets=item.sets||{};
       const cells=Array.from({length:maxSets},(_,i)=>`<td>${fmtSet(sets[String(i)])}</td>`).join('');
-      return`<tr><td class="ex-name">${item.exName||'Ejercicio'}</td>${cells}</tr>`;
+      const videoUrl=(DEFAULT_EXERCISES[item.exId]||S.exercises?.personal?.[item.exId]||S.exercises?.global?.[item.exId])?.videoUrl;
+      const videoLink=videoUrl?`<a class="vid-link" href="${videoUrl}" target="_blank">▶ Ver video</a>`:'';
+      const rowBg=idx%2===1?'background:#fafafa;':'';
+      return`<tr style="${rowBg}"><td class="ex-name">${item.exName||'Ejercicio'}${videoLink}</td>${cells}</tr>`;
     }).join('');
     return`<div class="block">
-      <div class="block-head">
-        <span class="block-tag" style="background:${color}20;color:${color};border:1px solid ${color}60;">${(BLOCK_TYPES.find(b=>b.id===(block.type||'custom'))||{label:'BLOQUE'}).label}</span>
+      <div class="block-head" style="border-left:3px solid ${color};">
+        <span class="block-tag" style="background:${color}18;color:${color};border:1px solid ${color}50;">${(BLOCK_TYPES.find(b=>b.id===(block.type||'custom'))||{label:'BLOQUE'}).label}</span>
         <span class="block-name">${block.name||'Bloque'}</span>
       </div>
-      <table><thead><tr><th class="ex-col">Ejercicio</th>${setHeaders}</tr></thead><tbody>${itemRows}</tbody></table>
+      <table>
+        <thead><tr><th class="ex-col">Ejercicio</th>${setHeaders}</tr></thead>
+        <tbody>${itemRows}</tbody>
+      </table>
     </div>`;
   }).join('');
+
+  const infoLine=[meta.teamName,meta.catName,meta.date].filter(Boolean).join(' · ');
+  const hasAssigned=meta.assigned&&meta.assigned!=='Sin asignar';
+
   const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
   <title>${meta.title}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#111;background:#fff;padding:28px 32px;}
-    .print-btn{position:fixed;top:16px;right:16px;background:#f97316;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#111;background:#fff;}
+    .page{padding:28px 32px;}
+    .print-btn{position:fixed;top:16px;right:16px;background:#f97316;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(249,115,22,.35);}
     @media print{.print-btn{display:none;}}
-    .header{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:2px solid #f97316;margin-bottom:20px;}
-    .logo{font-size:22px;font-weight:800;color:#f97316;letter-spacing:-1px;}
-    .meta{text-align:right;font-size:12px;color:#666;}
-    .meta strong{display:block;font-size:15px;font-weight:700;color:#111;margin-bottom:2px;}
-    .assigned{display:inline-block;margin-top:8px;font-size:12px;color:#444;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:4px 10px;}
-    .block{margin-bottom:20px;}
-    .block-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-    .block-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.5px;}
+    /* Header */
+    .header{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:16px;border-bottom:2px solid #f97316;margin-bottom:18px;}
+    .logo{font-size:26px;font-weight:900;color:#f97316;letter-spacing:-1.5px;line-height:1;}
+    .logo-sub{font-size:10px;color:#aaa;font-weight:400;letter-spacing:.5px;margin-top:2px;}
+    .meta-right{text-align:right;}
+    .plan-title{font-size:18px;font-weight:800;color:#111;line-height:1.2;}
+    .plan-sub{font-size:12px;color:#888;margin-top:4px;}
+    /* Assigned */
+    .assigned-row{margin-bottom:18px;}
+    .assigned-badge{display:inline-flex;align-items:center;gap:6px;background:#fff7ed;border:1px solid #fed7aa;border-radius:20px;padding:5px 14px;font-size:12px;color:#c2410c;font-weight:500;}
+    /* Blocks */
+    .block{margin-bottom:22px;}
+    .block-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 12px;background:#f9fafb;border-radius:6px;}
+    .block-tag{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.6px;text-transform:uppercase;}
     .block-name{font-size:14px;font-weight:700;color:#111;}
+    /* Table */
     table{width:100%;border-collapse:collapse;font-size:12px;}
-    th{background:#f8f8f8;border:1px solid #e0e0e0;padding:6px 10px;text-align:center;font-weight:600;color:#555;font-size:11px;}
-    td{border:1px solid #e0e0e0;padding:7px 10px;vertical-align:top;text-align:center;line-height:1.5;}
-    .ex-col{text-align:left;min-width:160px;}
-    .ex-name{text-align:left;font-weight:500;color:#111;}
-    .footer{margin-top:28px;padding-top:12px;border-top:1px solid #eee;font-size:11px;color:#999;display:flex;justify-content:space-between;}
-    @page{margin:15mm 12mm;}
+    th{background:#f3f4f6;border:1px solid #e5e7eb;padding:7px 10px;text-align:center;font-weight:700;color:#f97316;font-size:11px;letter-spacing:.3px;}
+    td{border:1px solid #e5e7eb;padding:8px 10px;vertical-align:middle;text-align:center;line-height:1.5;}
+    .ex-col{text-align:left;width:36%;}
+    .ex-name{text-align:left;font-weight:600;color:#111;vertical-align:middle;}
+    .vid-link{display:inline-flex;align-items:center;gap:3px;margin-left:8px;font-size:10px;font-weight:600;color:#f97316;text-decoration:none;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:2px 7px;white-space:nowrap;vertical-align:middle;}
+    /* Footer */
+    .footer{margin-top:28px;padding-top:12px;border-top:1px solid #f0f0f0;font-size:11px;color:#bbb;display:flex;justify-content:space-between;align-items:center;}
+    .footer-brand{font-weight:700;color:#f97316;}
+    @page{margin:14mm 12mm;}
   </style></head><body>
   <button class="print-btn" onclick="window.print()">🖨 Guardar PDF</button>
-  <div class="header">
-    <div class="logo">Qoore</div>
-    <div class="meta">
-      <strong>${meta.title}</strong>
-      ${meta.subtitle?`<span>${meta.subtitle}</span>`:''}
-      ${meta.date?`<span>${meta.date}</span>`:''}
+  <div class="page">
+    <div class="header">
+      <div>
+        <div class="logo">Qoore</div>
+        <div class="logo-sub">Plan de entrenamiento</div>
+      </div>
+      <div class="meta-right">
+        <div class="plan-title">${meta.title}</div>
+        <div class="plan-sub">${infoLine||meta.subtitle||''}</div>
+      </div>
     </div>
-  </div>
-  ${meta.assigned?`<div class="assigned">👥 ${meta.assigned}</div><br><br>`:''}
-  ${blocksHtml}
-  <div class="footer">
-    <span>Qoore · ${meta.teamName||''}${meta.catName?' · '+meta.catName:''}</span>
-    <span>Generado el ${fmtDate(TODAY)}</span>
+    ${hasAssigned?`<div class="assigned-row"><span class="assigned-badge">👥 ${meta.assigned}</span></div>`:''}
+    ${blocksHtml}
+    <div class="footer">
+      <span><span class="footer-brand">Qoore</span>${meta.teamName?' · '+meta.teamName:''}${meta.catName?' · '+meta.catName:''}</span>
+      <span>Generado el ${fmtDate(TODAY)}</span>
+    </div>
   </div>
   </body></html>`;
   const w=window.open('','_blank');
