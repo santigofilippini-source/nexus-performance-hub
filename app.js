@@ -2049,15 +2049,30 @@ function renderPlan(){
     const assignedNames=plan.assignedToAll?'Toda la categoría':Object.keys(plan.assignedTo||{}).map(pid=>{
       const p=cd.players.find(pl=>pl.id===pid);return p?p.name:'';
     }).filter(Boolean).join(', ')||'Sin asignar';
+    const isUnassigned=!plan.assignedToAll&&!Object.keys(plan.assignedTo||{}).length;
     return`<div class="q-plan-card">
       <div class="q-plan-card__head">
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:15px;">${plan.name||'Plan sin nombre'}</div>
-          <div style="font-size:12px;color:var(--text-2);margin-top:2px;">👥 ${assignedNames}</div>
+          <div style="font-weight:700;font-size:15px;color:var(--text-0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${plan.name||'Plan sin nombre'}</div>
+          <div style="font-size:12px;margin-top:3px;display:flex;align-items:center;gap:5px;color:${isUnassigned?'var(--warn)':'var(--text-2)'};">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            ${assignedNames}
+          </div>
         </div>
-        <button class="q-icon-btn" data-action="exportplanpdf" data-ctx="session" data-planid="${planId}" title="Exportar PDF">🖨</button>
-        ${editable?`<button class="q-icon-btn" data-action="editplanmeta" data-planid="${planId}" title="Editar asignación">✏️</button>
-        <button class="q-icon-btn" data-action="deleteplan" data-planid="${planId}" title="Eliminar plan">🗑</button>`:''}
+        <div class="q-plan-actions">
+          <button class="q-plan-btn q-plan-btn--ghost" data-action="exportplanpdf" data-ctx="session" data-planid="${planId}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Exportar PDF
+          </button>
+          ${editable?`<button class="q-plan-btn q-plan-btn--assign" data-action="editplanmeta" data-planid="${planId}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Asignar
+          </button>
+          <button class="q-plan-btn q-plan-btn--danger" data-action="deleteplan" data-planid="${planId}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Eliminar
+          </button>`:''}
+        </div>
       </div>
       <div class="q-plan-blocks">${blocks.map(([bid,block])=>renderPlanBlock(bid,block,{planId})).join('')}</div>
       ${editable?`<button class="q-btn q-btn--ghost q-add-block-btn" data-action="addblock" data-ctx="session" data-planid="${planId}">+ Agregar bloque</button>`:''}
