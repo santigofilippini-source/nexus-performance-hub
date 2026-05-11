@@ -753,3 +753,122 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 #app-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9995;pointer-events:none;}
 .q-toast{background:var(--bg-5,#1e293b);color:var(--text-0,#f1f5f9);font-size:13px;font-weight:500;padding:10px 18px;border-radius:var(--r-pill,100px);box-shadow:0 4px 16px rgba(0,0,0,.35);white-space:nowrap;animation:q-toast-in .2s ease;border:1px solid var(--line-strong,rgba(255,255,255,.12));}
 @keyframes q-toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── ATHLETE PORTAL ──────────────────────────────────────────── */
+body.is-auth.athlete #nx-sidebar,
+body.is-auth.athlete #nx-stats-bar,
+body.is-auth.athlete #mob-tabbar{display:none!important}
+@media(min-width:900px){
+  body.is-auth.athlete .header{display:flex!important}
+  body.is-auth.athlete #app-screen{max-width:480px!important;margin-left:auto!important;margin-right:auto!important}
+}
+
+/* Layout */
+.ap-layout{display:flex;flex-direction:column;min-height:60vh}
+.ap-body{padding-bottom:72px}
+
+/* Bottom nav */
+.ap-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:var(--bg-1);border-top:1px solid var(--line);
+  display:flex;z-index:100;
+  padding-bottom:env(safe-area-inset-bottom,0px)
+}
+.ap-nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:9px 4px 7px;gap:3px;
+  border:none;background:transparent;color:var(--text-2);
+  cursor:pointer;font-size:10px;font-family:var(--font-ui);
+  position:relative;transition:color .15s
+}
+.ap-nav-btn::before{
+  content:'';position:absolute;top:0;left:20%;right:20%;height:2px;
+  border-radius:0 0 2px 2px;background:var(--accent);
+  opacity:0;transition:opacity .15s
+}
+.ap-nav-btn.on{color:var(--accent)}
+.ap-nav-btn.on::before{opacity:1}
+.ap-nav-icon{font-size:20px;line-height:1}
+
+/* Wellness check-in cards */
+.ap-well-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);margin:10px 16px}
+.ap-well-card__h{
+  padding:11px 16px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap
+}
+.ap-well-card__h h3{font-size:14px;font-weight:600;color:var(--text-0);margin:0}
+.ap-well-card__b{padding:14px 16px}
+.ap-well-row{
+  display:flex;align-items:center;flex-wrap:wrap;
+  gap:6px 8px;margin-bottom:14px
+}
+.ap-well-row:last-child{margin-bottom:0}
+.ap-well-label{flex:0 0 88px;font-size:12px;color:var(--text-1);line-height:32px}
+.ap-well-btns{display:flex;gap:5px;flex:1;min-width:0}
+.ap-wb{
+  flex:1;min-width:0;height:34px;
+  border-radius:7px;border:1.5px solid var(--line);
+  background:var(--bg-3);color:var(--text-2);
+  font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .12s
+}
+.ap-wb:active{transform:scale(.93)}
+.ap-wb.sel{color:#fff}
+.ap-well-tip{
+  flex:0 0 auto;font-size:10px;color:var(--text-2);
+  line-height:1.3;text-align:right;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:72px
+}
+@media(max-width:360px){.ap-well-tip{display:none}}
+
+/* RPE — 6-column grid so botones son tocables en mobile */
+.ap-rpe-grid{
+  display:grid;grid-template-columns:repeat(6,1fr);
+  gap:5px;padding:12px 16px
+}
+.ap-rpe-btn{
+  height:40px;border-radius:7px;
+  border:1.5px solid var(--line);background:var(--bg-3);
+  color:var(--text-2);font-size:14px;font-weight:700;
+  cursor:pointer;transition:all .12s
+}
+.ap-rpe-btn:active{transform:scale(.92)}
+.ap-rpe-btn.sel{border-width:2px}
+
+/* Attendance */
+.ap-att-list{padding:8px 16px;display:flex;flex-direction:column;gap:6px}
+.ap-att-row{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 13px;background:var(--bg-2);
+  border-radius:var(--r-2);border:1px solid var(--line)
+}
+.ap-att-date{flex:1;font-size:13px;color:var(--text-1)}
+.ap-att-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+.ap-att-P,.ap-att-T{background:#052e16;color:#22c55e}
+.ap-att-A{background:#2d0a0a;color:#ef4444}
+.ap-att-L{background:#1c0533;color:#c084fc}
+.ap-att-J{background:#1c1c0a;color:#eab308}
+
+/* Routine plan cards */
+.ap-plan-card{margin:8px 16px;background:var(--bg-2);border-radius:var(--r-2);border:1px solid var(--line);overflow:hidden}
+.ap-plan-head{padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.ap-plan-name{font-size:14px;font-weight:600;color:var(--text-0)}
+.ap-plan-date{font-size:11px;color:var(--text-2)}
+.ap-block{border-top:1px solid var(--line)}
+.ap-block-head{padding:7px 14px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.ap-exercise{padding:7px 14px;border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:baseline;gap:8px}
+.ap-exercise-name{font-size:13px;color:var(--text-1);flex:1}
+.ap-exercise-sets{font-size:11px;color:var(--text-3);flex-shrink:0}
+
+/* Progress */
+.ap-chart-card{margin:10px 16px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);padding:14px 16px}
+.ap-chart-card h3{font-size:13px;font-weight:600;color:var(--text-1);margin:0 0 12px}
+.ap-well-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 16px}
+.ap-well-stat{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);padding:10px 8px;text-align:center}
+.ap-well-stat__icon{font-size:18px}
+.ap-well-stat__label{font-size:10px;color:var(--text-2);margin-top:2px}
+.ap-well-stat__val{font-size:18px;font-weight:700;font-family:var(--font-mono);margin-top:2px}
+
+/* Athlete invite picker */
+.ap-roster-pick{display:flex;flex-direction:column;gap:8px;margin-top:6px}

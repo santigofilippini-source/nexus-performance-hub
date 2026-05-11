@@ -212,6 +212,9 @@ let S = {
   upgradeModal:null,    // {feature, currentTier} — shown when limit hit
   subscriptionModal:false, // true = show subscription/plans modal
   adminTeams:null,         // null = not loaded yet, {} = loaded (admin only)
+  // Athlete portal
+  athletePortalTab:'today',
+  athleteCheckin:null,     // draft: { sleep,fatigue,soreness,stress,mood,rpe,rpeDate }
 };
 
 // ── Admin ──────────────────────────────────────────────────────
@@ -494,6 +497,18 @@ function updateHeader() {
   } else {
     clubEl.textContent = 'Qoore';
     clubEl.style.cursor = 'default';
+  }
+  // Athlete portal: simplified header, skip sidebar/statsbar
+  const _athCtxH=getAthleteCtx();
+  if(_athCtxH){
+    const{tid,catId,pid}=_athCtxH;
+    const team=S.teams[tid];
+    const player=(team?.categories?.[catId]?.players||[]).find(p=>p.id===pid);
+    if(clubEl){clubEl.textContent=team?.name||'Qoore';clubEl.style.cursor='default';}
+    if(nameEl){nameEl.textContent=player?.name||S.userProfile?.nombre||currentUser?.email?.split('@')[0]||'';}
+    logo.innerHTML='<img src="public/brand/logo-icon.png" style="width:30px;height:30px;object-fit:contain;">';
+    logo.style.background='transparent';logo.style.padding='2px';
+    return;
   }
   // Display name from profile or email
   if (nameEl) {
@@ -923,16 +938,45 @@ function canView(tid=S.teamId, cid=S.cat){
   return !p || p==='view'||p==='edit'; // missing = can view
 }
 
+// ── Athlete helpers ───────────────────────────────────────────
+function getAthleteCtx(){
+  const entry=Object.entries(S.memberships).find(([_,m])=>m.role==='athlete');
+  if(!entry) return null;
+  const[tid,mem]=entry;
+  return{tid,catId:mem.catId,pid:mem.pid};
+}
+function getAthleteLastSessionDate(ctx){
+  const{tid,catId,pid}=ctx;
+  const att=S.teams[tid]?.categories?.[catId]?.attendance||{};
+  const dates=Object.keys(att).filter(d=>d<TODAY).sort().reverse();
+  for(const d of dates){const s=att[d]?.[pid];if(s==='P'||s==='T')return d;}
+  return null;
+}
+function initAthleteCheckin(ctx){
+  if(S.athleteCheckin!==null)return;
+  const{tid,catId,pid}=ctx;
+  const sess=S.teams[tid]?.categories?.[catId]?.sessions?.[TODAY]||{};
+  const w=sess.wellness?.[pid]||{};
+  const lastDate=getAthleteLastSessionDate(ctx);
+  const lastRPE=lastDate?(S.teams[tid]?.categories?.[catId]?.sessions?.[lastDate]?.playerRPE?.[pid]??null):null;
+  S.athleteCheckin={
+    sleep:w.sleep??null,fatigue:w.fatigue??null,soreness:w.soreness??null,
+    stress:w.stress??null,mood:w.mood??null,
+    rpe:lastRPE,rpeDate:lastDate||TODAY
+  };
+}
+
 // ── Invitation system ─────────────────────────────────────────
 function genToken(){ return Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2); }
 
-async function createInvitation(tid, email, role, permissions){
+async function createInvitation(tid, email, role, permissions, extra={}){
   const token = genToken();
   const now = new Date();
   const exp = new Date(now); exp.setDate(exp.getDate()+7);
   const inv = {
     teamId:tid, teamName:S.teams[tid]?.name||'',
     invitedEmail:email.toLowerCase(), role, permissions,
+    ...extra,
     createdByUid:currentUser.uid,
     createdAt:now.toISOString(), expiresAt:exp.toISOString(), status:'pending'
   };
@@ -970,18 +1014,25 @@ async function handlePendingInvite(token){
 async function acceptInvitation(){
   const inv = S.pendingInviteData;
   if(!inv||!currentUser) return;
-  const {token, teamId, role, permissions} = inv;
+  const {token, teamId, role, permissions, catId, pid} = inv;
   try {
-    // Step 1: write membership first so the teams/ rule passes in step 2
-    await db.ref(`users/${currentUser.uid}/memberships/${teamId}`).set({role,permissions,joinedAt:TODAY});
-    // Step 2: write to teams/ + mark invite accepted + write notification for owner + remove from pendingInvites
+    const isAthlete = role === 'athlete';
+    const membershipData = isAthlete
+      ? {role:'athlete', catId:catId||null, pid:pid||null, joinedAt:TODAY}
+      : {role, permissions, joinedAt:TODAY};
+    const memberPermData = isAthlete
+      ? {role:'athlete', catId:catId||null, pid:pid||null}
+      : {role, permissions};
+    // Step 1: write membership first so teams/ rule passes
+    await db.ref(`users/${currentUser.uid}/memberships/${teamId}`).set(membershipData);
+    // Step 2: write to teams/ + mark invite accepted + notification + remove pending
     const notifId = 'notif_'+Date.now();
     await db.ref().update({
       [`invitations/${token}/status`]:'accepted',
       [`invitations/${token}/acceptedByUid`]:currentUser.uid,
       [`teams/${teamId}/memberIndex/${currentUser.uid}`]:{email:currentUser.email,role,displayName:currentUser.displayName||''},
-      [`teams/${teamId}/memberPermissions/${currentUser.uid}`]:{role,permissions},
-      [`teams/${teamId}/pendingInvites/${token}`]:null, // remove from pending
+      [`teams/${teamId}/memberPermissions/${currentUser.uid}`]:memberPermData,
+      [`teams/${teamId}/pendingInvites/${token}`]:null,
       [`teams/${teamId}/notifications/${notifId}`]:{
         type:'invite_accepted',
         uid:currentUser.uid,
@@ -992,7 +1043,7 @@ async function acceptInvitation(){
         read:false
       }
     });
-    S.memberships[teamId]={role,permissions,joinedAt:TODAY};
+    S.memberships[teamId]=membershipData;
     const tSnap = await db.ref(`teams/${teamId}`).get();
     if(tSnap.exists() && tSnap.val()?.name){
       S.teams[teamId]=tSnap.val(); normalizeTeam(teamId);
@@ -1002,7 +1053,8 @@ async function acceptInvitation(){
     S.pendingInvite=null; S.pendingInviteData=null; S.showInviteModal=false;
     window.history.replaceState({},'',window.location.pathname);
     render();
-    showAlert(`✓ Te uniste a "${inv.teamName}" como ${role==='editor'?'Editor':'Lector'}.`);
+    const roleLabel=role==='editor'?'Editor':role==='athlete'?'Atleta':'Lector';
+    showAlert(`✓ Te uniste a "${inv.teamName}" como ${roleLabel}.`);
   } catch(e){ console.error('Error accepting invite:',e); showAlert('Error al aceptar la invitación.'); }
 }
 
@@ -1124,7 +1176,7 @@ function renderAccessPanel(tid){
         +'<div style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:6px;">'+inv.invitedEmail+'</div>'
         +'<div style="display:flex;gap:5px;flex-wrap:wrap;">'
         +(!expired?'<button class="sm-btn" style="font-size:11px;" data-action="copyinvlink" data-link="'+invLink+'">📋 Copiar link</button>':'')
-        +'<button class="sm-btn" style="font-size:11px;" data-action="resendtoinvite" data-tid="'+tid+'" data-email="'+inv.invitedEmail+'" data-role="'+inv.role+'" data-perms=\''+permsStr+'\'>🔄 '+(expired?'Reenviar':'Regenerar')+'</button>'
+        +'<button class="sm-btn" style="font-size:11px;" data-action="resendtoinvite" data-tid="'+tid+'" data-email="'+inv.invitedEmail+'" data-role="'+inv.role+'" data-perms=\''+permsStr+'\''+(inv.catId?' data-catid="'+inv.catId+'"'+'data-pid="'+(inv.pid||'')+'"':'')+'>🔄 '+(expired?'Reenviar':'Regenerar')+'</button>'
         +'<button class="sm-btn" style="font-size:11px;color:#fca5a5;border-color:#991b1b;" data-action="revokeinvite" data-tid="'+tid+'" data-token="'+inv.token+'">Revocar</button>'
         +'</div></div>';
     }).join('');
@@ -1157,8 +1209,8 @@ function renderAccessPanel(tid){
         +'<button class="save-btn" style="width:100%;margin-top:10px;padding:8px;font-size:13px;" data-action="savememberchanges" data-tid="'+tid+'" data-uid="'+m.uid+'">Guardar cambios</button>'
         +'</div>';
     }
-    const rolePillClass = m.role==='owner'?'role-owner':m.role==='editor'?'role-editor':'role-viewer';
-    const roleLabel = m.role==='owner'?'Dueño':m.role==='editor'?'Editor':'Lector';
+    const rolePillClass = m.role==='owner'?'role-owner':m.role==='editor'?'role-editor':m.role==='athlete'?'role-editor':'role-viewer';
+    const roleLabel = m.role==='owner'?'Dueño':m.role==='editor'?'Editor':m.role==='athlete'?'Atleta':'Lector';
     const isSelf = m.uid===currentUser.uid;
     const permsStr = JSON.stringify(m.permissions||{}).replace(/'/g,"&#39;");
     return '<div class="member-row">'
@@ -1188,6 +1240,25 @@ function renderAccessPanel(tid){
       +'<button class="save-btn" style="width:100%;padding:8px;font-size:13px;background:var(--bg2);color:var(--accent);border:1px solid var(--accent);" data-action="copyinvitelink">📋 Copiar link</button>'
     : '';
 
+  // Athlete picker (shown instead of cat perms when role=athlete)
+  const isAthleteInvite = form.role === 'athlete';
+  let athletePickerHtml = '';
+  if(isAthleteInvite){
+    const catBtns = cats.map(([cid,cat])=>`<button class="perm-btn ${form.catId===cid?'sel-edit':''}" data-action="setinvitecategory" data-cid="${cid}">${cat.name}</button>`).join('');
+    const noCats = !cats.length ? '<div style="font-size:12px;color:var(--text3);">Este equipo no tiene categorías todavía.</div>' : '';
+    let playerHtml = '';
+    if(form.catId){
+      const players=S.teams[tid]?.categories?.[form.catId]?.players||[];
+      if(players.length){
+        const pBtns=players.map(p=>`<button class="perm-btn ${form.pid===p.id?'sel-edit':''}" style="font-size:11px;" data-action="setinviteplayer" data-pid="${p.id}">${p.name}</button>`).join('');
+        playerHtml='<div style="margin-top:8px;"><div style="font-size:11px;color:var(--text3);margin-bottom:5px;">Jugador</div><div style="display:flex;flex-wrap:wrap;gap:5px;">'+pBtns+'</div></div>';
+      } else {
+        playerHtml='<div style="font-size:12px;color:var(--text3);margin-top:6px;">Esta categoría no tiene jugadores en el plantel.</div>';
+      }
+    }
+    athletePickerHtml='<div class="ap-roster-pick"><div style="font-size:11px;color:var(--text3);margin-bottom:5px;">Categoría</div>'+(noCats||'<div style="display:flex;flex-wrap:wrap;gap:5px;">'+catBtns+'</div>')+playerHtml+'</div>';
+  }
+
   return '<div class="access-panel">'
     +'<div class="access-panel-title">👥 Gestionar acceso <button class="sm-btn" data-action="toggleaccess">✕ Cerrar</button></div>'
     + notifsHtml
@@ -1198,13 +1269,14 @@ function renderAccessPanel(tid){
     +'<div style="border-top:1px solid var(--border);margin:12px 0;"></div>'
     +'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Nueva invitación</div>'
     +'<div class="form-field" style="margin-bottom:8px;"><label>Email del invitado</label>'
-    +'<input type="email" id="inv-email" class="form-input" style="margin:0;padding:8px 10px;font-size:13px;" placeholder="entrenador@club.com" value="'+(form.email||'')+'"></div>'
+    +'<input type="email" id="inv-email" class="form-input" style="margin:0;padding:8px 10px;font-size:13px;" placeholder="atleta@email.com" value="'+(form.email||'')+'"></div>'
     +'<div class="form-field" style="margin-bottom:8px;"><label>Rol</label>'
     +'<div style="display:flex;gap:6px;margin-top:4px;">'
     +'<button class="perm-btn '+((form.role||'editor')==='editor'?'sel-edit':'')+'" data-action="setinviterole" data-val="editor">Editor</button>'
     +'<button class="perm-btn '+((form.role||'editor')==='viewer'?'sel-view':'')+'" data-action="setinviterole" data-val="viewer">Lector</button>'
+    +'<button class="perm-btn '+(form.role==='athlete'?'sel-edit':'')+'" data-action="setinviterole" data-val="athlete">Atleta</button>'
     +'</div></div>'
-    +(cats.length ? '<div style="font-size:11px;color:var(--text3);margin:8px 0 4px;">Permisos por categoría</div>'+catPerms : '')
+    +(isAthleteInvite ? athletePickerHtml : (cats.length ? '<div style="font-size:11px;color:var(--text3);margin:8px 0 4px;">Permisos por categoría</div>'+catPerms : ''))
     +'<button class="save-btn" style="width:100%;margin-top:12px;" data-action="sendinvite" data-tid="'+tid+'">Generar link de invitación</button>'
     + linkSection
     +'</div>';
@@ -1215,7 +1287,7 @@ function renderInviteModal(){
   const inv = S.pendingInviteData;
   if(!inv) return '';
   const teamName = inv.teamName||inv.teamId;
-  const role = inv.role==='editor'?'Editor':'Lector (solo lectura)';
+  const role = inv.role==='editor'?'Editor':inv.role==='athlete'?'Atleta':'Lector (solo lectura)';
   const perms = Object.entries(inv.permissions||{});
   const permDetail = perms.length ? perms.map(([cid,p])=>`<span style="font-size:11px;background:var(--bg2);padding:2px 8px;border-radius:12px;">${cid}: ${p}</span>`).join(' ') : '<span style="font-size:12px;color:var(--text2);">Acceso a todas las categorías</span>';
   return`<div class="invite-modal">
@@ -1575,10 +1647,20 @@ function render(){
   const body=document.getElementById('app-body');if(!body)return;
   // Invite accept modal takes priority as overlay
   if(S.showInviteModal && S.pendingInviteData){
-    // Render underlying home view, then overlay modal
     body.innerHTML=renderHome()+renderInviteModal();
     attachEvents(); updateHeader(); return;
   }
+  // Athlete portal — completely separate UI
+  const _athCtx=getAthleteCtx();
+  if(_athCtx){
+    document.body.classList.add('athlete');
+    body.innerHTML=renderAthletePortal(_athCtx);
+    attachEvents();
+    if(S.athletePortalTab==='progress')setTimeout(initAthleteChart,50);
+    updateHeader();
+    return;
+  }
+  document.body.classList.remove('athlete');
   if(S.profileView){ body.innerHTML=renderProfileView(); attachEvents(); updateHeader(); return; }
   if(S.view==='search') {body.innerHTML=renderSearch();attachEvents();updateHeader();return;}
   if(S.view==='athlete'){body.innerHTML=renderAthleteView();attachEvents();updateHeader();return;}
@@ -4476,10 +4558,12 @@ async function handleAction(e){
     const role=el.dataset.role||'editor';
     const perms=JSON.parse(el.dataset.perms||'{}');
     // Find and revoke old token first
+    const catId=el.dataset.catid||null;const pid_resend=el.dataset.pid||null;
     const old=(S.teamInvites[tid]||[]).find(i=>i.invitedEmail===email);
     if(old) await db.ref().update({[`invitations/${old.token}/status`]:'revoked',[`teams/${tid}/pendingInvites/${old.token}`]:null});
+    const resendExtra=role==='athlete'&&catId?{catId,pid:pid_resend}:{};
     try{
-      const token=await createInvitation(tid,email,role,perms);
+      const token=await createInvitation(tid,email,role,perms,resendExtra);
       const link=`${window.location.origin}${window.location.pathname}?invite=${token}`;
       await loadTeamMembers(tid);
       render();
@@ -4494,10 +4578,10 @@ async function handleAction(e){
     render();
   }
   else if(a==='setinviterole'){
-    // Preserve typed email before re-render
     const emailEl=document.getElementById('inv-email');
     if(emailEl) S.inviteForm.email=emailEl.value;
     S.inviteForm.role=el.dataset.val;
+    if(el.dataset.val==='athlete'){S.inviteForm.catId=null;S.inviteForm.pid=null;}
     render();
   }
   else if(a==='setcatperm'){
@@ -4517,12 +4601,16 @@ async function handleAction(e){
     if(emailEl) S.inviteForm.email=emailEl.value;
     const email=(S.inviteForm.email||'').trim();
     if(!email){showAlert('Ingresá el email del invitado.');return;}
-    const {role,permissions}=S.inviteForm;
-    // Filter out 'none' permissions
+    const {role,permissions,catId,pid}=S.inviteForm;
+    if(role==='athlete'){
+      if(!catId){showAlert('Seleccioná la categoría del atleta.');return;}
+      if(!pid){showAlert('Seleccioná el jugador del plantel.');return;}
+    }
     const filteredPerms={};
     Object.entries(permissions||{}).forEach(([cid,p])=>{if(p!=='none')filteredPerms[cid]=p;});
+    const extra=role==='athlete'?{catId,pid}:{};
     try{
-      const token=await createInvitation(tid,email,role,filteredPerms);
+      const token=await createInvitation(tid,email,role,filteredPerms,extra);
       const link=`${window.location.origin}${window.location.pathname}?invite=${token}`;
       S.inviteLink=link;
       render();
@@ -4542,6 +4630,36 @@ async function handleAction(e){
     S.pendingInvite=null; S.pendingInviteData=null; S.showInviteModal=false;
     window.history.replaceState({},'',window.location.pathname);
     render();
+  }
+  // ATHLETE PORTAL
+  else if(a==='aptab'){
+    S.athletePortalTab=el.dataset.tab;
+    if(el.dataset.tab==='today') S.athleteCheckin=null;
+    render();
+    if(el.dataset.tab==='progress') setTimeout(initAthleteChart,50);
+  }
+  else if(a==='apwellness'){
+    if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null};
+    S.athleteCheckin[el.dataset.key]=parseInt(el.dataset.val);
+    render();
+  }
+  else if(a==='aprpe'){
+    if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null};
+    S.athleteCheckin.rpe=parseInt(el.dataset.rpe);
+    S.athleteCheckin.rpeDate=el.dataset.date;
+    render();
+  }
+  else if(a==='savetodaycheckin'){
+    const _ctx=getAthleteCtx();if(_ctx) await saveAthleteCheckin(_ctx);
+  }
+  // ATHLETE INVITE PICKER
+  else if(a==='setinvitecategory'){
+    const emailEl=document.getElementById('inv-email');if(emailEl)S.inviteForm.email=emailEl.value;
+    S.inviteForm.catId=el.dataset.cid;S.inviteForm.pid=null;render();
+  }
+  else if(a==='setinviteplayer'){
+    const emailEl=document.getElementById('inv-email');if(emailEl)S.inviteForm.email=emailEl.value;
+    S.inviteForm.pid=el.dataset.pid;render();
   }
   // TEAM MANAGEMENT
   else if(a==='newteam'){S.teamFormMode='new';S.editingTeamId=null;render();}
@@ -5092,4 +5210,303 @@ async function handleAction(e){
     }
     render();
   }
+}
+
+// ── ATHLETE PORTAL ────────────────────────────────────────────
+
+function renderAthletePortal(ctx){
+  const tab=S.athletePortalTab||'today';
+  initAthleteCheckin(ctx);
+  let content='';
+  if(tab==='today')      content=renderAthleteToday(ctx);
+  else if(tab==='routines')   content=renderAthleteRoutines(ctx);
+  else if(tab==='attendance') content=renderAthleteAttendance(ctx);
+  else if(tab==='progress')   content=renderAthleteProgress(ctx);
+  const tabs=[
+    {id:'today',   icon:'☀️', label:'Hoy'},
+    {id:'routines',icon:'💪', label:'Rutinas'},
+    {id:'attendance',icon:'📋',label:'Asistencia'},
+    {id:'progress',icon:'📈',label:'Progreso'},
+  ];
+  const tabNav=tabs.map(t=>
+    `<button class="ap-nav-btn${tab===t.id?' on':''}" data-action="aptab" data-tab="${t.id}">
+      <span class="ap-nav-icon">${t.icon}</span>
+      <span>${t.label}</span>
+    </button>`
+  ).join('');
+  return`<div class="ap-layout">
+    <div class="ap-body">${content}</div>
+    <nav class="ap-nav">${tabNav}</nav>
+  </div>`;
+}
+
+function renderAthleteToday(ctx){
+  const{tid,catId,pid}=ctx;
+  const ci=S.athleteCheckin||{};
+  const sess=S.teams[tid]?.categories?.[catId]?.sessions?.[TODAY]||{};
+  const savedW=sess.wellness?.[pid];
+  const lastDate=getAthleteLastSessionDate(ctx);
+  const lastSessRPE=lastDate?(S.teams[tid]?.categories?.[catId]?.sessions?.[lastDate]?.playerRPE?.[pid]??null):null;
+
+  const _n=new Date();
+  const _dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const _mes=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const dateStr=`${_dias[_n.getDay()]} ${_n.getDate()} de ${_mes[_n.getMonth()]}`;
+
+  // Wellness rows
+  const allWFilled=W_KEYS.every(k=>ci[k]!=null);
+  const wVals=W_KEYS.map(k=>ci[k]).filter(v=>v!=null);
+  const avgW=allWFilled?(wVals.reduce((a,b)=>a+b,0)/5).toFixed(1):null;
+  const avgColor=avgW?wellColor(Math.round(parseFloat(avgW))):'var(--text-2)';
+  const wellRows=W_KEYS.map(k=>{
+    const v=ci[k];
+    const btns=[1,2,3,4,5].map(n=>{
+      const sel=v===n;const nc=wellColor(n);
+      return`<button class="ap-wb${sel?' sel':''}" style="${sel?`background:${nc};border-color:${nc};`:`border-color:${nc};color:${nc};`}" data-action="apwellness" data-key="${k}" data-val="${n}">${n}</button>`;
+    }).join('');
+    const tip=v!=null?`<span class="ap-well-tip">${W_TIPS[k][v-1]}</span>`:'';
+    return`<div class="ap-well-row">
+      <span class="ap-well-label">${W_ICONS[k]} ${W_LABELS[k]}</span>
+      <div class="ap-well-btns">${btns}</div>${tip}
+    </div>`;
+  }).join('');
+  const savedWBadge=savedW?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
+
+  // RPE last session
+  const rpeVal=ci.rpe;
+  const rpeBtns=Array.from({length:11},(_,i)=>{
+    const sel=rpeVal===i;
+    return`<button class="ap-rpe-btn${sel?' sel':''}" ${sel?`style="background:${RPE_BG[i]}22;color:${RPE_BG[i]};border-color:${RPE_BG[i]};"`:''}data-action="aprpe" data-rpe="${i}" data-date="${ci.rpeDate||TODAY}">${i}</button>`;
+  }).join('');
+  const rpeDescription=rpeVal!=null?`<div style="text-align:center;font-size:12px;color:${RPE_BG[rpeVal]};margin-top:6px;font-weight:600;">${RPE_LABELS[rpeVal]}</div>`:'';
+  const rpeSavedBadge=lastSessRPE!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
+
+  return`<div style="padding-top:4px;">
+    <div style="padding:10px 16px 2px;font-size:12px;color:var(--text-2);">${dateStr}</div>
+    <div class="ap-well-card">
+      <div class="ap-well-card__h">
+        <h3>Cómo me siento hoy</h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${allWFilled?`<span style="font-size:14px;font-weight:700;font-family:var(--font-mono);color:${avgColor};">${avgW}/5</span>`:''}
+          ${savedWBadge}
+        </div>
+      </div>
+      <div class="ap-well-card__b">${wellRows}</div>
+    </div>
+    <div class="ap-well-card">
+      <div class="ap-well-card__h">
+        <h3>RPE — Última sesión</h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${lastDate?`<span style="font-size:11px;color:var(--text-2);">${fmtDate(lastDate)}</span>`:''}
+          ${rpeSavedBadge}
+        </div>
+      </div>
+      <div class="ap-well-card__b">
+        ${lastDate
+          ?`<div class="ap-rpe-grid">${rpeBtns}</div>${rpeDescription}`
+          :`<div style="font-size:13px;color:var(--text-2);padding:4px 0;">No hay sesiones anteriores registradas.</div>`}
+      </div>
+    </div>
+    <div style="padding:0 16px 16px;">
+      <button class="q-btn q-btn--primary" style="width:100%;padding:12px;" data-action="savetodaycheckin">Guardar check-in</button>
+    </div>
+  </div>`;
+}
+
+function renderAthleteRoutines(ctx){
+  const{tid,catId,pid}=ctx;
+  const sessions=S.teams[tid]?.categories?.[catId]?.sessions||{};
+  const result=[];
+  for(let i=-7;i<=7;i++){
+    const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()+i);
+    const date=d.toISOString().split('T')[0];
+    const sess=sessions[date];
+    if(!sess?.plans) continue;
+    const myPlans=Object.entries(sess.plans).filter(([_,plan])=>plan.assignedToAll||plan.assignedTo?.[pid]);
+    if(myPlans.length) result.push({date,plans:myPlans});
+  }
+  if(!result.length){
+    return`<div class="q-empty-state" style="padding:40px 20px;">
+      <div style="font-size:36px;margin-bottom:12px;">💪</div>
+      <div style="font-weight:600;margin-bottom:4px;">Sin planes asignados</div>
+      <div style="font-size:13px;color:var(--text-2);">Tu coach no te asignó rutinas en los próximos 7 días.</div>
+    </div>`;
+  }
+  const cards=result.map(({date,plans})=>{
+    const isToday=date===TODAY,isFuture=date>TODAY;
+    const dateBadge=isToday
+      ?`<span style="background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;">HOY</span>`
+      :isFuture
+        ?`<span style="background:var(--bg-4);color:var(--text-2);font-size:10px;padding:1px 8px;border-radius:20px;">Próximo</span>`
+        :`<span style="background:var(--bg-3);color:var(--text-2);font-size:10px;padding:1px 8px;border-radius:20px;">Pasado</span>`;
+    return plans.map(([,plan])=>{
+      const blocks=Object.entries(plan.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+      const blocksHtml=blocks.map(([,block])=>{
+        const bInfo=blockTypeInfo(block.type);
+        const items=Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+        const exHtml=items.map(([,item])=>{
+          const sets=Object.values(item.sets||{});
+          const setStr=sets.length?sets.map(s=>formatSetDisplay(s)).filter(s=>s!=='—').slice(0,2).join(' / '):'';
+          return`<div class="ap-exercise">
+            <span class="ap-exercise-name">${item.exName||'Ejercicio'}</span>
+            <span class="ap-exercise-sets">${sets.length}×${setStr?' '+setStr:''}</span>
+          </div>`;
+        }).join('');
+        return`<div class="ap-block">
+          <div class="ap-block-head" style="color:${bInfo.color};">${bInfo.label}${block.name&&block.name!==bInfo.label?' · '+block.name:''}</div>
+          ${exHtml}
+        </div>`;
+      }).join('');
+      return`<div class="ap-plan-card">
+        <div class="ap-plan-head">
+          <span class="ap-plan-name">${plan.name||'Plan de entrenamiento'}</span>
+          <div style="display:flex;align-items:center;gap:6px;">${dateBadge}<span class="ap-plan-date">${fmtDate(date)}</span></div>
+        </div>
+        ${blocksHtml}
+      </div>`;
+    }).join('');
+  }).join('');
+  return`<div style="padding-top:8px;">${cards}</div>`;
+}
+
+function renderAthleteAttendance(ctx){
+  const{tid,catId,pid}=ctx;
+  const att=S.teams[tid]?.categories?.[catId]?.attendance||{};
+  const rows=[];
+  for(let i=29;i>=0;i--){
+    const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);
+    const date=d.toISOString().split('T')[0];
+    const status=att[date]?.[pid];
+    if(status) rows.push({date,status});
+  }
+  const statusLabel={P:'Presente',T:'Presente',A:'Ausente',L:'Lesión',J:'Justificado'};
+  const presentCount=rows.filter(r=>r.status==='P'||r.status==='T').length;
+  const total=rows.length;
+  const pct=total>0?Math.round(presentCount/total*100):null;
+  const pctColor=pct===null?'var(--text-2)':pct>=85?'var(--ok)':pct>=70?'#eab308':'var(--bad)';
+  if(!rows.length){
+    return`<div class="q-empty-state" style="padding:40px 20px;">
+      <div style="font-size:36px;margin-bottom:12px;">📋</div>
+      <div style="font-weight:600;margin-bottom:4px;">Sin registros</div>
+      <div style="font-size:13px;color:var(--text-2);">No hay asistencia registrada en los últimos 30 días.</div>
+    </div>`;
+  }
+  const summary=`<div style="display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);">
+    <div style="flex:1;background:var(--bg-2);border-radius:var(--r-2);padding:10px 14px;border:1px solid var(--line);">
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;">Asistencia 30d</div>
+      <div style="font-size:24px;font-weight:700;font-family:var(--font-mono);color:${pctColor};margin-top:2px;">${pct!==null?pct+'%':'—'}</div>
+    </div>
+    <div style="flex:1;background:var(--bg-2);border-radius:var(--r-2);padding:10px 14px;border:1px solid var(--line);">
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;">Sesiones presentes</div>
+      <div style="font-size:24px;font-weight:700;font-family:var(--font-mono);color:var(--text-0);margin-top:2px;">${presentCount}<span style="font-size:14px;color:var(--text-2);">/${total}</span></div>
+    </div>
+  </div>`;
+  const attRows=[...rows].reverse().map(({date,status})=>
+    `<div class="ap-att-row">
+      <span class="ap-att-date">${fmtDate(date)}</span>
+      <span class="ap-att-badge ap-att-${status}">${statusLabel[status]||status}</span>
+    </div>`
+  ).join('');
+  return`<div>${summary}<div class="ap-att-list">${attRows}</div></div>`;
+}
+
+function renderAthleteProgress(ctx){
+  const{tid,catId,pid}=ctx;
+  const sessions=S.teams[tid]?.categories?.[catId]?.sessions||{};
+  const data=[];
+  for(let i=29;i>=0;i--){
+    const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);
+    const date=d.toISOString().split('T')[0];
+    const w=sessions[date]?.wellness?.[pid];
+    if(w) data.push({date,wellness:w});
+  }
+  if(!data.length){
+    return`<div class="q-empty-state" style="padding:40px 20px;">
+      <div style="font-size:36px;margin-bottom:12px;">📈</div>
+      <div style="font-weight:600;margin-bottom:4px;">Sin datos de wellness</div>
+      <div style="font-size:13px;color:var(--text-2);">Completá el check-in diario para ver tu progreso.</div>
+    </div>`;
+  }
+  const avgStats=W_KEYS.map(k=>{
+    const vals=data.map(d=>d.wellness[k]).filter(v=>v!=null);
+    const avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):null;
+    const color=avg?wellColor(Math.round(parseFloat(avg))):'var(--text-2)';
+    return`<div class="ap-well-stat">
+      <div class="ap-well-stat__icon">${W_ICONS[k]}</div>
+      <div class="ap-well-stat__label">${W_LABELS[k]}</div>
+      <div class="ap-well-stat__val" style="color:${color};">${avg||'—'}</div>
+    </div>`;
+  }).join('');
+  return`<div style="padding-top:8px;">
+    <div style="padding:4px 16px 4px;font-size:12px;color:var(--text-2);">Promedio últimos 30 días</div>
+    <div class="ap-well-stats">${avgStats}</div>
+    <div class="ap-chart-card">
+      <h3>Evolución del wellness</h3>
+      <canvas id="chart-athlete-wellness" height="160"></canvas>
+    </div>
+  </div>`;
+}
+
+function initAthleteChart(){
+  const ctx=getAthleteCtx();
+  if(!ctx||typeof Chart==='undefined') return;
+  const{tid,catId,pid}=ctx;
+  const sessions=S.teams[tid]?.categories?.[catId]?.sessions||{};
+  const data=[];
+  for(let i=29;i>=0;i--){
+    const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);
+    const date=d.toISOString().split('T')[0];
+    const w=sessions[date]?.wellness?.[pid];
+    if(w){
+      const vals=W_KEYS.map(k=>w[k]).filter(v=>v!=null);
+      if(vals.length===5) data.push({date,avg:Math.round(vals.reduce((a,b)=>a+b,0)/5*10)/10});
+    }
+  }
+  if(data.length<2) return;
+  mkChart('chart-athlete-wellness',{
+    type:'line',
+    data:{
+      labels:data.map(d=>fmtDate(d.date)),
+      datasets:[{
+        label:'Wellness',data:data.map(d=>d.avg),
+        borderColor:'#FF6A1A',backgroundColor:'#FF6A1A22',
+        borderWidth:2,pointRadius:3,pointBackgroundColor:'#FF6A1A',tension:0.3,fill:true
+      }]
+    },
+    options:{scales:{y:{min:1,max:5}}}
+  });
+}
+
+async function saveAthleteCheckin(ctx){
+  const{tid,catId,pid}=ctx;
+  const ci=S.athleteCheckin||{};
+  const{sleep,fatigue,soreness,stress,mood,rpe,rpeDate}=ci;
+  const sessionBase=`teams/${tid}/categories/${catId}/sessions`;
+  const updates={};
+  if(W_KEYS.every(k=>ci[k]!=null)){
+    updates[`${sessionBase}/${TODAY}/wellness/${pid}`]={sleep,fatigue,soreness,stress,mood};
+  }
+  if(rpe!=null&&rpeDate){
+    updates[`${sessionBase}/${rpeDate}/playerRPE/${pid}`]=rpe;
+  }
+  if(!Object.keys(updates).length){showAlert('Completá el wellness o el RPE para guardar.');return;}
+  try{
+    await db.ref().update(updates);
+    // Update local cache
+    const catData=S.teams[tid].categories[catId];
+    if(!catData.sessions) catData.sessions={};
+    if(updates[`${sessionBase}/${TODAY}/wellness/${pid}`]){
+      if(!catData.sessions[TODAY]) catData.sessions[TODAY]={};
+      if(!catData.sessions[TODAY].wellness) catData.sessions[TODAY].wellness={};
+      catData.sessions[TODAY].wellness[pid]={sleep,fatigue,soreness,stress,mood};
+    }
+    if(rpe!=null&&rpeDate){
+      if(!catData.sessions[rpeDate]) catData.sessions[rpeDate]={};
+      if(!catData.sessions[rpeDate].playerRPE) catData.sessions[rpeDate].playerRPE={};
+      catData.sessions[rpeDate].playerRPE[pid]=rpe;
+    }
+    showAlert('✓ Check-in guardado');
+    S.athleteCheckin=null; // re-init from saved on next render
+    render();
+  }catch(e){console.error(e);showAlert('Error al guardar check-in.');}
 }
