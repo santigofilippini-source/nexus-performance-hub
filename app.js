@@ -634,7 +634,7 @@ async function toggleBetaMode(){
   try {
     await db.ref('config/app/betaMode').set(next);
     S.betaMode = next;
-    showToast(next ? 'Beta activada — todos en Elite' : 'Beta desactivada — tiers reales activos');
+    showAlert(next ? 'Beta activada — todos en Elite' : 'Beta desactivada — tiers reales activos');
     render();
   } catch(e){ showAlert('Error al actualizar betaMode: ' + e.message); }
 }
@@ -653,7 +653,7 @@ async function setTeamTierOverride(tid, tier){
     await db.ref(`teams/${tid}/subscription`).update(sub);
     if(!S.teams[tid]) S.teams[tid]={};
     S.teams[tid].subscription = {...(S.teams[tid].subscription||{}), ...sub};
-    showToast(`Tier de "${S.teams[tid]?.name||tid}" actualizado a ${tier}`);
+    showAlert(`Tier de "${S.teams[tid]?.name||tid}" actualizado a ${tier}`);
     render();
   } catch(e){ showAlert('Error al actualizar tier: ' + e.message); }
 }
