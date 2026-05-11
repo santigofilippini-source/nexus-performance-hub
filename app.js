@@ -210,6 +210,7 @@ let S = {
   // Tiers & beta
   betaMode:true,        // loaded from /config/app — true = all teams get Elite
   upgradeModal:null,    // {feature, currentTier} — shown when limit hit
+  subscriptionModal:false, // true = show subscription/plans modal
 };
 
 // ── Tier helpers ───────────────────────────────────────────────
@@ -582,7 +583,18 @@ function updateSidebarNav(){
   h+=`<span style="font-size:13px;">📋</span><span class="label" style="margin-left:6px;">Programas</span><span class="n">${progCount||''}</span></div>`;
   h+=`<div class="q-tree__cat${exActive?' active':''}" onclick="openMyExercises()" style="border-radius:8px;">`;
   h+=`<span style="font-size:13px;">🏋️</span><span class="label" style="margin-left:6px;">Mis ejercicios</span><span class="n">${exCount||''}</span></div>`;
+  // Subscription section
+  const tierKey=S.betaMode?'beta':getEffectiveTier();
+  const tierLabels={beta:'Beta',free:'Free',pro:'Pro',elite:'Elite'};
+  const tierLabel=tierLabels[tierKey]||tierKey;
+  h+=`<div class="q-tree__section-label" style="margin-top:8px;">CUENTA</div>`;
+  h+=`<div class="q-tree__cat q-sub-entry" onclick="openSubscriptionModal()" style="border-radius:8px;">`;
+  h+=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+  h+=`<span class="label" style="margin-left:6px;">Suscripción</span><span class="q-tier-pill q-tier-pill--${tierKey}">${tierLabel}</span></div>`;
   nav.innerHTML=h;
+  // Update sidebar badge
+  const badge=document.getElementById('sidebar-tier-badge');
+  if(badge){badge.textContent=tierLabel;badge.className=`q-tier-badge q-tier-badge--${tierKey}`;}
   // avatar / role footer
   const av=document.getElementById('nx-sidebar-avatar');
   const roleEl=document.getElementById('nx-sidebar-role');
@@ -1478,6 +1490,7 @@ function render(){
   if(S.exPicker) renderExPickerModal();
   if(S.videoModal) renderVideoModal();
   if(S.upgradeModal) renderUpgradeModal();
+  if(S.subscriptionModal) renderSubscriptionModal();
 }
 
 // ── PROGRAMS VIEW ────────────────────────────────────────────
@@ -4102,6 +4115,76 @@ function renderUpgradeModal(){
   </div>`;
 }
 function closeUpgradeModal(){S.upgradeModal=null;renderUpgradeModal();}
+
+// ── SUBSCRIPTION MODAL ────────────────────────────────────────
+function openSubscriptionModal(){S.subscriptionModal=true;renderSubscriptionModal();}
+function renderSubscriptionModal(){
+  let el=document.getElementById('app-sub-modal');
+  if(!el){el=document.createElement('div');el.id='app-sub-modal';document.body.appendChild(el);}
+  if(!S.subscriptionModal){el.innerHTML='';return;}
+  const activeTierKey=S.betaMode?'beta':getEffectiveTier();
+  const FEATURES=[
+    {key:'maxTeams',          label:'Equipos',                   free:'1',      pro:'2',        elite:'Ilimitados'},
+    {key:'maxCategoriesPerTeam',label:'Categorías por equipo',   free:'1',      pro:'3',        elite:'Ilimitadas'},
+    {key:'maxPlayersPerCategory',label:'Jugadores por categoría',free:'10',     pro:'20',       elite:'Ilimitados'},
+    {key:'maxMembersPerTeam', label:'Miembros del staff',        free:'2',      pro:'5',        elite:'Ilimitados'},
+    {key:'exportPDF',         label:'Exportar PDF',              free:false,    pro:true,       elite:true},
+    {key:'exportExcel',       label:'Exportar Excel',            free:false,    pro:true,       elite:true},
+    {key:'advancedStats',     label:'Estadísticas avanzadas',    free:false,    pro:true,       elite:true},
+    {key:'fullHistory',       label:'Historial completo',        free:false,    pro:true,       elite:true},
+    {key:'branding',          label:'Marca personalizada',       free:false,    pro:false,      elite:true},
+    {key:'dashboard',         label:'Dashboard avanzado',        free:false,    pro:false,      elite:true},
+  ];
+  const check=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+  const cross=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
+  const tiers=[
+    {key:'free',  label:'Free',  price:'Gratis',       sub:''},
+    {key:'pro',   label:'Pro',   price:'$9',           sub:'/mes'},
+    {key:'elite', label:'Elite', price:'$25',          sub:'/mes'},
+  ];
+  const betaBanner = S.betaMode
+    ? `<div class="q-sub-beta-banner">Beta abierta — acceso Elite para todos, sin costo.</div>`
+    : '';
+  const cols=tiers.map(t=>{
+    const isActive = S.betaMode ? t.key==='elite' : t.key===activeTierKey;
+    return `<div class="q-sub-col${isActive?' q-sub-col--active':''}">
+      <div class="q-sub-col__name">${t.label}</div>
+      <div class="q-sub-col__price">${t.price}<span>${t.sub}</span></div>
+      ${isActive?`<div class="q-sub-col__badge">${S.betaMode&&t.key==='elite'?'Beta':'Plan actual'}</div>`:'<div class="q-sub-col__badge" style="opacity:0">·</div>'}
+    </div>`;
+  }).join('');
+  const rows=FEATURES.map((f,i)=>{
+    const vals=[f.free, f.pro, f.elite];
+    const cells=vals.map((v,j)=>{
+      const isActive=S.betaMode?j===2:(tiers[j].key===activeTierKey);
+      const cell = typeof v==='boolean' ? (v?check:cross) : `<span style="font-size:12px;font-weight:500;color:${isActive?'var(--text-0)':'var(--text-2)'}">${v}</span>`;
+      return `<td class="q-sub-td${isActive?' q-sub-td--active':''}">${cell}</td>`;
+    }).join('');
+    return `<tr class="${i%2===0?'q-sub-tr--even':''}"><td class="q-sub-td q-sub-td--label">${f.label}</td>${cells}</tr>`;
+  }).join('');
+  el.innerHTML=`
+  <div class="q-modal-overlay" onclick="S.subscriptionModal=null;renderSubscriptionModal();">
+    <div class="q-modal q-sub-modal" onclick="event.stopPropagation()">
+      <div class="q-sub-modal__head">
+        <div class="q-sub-modal__title">Planes de suscripción</div>
+        <button class="q-modal__close" onclick="S.subscriptionModal=null;renderSubscriptionModal();">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      ${betaBanner}
+      <div class="q-sub-cols">${cols}</div>
+      <div class="q-sub-table-wrap">
+        <table class="q-sub-table">
+          <thead><tr><th class="q-sub-th q-sub-th--label">Función</th><th class="q-sub-th">Free</th><th class="q-sub-th">Pro</th><th class="q-sub-th">Elite</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="q-sub-footer">
+        <button class="q-upgrade-btn q-upgrade-btn--ghost" onclick="S.subscriptionModal=null;renderSubscriptionModal();">Cerrar</button>
+      </div>
+    </div>
+  </div>`;
+}
 
 // ── CUSTOM DIALOGS ────────────────────────────────────────────
 function showConfirm(msg, cb){
