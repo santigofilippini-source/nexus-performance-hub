@@ -211,6 +211,7 @@ let S = {
   betaMode:true,        // loaded from /config/app — true = all teams get Elite
   upgradeModal:null,    // {feature, currentTier} — shown when limit hit
   subscriptionModal:false, // true = show subscription/plans modal
+  adminTeams:null,         // null = not loaded yet, {} = loaded (admin only)
 };
 
 // ── Admin ──────────────────────────────────────────────────────
@@ -651,32 +652,50 @@ async function setTeamTierOverride(tid, tier){
   };
   try {
     await db.ref(`teams/${tid}/subscription`).update(sub);
-    if(!S.teams[tid]) S.teams[tid]={};
-    S.teams[tid].subscription = {...(S.teams[tid].subscription||{}), ...sub};
-    showAlert(`Tier de "${S.teams[tid]?.name||tid}" actualizado a ${tier}`);
+    if(S.teams[tid]) S.teams[tid].subscription = {...(S.teams[tid].subscription||{}), ...sub};
+    if(S.adminTeams?.[tid]) S.adminTeams[tid].subscription = {...(S.adminTeams[tid].subscription||{}), ...sub};
+    const tname = S.adminTeams?.[tid]?.name || S.teams[tid]?.name || tid;
+    showAlert(`Tier de "${tname}" actualizado a ${tier}`);
     render();
   } catch(e){ showAlert('Error al actualizar tier: ' + e.message); }
+}
+
+async function loadAdminTeams(){
+  if(!isAdmin()) return;
+  try {
+    const snap = await db.ref('teams').get();
+    S.adminTeams = snap.exists() ? snap.val() : {};
+    render();
+  } catch(e){ showAlert('Error al cargar equipos: ' + e.message); }
 }
 
 function renderAdminPanel(){
   if(!isAdmin()) return '';
   const betaOn = S.betaMode;
-  const tids = Object.keys(S.teams).filter(tid=>!S.teams[tid]?._legacyPending);
-  const teamRows = tids.length ? tids.map(tid=>{
-    const t = S.teams[tid];
-    const sub = t.subscription || {};
-    const currentTier = sub.tier || 'free';
-    const isOverride = !!sub.manualOverride;
-    return `<div class="q-admin-team-row">
-      <div class="q-admin-team-info">
-        <span class="q-admin-team-name">${t.name}</span>
-        ${isOverride?`<span class="q-admin-override-badge">override</span>`:''}
-      </div>
-      <select class="q-admin-tier-select" onchange="setTeamTierOverride('${tid}',this.value)">
-        ${['free','pro','elite'].map(tier=>`<option value="${tier}"${currentTier===tier?' selected':''}>${TIER_CONFIG[tier].label}</option>`).join('')}
-      </select>
-    </div>`;
-  }).join('') : '<div style="font-size:12px;color:var(--text-2);padding:8px 0;">Sin equipos visibles</div>';
+  const allTeams = S.adminTeams;
+  let teamRows;
+  if(allTeams === null){
+    teamRows = `<button class="q-admin-load-btn" onclick="loadAdminTeams()">Cargar todos los equipos</button>`;
+  } else {
+    const tids = Object.keys(allTeams).filter(tid=>allTeams[tid]?.name);
+    teamRows = tids.length ? tids.map(tid=>{
+      const t = allTeams[tid];
+      const sub = t.subscription || {};
+      const currentTier = sub.tier || 'free';
+      const isOverride = !!sub.manualOverride;
+      return `<div class="q-admin-team-row">
+        <div class="q-admin-team-info">
+          <span class="q-admin-team-name">${t.name}</span>
+          ${isOverride?`<span class="q-admin-override-badge">override</span>`:''}
+          <span style="font-size:10px;color:var(--text-3);">${t.ownerId===currentUser.uid?'(tuyo)':''}</span>
+        </div>
+        <select class="q-admin-tier-select" onchange="setTeamTierOverride('${tid}',this.value)">
+          ${['free','pro','elite'].map(tier=>`<option value="${tier}"${currentTier===tier?' selected':''}>${TIER_CONFIG[tier].label}</option>`).join('')}
+        </select>
+      </div>`;
+    }).join('') : '<div style="font-size:12px;color:var(--text-2);padding:8px 0;">Sin equipos en la base de datos</div>';
+    teamRows += `<button class="q-admin-load-btn" onclick="loadAdminTeams()" style="margin-top:10px;">Recargar</button>`;
+  }
 
   return `<div class="q-admin-panel">
     <div class="q-admin-panel__header">
