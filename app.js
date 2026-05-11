@@ -206,8 +206,43 @@ let S = {
   editMemberForm:{},    // {role, permissions} draft for member being edited
   confirmModal:null,    // {msg, cb} — custom confirm dialog
   toastMsg:null,        // string — brief toast notification
-  videoModal:null       // {url, title} — YouTube embed modal
+  videoModal:null,      // {url, title} — YouTube embed modal
+  // Tiers & beta
+  betaMode:true,        // loaded from /config/app — true = all teams get Elite
+  upgradeModal:null,    // {feature, currentTier} — shown when limit hit
 };
+
+// ── Tier helpers ───────────────────────────────────────────────
+function getEffectiveTier(tid=S.teamId){
+  if(S.betaMode) return 'elite';
+  const sub=S.teams[tid]?.subscription;
+  return sub?.tier||'free';
+}
+function getTierLimits(tid=S.teamId){
+  return TIER_CONFIG[getEffectiveTier(tid)]||TIER_CONFIG.free;
+}
+function canCreateTeam(){
+  if(S.betaMode) return {ok:true};
+  const limits=TIER_CONFIG[getEffectiveTier()]||TIER_CONFIG.free;
+  const count=Object.keys(S.teams||{}).length;
+  return count<limits.maxTeams?{ok:true}:{ok:false,feature:'maxTeams',tier:getEffectiveTier()};
+}
+function canCreateCategory(tid=S.teamId){
+  if(S.betaMode) return {ok:true};
+  const limits=getTierLimits(tid);
+  const count=Object.keys(getTeam(tid).categories||{}).length;
+  return count<limits.maxCategoriesPerTeam?{ok:true}:{ok:false,feature:'maxCategoriesPerTeam',tier:getEffectiveTier(tid)};
+}
+function canInviteMember(tid=S.teamId){
+  if(S.betaMode) return {ok:true};
+  const limits=getTierLimits(tid);
+  const members=S.teamMembers[tid]||[];
+  return members.length<limits.maxMembersPerTeam?{ok:true}:{ok:false,feature:'maxMembersPerTeam',tier:getEffectiveTier(tid)};
+}
+function canUseFeature(feature, tid=S.teamId){
+  if(S.betaMode) return true;
+  return getTierLimits(tid).features[feature]===true;
+}
 
 // ── Accessors ─────────────────────────────────────────────────
 function getTeam(tid=S.teamId) { return S.teams[tid] || {name:'',sport:'',categories:{}}; }
@@ -322,6 +357,12 @@ function setSyncBar(status, msg) {
 async function loadAll() {
   setSyncBar('loading');
   try {
+    // 0. Load global app config (betaMode, etc.)
+    const cfgSnap = await db.ref('config/app').get();
+    if(cfgSnap.exists()){
+      const cfg=cfgSnap.val();
+      S.betaMode = cfg.betaMode !== false; // default true if not set
+    }
     // 1. Load memberships
     const mSnap = await db.ref(`users/${currentUser.uid}/memberships`).get();
     S.memberships = mSnap.exists() ? (mSnap.val()||{}) : {};
@@ -1437,6 +1478,7 @@ function render(){
   attachEvents();
   if(S.exPicker) renderExPickerModal();
   if(S.videoModal) renderVideoModal();
+  if(S.upgradeModal) renderUpgradeModal();
 }
 
 // ── PROGRAMS VIEW ────────────────────────────────────────────
@@ -4005,6 +4047,63 @@ function closeVideoModal(){
   renderVideoModal();
 }
 
+// ── UPGRADE MODAL ─────────────────────────────────────────────
+function renderUpgradeModal(){
+  let el=document.getElementById('app-upgrade-modal');
+  if(!el){el=document.createElement('div');el.id='app-upgrade-modal';document.body.appendChild(el);}
+  if(!S.upgradeModal){el.innerHTML='';return;}
+  const {feature, currentTier}=S.upgradeModal;
+  const neededTier=FEATURE_UPGRADE_TO[feature]||'pro';
+  const neededCfg=TIER_CONFIG[neededTier]||TIER_CONFIG.pro;
+  const currentCfg=TIER_CONFIG[currentTier]||TIER_CONFIG.free;
+  const FEATURE_LABELS={
+    maxTeams:'equipos',
+    maxCategoriesPerTeam:'categorías por equipo',
+    maxMembersPerTeam:'miembros del equipo',
+    maxPlayersPerCategory:'jugadores por categoría',
+    exportPDF:'exportar PDF',
+    exportExcel:'exportar Excel',
+    advancedStats:'estadísticas avanzadas',
+    fullHistory:'historial completo',
+    branding:'personalización de marca',
+    dashboard:'dashboard avanzado',
+  };
+  const featureLabel=FEATURE_LABELS[feature]||feature;
+  const isLimit=['maxTeams','maxCategoriesPerTeam','maxMembersPerTeam','maxPlayersPerCategory'].includes(feature);
+  const msgLine=isLimit
+    ? `Alcanzaste el límite de <strong>${featureLabel}</strong> del plan <strong>${currentCfg.label}</strong>.`
+    : `La función <strong>${featureLabel}</strong> no está disponible en el plan <strong>${currentCfg.label}</strong>.`;
+  const price=neededCfg.price?`desde $${neededCfg.price.monthly}/mes`:'';
+  el.innerHTML=`
+  <div class="q-modal-overlay" onclick="S.upgradeModal=null;renderUpgradeModal();">
+    <div class="q-modal q-upgrade-modal" onclick="event.stopPropagation()">
+      <div class="q-upgrade-modal__icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      </div>
+      <div class="q-upgrade-modal__title">Actualizar plan</div>
+      <div class="q-upgrade-modal__body">${msgLine}<br>Actualizá al plan <strong>${neededCfg.label}</strong> ${price?`(${price})`:''}para desbloquear esta y más funciones.</div>
+      <div class="q-upgrade-modal__tiers">
+        ${['free','pro','elite'].map(tid=>{
+          const tc=TIER_CONFIG[tid];
+          const isCurrent=tid===currentTier;
+          const isTarget=tid===neededTier;
+          return `<div class="q-upgrade-tier${isCurrent?' q-upgrade-tier--current':''}${isTarget?' q-upgrade-tier--target':''}">
+            <div class="q-upgrade-tier__name">${tc.label}</div>
+            <div class="q-upgrade-tier__price">${tc.price?`$${tc.price.monthly}<span>/mes</span>`:'Gratis'}</div>
+            ${isCurrent?'<div class="q-upgrade-tier__badge">Plan actual</div>':''}
+            ${isTarget?'<div class="q-upgrade-tier__badge q-upgrade-tier__badge--target">Recomendado</div>':''}
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="q-upgrade-modal__actions">
+        <button class="q-upgrade-btn q-upgrade-btn--primary" onclick="S.upgradeModal=null;renderUpgradeModal();openProfile();">Ver planes</button>
+        <button class="q-upgrade-btn q-upgrade-btn--ghost" onclick="S.upgradeModal=null;renderUpgradeModal();">Ahora no</button>
+      </div>
+    </div>
+  </div>`;
+}
+function closeUpgradeModal(){S.upgradeModal=null;renderUpgradeModal();}
+
 // ── CUSTOM DIALOGS ────────────────────────────────────────────
 function showConfirm(msg, cb){
   S.confirmModal={msg,cb};
@@ -4228,6 +4327,8 @@ async function handleAction(e){
   }
   else if(a==='sendinvite'){
     const tid=el.dataset.tid||S.teamId;
+    const _memberCheck=canInviteMember(tid);
+    if(!_memberCheck.ok){S.upgradeModal={feature:'maxMembersPerTeam',currentTier:_memberCheck.tier};render();return;}
     const emailEl=document.getElementById('inv-email');
     if(emailEl) S.inviteForm.email=emailEl.value;
     const email=(S.inviteForm.email||'').trim();
@@ -4266,8 +4367,11 @@ async function handleAction(e){
     const name=document.getElementById('tf-name')?.value.trim();
     const sport=document.getElementById('tf-sport')?.value||'Básquetbol';
     if(!name){showAlert('Ingresá un nombre para el equipo.');return;}
+    const _teamCheck=canCreateTeam();
+    if(!_teamCheck.ok){S.upgradeModal={feature:'maxTeams',currentTier:_teamCheck.tier};S.teamFormMode=null;render();return;}
     const tid='team_'+Date.now();
-    const newTeam={name,sport,createdAt:TODAY,ownerId:currentUser.uid,categories:{}};
+    const newTeam={name,sport,createdAt:TODAY,ownerId:currentUser.uid,categories:{},
+      subscription:{tier:'free',status:'active',manualOverride:false,overrideReason:null,overrideBy:null}};
     if(S.pendingLogo) newTeam.logo=S.pendingLogo;
     S.pendingLogo=null;
     // Optimistically update in-memory state
@@ -4330,6 +4434,8 @@ async function handleAction(e){
   else if(a==='savenewcat'){
     const name=document.getElementById('cf-name')?.value.trim();
     if(!name){showAlert('Ingresá un nombre para la categoría.');return;}
+    const _catCheck=canCreateCategory();
+    if(!_catCheck.ok){S.upgradeModal={feature:'maxCategoriesPerTeam',currentTier:_catCheck.tier};S.catFormMode=null;render();return;}
     const cid='cat_'+Date.now();
     const colorIdx=getCats().length%CAT_PALETTE.length;
     if(!S.teams[S.teamId].categories)S.teams[S.teamId].categories={};
