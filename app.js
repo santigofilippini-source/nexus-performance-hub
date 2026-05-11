@@ -163,7 +163,7 @@ let S = {
   view:'home', teams:{}, teamId:null, cat:null,
   tab:'attend', date:TODAY,
   sess:{}, absenceReasons:{}, sessionDraft:{duration:'',teamRPE:null,playerRPE:{},playerDuration:{},sessionType:null},
-  wellnessDraft:{}, wellnessExpanded:{}, sessionSub:'load', rpeMode:'team',
+  wellnessDraft:{}, wellnessExpanded:{}, sessionSub:'plan', rpeMode:'team',
   reportSub:'semanal', reportWeekOffset:0, reportPlayerPid:null, confirmDel:null, editId:null,
   loadFilter:'7d', loadFrom:'', loadTo:'',
   athletes:{}, athleteKey:null, athleteTab:'perfil', athleteForm:null, editingEvalId:null,
@@ -495,7 +495,7 @@ function goToTodaySessions(){
   const{tid,cid}=hits[0];
   S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;
   S.view='cat';S.tab='session';
-  loadSession();loadSessionDraft();render();
+  loadSession();loadSessionDraft();S.sessionPlans={};loadSessionPlans().then(()=>render());
 }
 function sidebarOpenTeam(tid){S.teamId=tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
 function sidebarOpenCat(tid,cid){S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
@@ -1398,7 +1398,7 @@ function handleMobTab(tab){
   if(tid&&cid){
     S.teamId=tid;S.cat=cid;S.view='cat';S.tab=catTab;
     if(catTab==='attend')loadSession();
-    if(catTab==='session')loadSessionDraft();
+    if(catTab==='session'){loadSessionDraft();S.sessionPlans={};loadSessionPlans().then(()=>render());return;}
     render();
   }else{S.view='home';render();}
 }
@@ -3829,7 +3829,7 @@ function exportPlanPDF(planData, meta){
     if(!items.length) return '';
     const maxSets=Math.max(...items.map(([,it])=>Object.keys(it.sets||{}).length),1);
     const color=BLOCK_COLORS[block.type||'custom']||'#d97706';
-    const setHeaders=Array.from({length:maxSets},(_,i)=>`<th>#${i+1}</th>`).join('');
+    const setHeaders=Array.from({length:maxSets},(_,i)=>`<th style="color:#f97316;">Serie #${i+1}</th>`).join('');
     const itemRows=items.map(([,item])=>{
       const sets=item.sets||{};
       const cells=Array.from({length:maxSets},(_,i)=>`<td>${fmtSet(sets[String(i)])}</td>`).join('');
@@ -4028,7 +4028,7 @@ function attachEvents(){
   document.querySelectorAll('[data-action]').forEach(el=>el.addEventListener('click',handleAction));
   document.onkeydown=e=>{if(e.key==='Escape'&&S.videoModal){closeVideoModal();return;}if(e.key==='Escape'&&document.getElementById('app-prog-picker')?.innerHTML){closeProgPickerModal();return;}if(e.key==='Escape'&&S.view==='search'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;S.searchReturnView=null;S.searchReturnTeamId=null;const ssi=document.getElementById('sidebar-search-input');if(ssi){ssi.value='';S.searchQuery='';}render();}if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}};
   const di=document.getElementById('date-input');
-  if(di)di.addEventListener('change',e=>{S.date=e.target.value;loadSession();if(S.tab==='session')loadSessionDraft();render();});
+  if(di)di.addEventListener('change',e=>{S.date=e.target.value;loadSession();if(S.tab==='session'){loadSessionDraft();if(S.sessionSub==='plan'){S.sessionPlans={};loadSessionPlans().then(()=>render());return;}}render();});
   const durI=document.getElementById('dur-input');
   if(durI)durI.addEventListener('input',e=>{S.sessionDraft.duration=e.target.value;});
   document.querySelectorAll('.q-pdur-input').forEach(inp=>{
@@ -4077,7 +4077,7 @@ async function handleAction(e){
     else{S.view='home';render();}
     S.athleteForm=null;
   }
-  else if(a==='tab'){S.tab=el.dataset.tab;if(S.tab==='attend')loadSession();if(S.tab==='session')loadSessionDraft();if(S.tab==='medico'){S.medInjuries={};S.medRegion='';loadMedical();return;}render();}
+  else if(a==='tab'){S.tab=el.dataset.tab;if(S.tab==='attend')loadSession();if(S.tab==='session'){loadSessionDraft();S.sessionPlans={};loadSessionPlans().then(()=>render());return;}if(S.tab==='medico'){S.medInjuries={};S.medRegion='';loadMedical();return;}render();}
   else if(a==='reportsub'){S.reportSub=el.dataset.sub;render();}
   else if(a==='reportplayerpid'){S.reportPlayerPid=el.dataset.pid;render();}
   else if(a==='prevreportweek'){S.reportWeekOffset=(S.reportWeekOffset||0)-1;render();}
@@ -4091,8 +4091,8 @@ async function handleAction(e){
   else if(a==='setabsencereason'){S.absenceReasons[el.dataset.pid]=el.dataset.reason;render();}
   else if(a==='allp'){getCat().players.forEach(p=>S.sess[p.id]='P');render();}
   else if(a==='alla'){getCat().players.forEach(p=>S.sess[p.id]='A');render();}
-  else if(a==='prevday'){const d=new Date(S.date+'T12:00:00');d.setDate(d.getDate()-1);S.date=d.toISOString().split('T')[0];loadSession();if(S.tab==='session')loadSessionDraft();render();}
-  else if(a==='nextday'){if(S.date>=TODAY)return;const d=new Date(S.date+'T12:00:00');d.setDate(d.getDate()+1);S.date=d.toISOString().split('T')[0];loadSession();if(S.tab==='session')loadSessionDraft();render();}
+  else if(a==='prevday'){const d=new Date(S.date+'T12:00:00');d.setDate(d.getDate()-1);S.date=d.toISOString().split('T')[0];loadSession();if(S.tab==='session'){loadSessionDraft();if(S.sessionSub==='plan'){S.sessionPlans={};loadSessionPlans().then(()=>render());return;}}render();}
+  else if(a==='nextday'){if(S.date>=TODAY)return;const d=new Date(S.date+'T12:00:00');d.setDate(d.getDate()+1);S.date=d.toISOString().split('T')[0];loadSession();if(S.tab==='session'){loadSessionDraft();if(S.sessionSub==='plan'){S.sessionPlans={};loadSessionPlans().then(()=>render());return;}}render();}
   else if(a==='save'){await saveAttendance();}
   // SESSION
   else if(a==='teamrpe'){S.sessionDraft.teamRPE=parseInt(el.dataset.rpe);render();}
