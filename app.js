@@ -2095,7 +2095,7 @@ function renderPlanBlock(bid, block, ctx){
       <span style="font-weight:600;font-size:14px;">${block.name||'Bloque'}</span>
     </div>`;
   const maxSets=items.length?Math.max(...items.map(([,it])=>Object.keys(it.sets||{}).length)):0;
-  const setHeaders=maxSets?Array.from({length:maxSets},(_,i)=>`<th>#${i+1}</th>`).join(''):'';
+  const setHeaders=maxSets?Array.from({length:maxSets},(_,i)=>`<th style="color:var(--accent);font-weight:700;">Serie #${i+1}</th>`).join(''):'';
   const ctxAttrs=`data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}"`;
   const itemRows=items.map(([iid,item])=>{
     const sets=item.sets||{};
@@ -3925,6 +3925,42 @@ function renderVideoModal(){
   document.getElementById('video-close-btn').onclick=closeVideoModal;
   document.getElementById('video-backdrop').onclick=e=>{if(e.target.id==='video-backdrop')closeVideoModal();};
 }
+function renderProgPickerModal(){
+  let el=document.getElementById('app-prog-picker');
+  if(!el){el=document.createElement('div');el.id='app-prog-picker';document.body.appendChild(el);}
+  const grouped=Object.entries(S.programs||{}).map(([pid,p])=>{
+    const days=Object.entries(p.days||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+    return{pid,name:p.name,days};
+  }).filter(g=>g.days.length);
+  if(!grouped.length){el.innerHTML='';return;}
+  const listHtml=grouped.map(g=>`
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;padding:0 2px;">${g.name}</div>
+      ${g.days.map(([did,d])=>`
+        <button class="q-prog-day-pick" data-action="pickprogday" data-pid="${g.pid}" data-did="${did}">
+          <span style="font-size:13px;font-weight:500;color:var(--text-0);">${d.name}</span>
+          <span style="font-size:11px;color:var(--text-2);">${Object.keys(d.blocks||{}).length} bloques</span>
+        </button>`).join('')}
+    </div>`).join('');
+  el.innerHTML=`
+    <div class="q-modal-backdrop" style="z-index:9990;" id="prog-picker-backdrop">
+      <div class="q-modal" style="max-width:400px;padding:0;border-radius:14px;overflow:hidden;animation:q-pop-in .15s ease;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);">
+          <span style="font-weight:700;font-size:15px;">Cargar desde programa</span>
+          <button id="prog-picker-close" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:20px;padding:2px 6px;border-radius:var(--r-1);">✕</button>
+        </div>
+        <div style="padding:14px 18px;max-height:60vh;overflow-y:auto;">${listHtml}</div>
+      </div>
+    </div>`;
+  document.getElementById('prog-picker-close').onclick=()=>{el.innerHTML='';};
+  document.getElementById('prog-picker-backdrop').onclick=e=>{if(e.target.id==='prog-picker-backdrop')el.innerHTML='';};
+  el.querySelectorAll('[data-action]').forEach(btn=>btn.addEventListener('click',handleAction));
+}
+function closeProgPickerModal(){
+  const el=document.getElementById('app-prog-picker');
+  if(el) el.innerHTML='';
+}
+
 function closeVideoModal(){
   const iframe=document.getElementById('yt-iframe');
   if(iframe) iframe.src='';
@@ -3990,7 +4026,7 @@ function handleLogoUpload(input) {
 function handleSidebarSearch(val){S.searchQuery=val;if(val.length>1){if(S.view!=='search'){S.prevView=S.view;S.prevTeamId=S.teamId;S.prevCat=S.cat;S.searchReturnView=S.view;S.searchReturnTeamId=S.teamId;}S.view='search';render();}else if(val.length===0&&S.view==='search'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;render();}}
 function attachEvents(){
   document.querySelectorAll('[data-action]').forEach(el=>el.addEventListener('click',handleAction));
-  document.onkeydown=e=>{if(e.key==='Escape'&&S.videoModal){closeVideoModal();return;}if(e.key==='Escape'&&S.view==='search'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;S.searchReturnView=null;S.searchReturnTeamId=null;const ssi=document.getElementById('sidebar-search-input');if(ssi){ssi.value='';S.searchQuery='';}render();}if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}};
+  document.onkeydown=e=>{if(e.key==='Escape'&&S.videoModal){closeVideoModal();return;}if(e.key==='Escape'&&document.getElementById('app-prog-picker')?.innerHTML){closeProgPickerModal();return;}if(e.key==='Escape'&&S.view==='search'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;S.searchReturnView=null;S.searchReturnTeamId=null;const ssi=document.getElementById('sidebar-search-input');if(ssi){ssi.value='';S.searchQuery='';}render();}if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}};
   const di=document.getElementById('date-input');
   if(di)di.addEventListener('change',e=>{S.date=e.target.value;loadSession();if(S.tab==='session')loadSessionDraft();render();});
   const durI=document.getElementById('dur-input');
@@ -4541,18 +4577,14 @@ async function handleAction(e){
     }
   }
   else if(a==='newplanfromprogram'){
-    const progEntries=Object.entries(S.programs||{});
-    if(!progEntries.length){showAlert('No tenés programas guardados. Creá uno desde la sección Programas.');return;}
-    const opts=progEntries.map(([pid,p])=>{
-      const days=Object.entries(p.days||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
-      return days.map(([did,d])=>`${pid}|${did}|${p.name} → ${d.name}`);
-    }).flat();
-    const choice=prompt('Elegí el día a cargar (número):\n'+opts.map((o,i)=>`${i+1}. ${o.split('|')[2]}`).join('\n'));
-    const idx=parseInt(choice)-1;
-    if(isNaN(idx)||idx<0||idx>=opts.length)return;
-    const [pid,did]=opts[idx].split('|');
+    if(!Object.keys(S.programs||{}).length){showAlert('No tenés programas guardados. Creá uno desde la sección Programas.');return;}
+    renderProgPickerModal();
+  }
+  else if(a==='pickprogday'){
+    const pid=el.dataset.pid, did=el.dataset.did;
     const day=S.programs[pid]?.days?.[did];
     if(!day)return;
+    closeProgPickerModal();
     const planId='plan_'+Date.now();
     const planData={name:day.name,assignedToAll:false,assignedTo:{},createdAt:Date.now(),blocks:JSON.parse(JSON.stringify(day.blocks||{}))};
     await saveSessionPlan(planId,planData);

@@ -645,6 +645,11 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .q-set-cell{min-width:64px;}
 }
 
+/* Program picker modal */
+.q-prog-day-pick{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--r-2);background:none;border:1px solid var(--line);cursor:pointer;margin-bottom:6px;transition:background .12s,border-color .12s;text-align:left;}
+.q-prog-day-pick:hover{background:var(--bg-3);border-color:var(--accent);}
+.q-prog-day-pick:last-child{margin-bottom:0;}
+
 /* Video modal */
 #app-video-modal .q-modal{width:calc(100vw - 40px);}
 @media(max-width:899px){#app-video-modal .q-modal{border-radius:10px;}}
