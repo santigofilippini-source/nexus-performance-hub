@@ -156,7 +156,9 @@ let S = {
   showInviteModal:false,// show accept-invitation modal
   pendingInviteData:null,// data loaded from Firebase for pending invite
   editingMember:null,   // uid of member being edited in access panel
-  editMemberForm:{}     // {role, permissions} draft for member being edited
+  editMemberForm:{},    // {role, permissions} draft for member being edited
+  confirmModal:null,    // {msg, cb} — custom confirm dialog
+  toastMsg:null         // string — brief toast notification
 };
 
 // ── Accessors ─────────────────────────────────────────────────
@@ -257,7 +259,7 @@ async function doRegister() {
   }
 }
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();});
-function doLogout(){if(confirm('¿Cerrar sesión?'))auth.signOut();}
+function doLogout(){showConfirm('¿Cerrar sesión?',()=>auth.signOut());}
 
 // ── Firebase Storage ──────────────────────────────────────────
 function setSyncBar(status, msg) {
@@ -748,11 +750,11 @@ async function handlePendingInvite(token){
     const snap = await db.ref(`invitations/${token}`).get();
     if(!snap.exists()){ S.pendingInvite=null; return; }
     const inv = snap.val();
-    if(inv.status!=='pending'){ alert('Esta invitación ya fue usada.'); S.pendingInvite=null; return; }
-    if(new Date()>new Date(inv.expiresAt)){ alert('Esta invitación expiró (7 días).'); S.pendingInvite=null; return; }
+    if(inv.status!=='pending'){ showAlert('Esta invitación ya fue usada.'); S.pendingInvite=null; return; }
+    if(new Date()>new Date(inv.expiresAt)){ showAlert('Esta invitación expiró (7 días).'); S.pendingInvite=null; return; }
     // Hard block: invitation must match the logged-in user's email
     if(inv.invitedEmail && inv.invitedEmail!==currentUser.email?.toLowerCase()){
-      alert(`Esta invitación es para ${inv.invitedEmail}.\nEstás logueado como ${currentUser.email}.\n\nPor favor cerrá sesión e ingresá con la cuenta correcta.`);
+      showAlert(`Esta invitación es para ${inv.invitedEmail}. Estás logueado como ${currentUser.email}. Por favor cerrá sesión e ingresá con la cuenta correcta.`);
       S.pendingInvite=null;
       window.history.replaceState({},'',window.location.pathname);
       return;
@@ -798,20 +800,21 @@ async function acceptInvitation(){
     S.pendingInvite=null; S.pendingInviteData=null; S.showInviteModal=false;
     window.history.replaceState({},'',window.location.pathname);
     render();
-    alert(`✓ Te uniste a "${inv.teamName}" como ${role==='editor'?'Editor':'Lector'}.`);
-  } catch(e){ console.error('Error accepting invite:',e); alert('Error al aceptar la invitación.'); }
+    showAlert(`✓ Te uniste a "${inv.teamName}" como ${role==='editor'?'Editor':'Lector'}.`);
+  } catch(e){ console.error('Error accepting invite:',e); showAlert('Error al aceptar la invitación.'); }
 }
 
 async function revokeAccess(tid, memberUid){
-  if(!confirm('¿Quitar acceso a este usuario?')) return;
-  try {
-    await db.ref(`users/${memberUid}/memberships/${tid}`).remove();
-    await db.ref(`teams/${tid}/memberIndex/${memberUid}`).remove();
-    await db.ref(`teams/${tid}/memberPermissions/${memberUid}`).remove();
-    S.editingMember=null;
-    await loadTeamMembers(tid);
-    render();
-  } catch(e){ alert('Error al quitar acceso.'); }
+  showConfirm('¿Quitar acceso a este usuario?', async()=>{
+    try {
+      await db.ref(`users/${memberUid}/memberships/${tid}`).remove();
+      await db.ref(`teams/${tid}/memberIndex/${memberUid}`).remove();
+      await db.ref(`teams/${tid}/memberPermissions/${memberUid}`).remove();
+      S.editingMember=null;
+      await loadTeamMembers(tid);
+      render();
+    } catch(e){ showAlert('Error al quitar acceso.'); }
+  });
 }
 
 async function updateMemberPermissions(tid, memberUid, role, permissions){
@@ -825,7 +828,7 @@ async function updateMemberPermissions(tid, memberUid, role, permissions){
     await loadTeamMembers(tid);
     S.editingMember=null;
     render();
-  } catch(e){ alert('Error al actualizar permisos.'); }
+  } catch(e){ showAlert('Error al actualizar permisos.'); }
 }
 
 async function loadTeamMembers(tid){
@@ -855,15 +858,16 @@ async function loadTeamMembers(tid){
 }
 
 async function revokeInvite(tid, token){
-  if(!confirm('¿Revocar esta invitación? El link dejará de funcionar.')) return;
-  try {
-    await db.ref().update({
-      [`invitations/${token}/status`]:'revoked',
-      [`teams/${tid}/pendingInvites/${token}`]:null
-    });
-    S.teamInvites[tid]=(S.teamInvites[tid]||[]).filter(i=>i.token!==token);
-    render();
-  } catch(e){ alert('Error al revocar.'); }
+  showConfirm('¿Revocar esta invitación? El link dejará de funcionar.', async()=>{
+    try {
+      await db.ref().update({
+        [`invitations/${token}/status`]:'revoked',
+        [`teams/${tid}/pendingInvites/${token}`]:null
+      });
+      S.teamInvites[tid]=(S.teamInvites[tid]||[]).filter(i=>i.token!==token);
+      render();
+    } catch(e){ showAlert('Error al revocar.'); }
+  });
 }
 
 async function markNotifsRead(tid){
@@ -1501,6 +1505,7 @@ function renderProgramDayEditor(){
         <div style="font-size:17px;font-weight:700;">${day.name}</div>
         <div style="font-size:12px;color:var(--text-2);">${blocks.length} bloques</div>
       </div>
+      <button class="q-icon-btn" data-action="exportplanpdf" data-ctx="prog" data-pid="${pid}" data-did="${did}" title="Exportar PDF">🖨</button>
     </div>
     <div class="q-plan-blocks">${blocksHtml}</div>
     <button class="q-btn q-btn--ghost q-add-block-btn" data-action="addblock" data-ctx="prog" data-pid="${pid}" data-did="${did}">+ Agregar bloque</button>
@@ -1993,6 +1998,7 @@ function renderPlan(){
           <div style="font-weight:700;font-size:15px;">${plan.name||'Plan sin nombre'}</div>
           <div style="font-size:12px;color:var(--text-2);margin-top:2px;">👥 ${assignedNames}</div>
         </div>
+        <button class="q-icon-btn" data-action="exportplanpdf" data-ctx="session" data-planid="${planId}" title="Exportar PDF">🖨</button>
         ${editable?`<button class="q-icon-btn" data-action="editplanmeta" data-planid="${planId}" title="Editar asignación">✏️</button>
         <button class="q-icon-btn" data-action="deleteplan" data-planid="${planId}" title="Eliminar plan">🗑</button>`:''}
       </div>
@@ -3010,9 +3016,9 @@ async function saveInjury(){
   const tid=S.teamId,cid=S.cat;
   let ak;
   if(f.ikey){ak=f.ak;}
-  else{const pid=document.getElementById('inj-player')?.value;if(!pid){alert('Seleccioná un atleta');return;}ak=athleteKey(tid,cid,pid);}
+  else{const pid=document.getElementById('inj-player')?.value;if(!pid){showAlert('Seleccioná un atleta');return;}ak=athleteKey(tid,cid,pid);}
   const region=document.getElementById('inj-region')?.value;
-  if(!region){alert('Seleccioná una región');return;}
+  if(!region){showAlert('Seleccioná una región');return;}
   const data={
     region,
     date:document.getElementById('inj-date')?.value||TODAY,
@@ -3033,14 +3039,15 @@ async function saveInjury(){
 }
 
 async function deleteInjury(ak,key){
-  if(!confirm('¿Eliminar esta lesión?'))return;
-  const tid=ak.split('__')[0];
-  setSyncBar('saving');
-  try{
-    await db.ref(`teams/${tid}/athletes/${ak}/injuries/${key}`).remove();
-    if(S.medInjuries[ak])delete S.medInjuries[ak][key];
-    setSyncBar('ok');render();
-  }catch(e){setSyncBar('error',e.message||'Error al eliminar');}
+  showConfirm('¿Eliminar esta lesión?', async()=>{
+    const tid=ak.split('__')[0];
+    setSyncBar('saving');
+    try{
+      await db.ref(`teams/${tid}/athletes/${ak}/injuries/${key}`).remove();
+      if(S.medInjuries[ak])delete S.medInjuries[ak][key];
+      setSyncBar('ok');render();
+    }catch(e){setSyncBar('error',e.message||'Error al eliminar');}
+  });
 }
 
 // ── ROSTER ────────────────────────────────────────────────────
@@ -3735,6 +3742,114 @@ function exportLoadsPDF(){
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 }
 
+// ── EXPORT PLAN PDF ───────────────────────────────────────────
+function exportPlanPDF(planData, meta){
+  // meta: { title, subtitle, teamName, catName, date, assigned }
+  const blocks=Object.entries(planData.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+  const BLOCK_COLORS={'warmup':'#0891b2','strength':'#7c3aed','power':'#ea580c','cardio':'#16a34a','tactical':'#2563eb','cooldown':'#475569','custom':'#d97706'};
+  function fmtSet(s){
+    if(!s) return '';
+    const type=s.type||'reps';
+    const val=type==='time'?(s.time?s.time+'s':''):(s.reps||'');
+    const w=s.weight?s.weight+' kg':'';
+    const rir=s.rir?'RiR '+s.rir:'';
+    const pct=s.pct?s.pct+'%RM':'';
+    return [val,w,rir||pct].filter(Boolean).join('<br>');
+  }
+  const blocksHtml=blocks.map(([bid,block])=>{
+    const items=Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+    if(!items.length) return '';
+    const maxSets=Math.max(...items.map(([,it])=>Object.keys(it.sets||{}).length),1);
+    const color=BLOCK_COLORS[block.type||'custom']||'#d97706';
+    const setHeaders=Array.from({length:maxSets},(_,i)=>`<th>#${i+1}</th>`).join('');
+    const itemRows=items.map(([,item])=>{
+      const sets=item.sets||{};
+      const cells=Array.from({length:maxSets},(_,i)=>`<td>${fmtSet(sets[String(i)])}</td>`).join('');
+      return`<tr><td class="ex-name">${item.exName||'Ejercicio'}</td>${cells}</tr>`;
+    }).join('');
+    return`<div class="block">
+      <div class="block-head">
+        <span class="block-tag" style="background:${color}20;color:${color};border:1px solid ${color}60;">${(BLOCK_TYPES.find(b=>b.id===(block.type||'custom'))||{label:'BLOQUE'}).label}</span>
+        <span class="block-name">${block.name||'Bloque'}</span>
+      </div>
+      <table><thead><tr><th class="ex-col">Ejercicio</th>${setHeaders}</tr></thead><tbody>${itemRows}</tbody></table>
+    </div>`;
+  }).join('');
+  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>${meta.title}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#111;background:#fff;padding:28px 32px;}
+    .print-btn{position:fixed;top:16px;right:16px;background:#f97316;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+    @media print{.print-btn{display:none;}}
+    .header{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:2px solid #f97316;margin-bottom:20px;}
+    .logo{font-size:22px;font-weight:800;color:#f97316;letter-spacing:-1px;}
+    .meta{text-align:right;font-size:12px;color:#666;}
+    .meta strong{display:block;font-size:15px;font-weight:700;color:#111;margin-bottom:2px;}
+    .assigned{display:inline-block;margin-top:8px;font-size:12px;color:#444;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:4px 10px;}
+    .block{margin-bottom:20px;}
+    .block-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    .block-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.5px;}
+    .block-name{font-size:14px;font-weight:700;color:#111;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th{background:#f8f8f8;border:1px solid #e0e0e0;padding:6px 10px;text-align:center;font-weight:600;color:#555;font-size:11px;}
+    td{border:1px solid #e0e0e0;padding:7px 10px;vertical-align:top;text-align:center;line-height:1.5;}
+    .ex-col{text-align:left;min-width:160px;}
+    .ex-name{text-align:left;font-weight:500;color:#111;}
+    .footer{margin-top:28px;padding-top:12px;border-top:1px solid #eee;font-size:11px;color:#999;display:flex;justify-content:space-between;}
+    @page{margin:15mm 12mm;}
+  </style></head><body>
+  <button class="print-btn" onclick="window.print()">🖨 Guardar PDF</button>
+  <div class="header">
+    <div class="logo">Qoore</div>
+    <div class="meta">
+      <strong>${meta.title}</strong>
+      ${meta.subtitle?`<span>${meta.subtitle}</span>`:''}
+      ${meta.date?`<span>${meta.date}</span>`:''}
+    </div>
+  </div>
+  ${meta.assigned?`<div class="assigned">👥 ${meta.assigned}</div><br><br>`:''}
+  ${blocksHtml}
+  <div class="footer">
+    <span>Qoore · ${meta.teamName||''}${meta.catName?' · '+meta.catName:''}</span>
+    <span>Generado el ${fmtDate(TODAY)}</span>
+  </div>
+  </body></html>`;
+  const w=window.open('','_blank');
+  if(!w){showAlert('Habilitá las ventanas emergentes para exportar el PDF.');return;}
+  w.document.write(html);w.document.close();
+  setTimeout(()=>w.print(),400);
+}
+
+// ── CUSTOM DIALOGS ────────────────────────────────────────────
+function showConfirm(msg, cb){
+  S.confirmModal={msg,cb};
+  _renderConfirmOverlay();
+}
+function _renderConfirmOverlay(){
+  let el=document.getElementById('app-confirm-overlay');
+  if(!el){el=document.createElement('div');el.id='app-confirm-overlay';document.body.appendChild(el);}
+  if(!S.confirmModal){el.innerHTML='';return;}
+  el.innerHTML=`
+    <div class="q-modal-backdrop" style="z-index:9990;"></div>
+    <div class="q-modal" style="z-index:9991;max-width:380px;padding:0;border-radius:14px;overflow:hidden;">
+      <div style="padding:20px 20px 12px;font-size:14px;color:var(--text-1);line-height:1.5;">${S.confirmModal.msg}</div>
+      <div style="padding:12px 20px 18px;display:flex;gap:8px;justify-content:flex-end;">
+        <button class="q-btn" id="confirm-cancel-btn" style="min-width:90px;">Cancelar</button>
+        <button class="q-btn" id="confirm-ok-btn" style="min-width:90px;background:var(--bad);color:#fff;border-color:var(--bad);">Aceptar</button>
+      </div>
+    </div>`;
+  document.getElementById('confirm-cancel-btn').onclick=()=>{S.confirmModal=null;_renderConfirmOverlay();};
+  document.getElementById('confirm-ok-btn').onclick=()=>{const cb=S.confirmModal?.cb;S.confirmModal=null;_renderConfirmOverlay();if(cb)cb();};
+}
+function showAlert(msg){
+  let el=document.getElementById('app-toast');
+  if(!el){el=document.createElement('div');el.id='app-toast';document.body.appendChild(el);}
+  el.innerHTML=`<div class="q-toast">${msg}</div>`;
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{el.innerHTML='';},3500);
+}
+
 // ── EVENTS ────────────────────────────────────────────────────
 // ── Logo upload ───────────────────────────────────────────────
 function handleLogoUpload(input) {
@@ -3883,8 +3998,8 @@ async function handleAction(e){
   else if(a==='markread'){ await markNotifsRead(el.dataset.tid||S.teamId); render(); }
   else if(a==='copyinvlink'){
     const link=el.dataset.link;
-    try{ await navigator.clipboard.writeText(link); alert('Link copiado ✓'); }
-    catch(e){ prompt('Copiá este link:',link); }
+    try{ await navigator.clipboard.writeText(link); showAlert('Link copiado ✓'); }
+    catch(e){ showAlert('No se pudo copiar. Link: '+link); }
   }
   else if(a==='revokeinvite'){ await revokeInvite(el.dataset.tid||S.teamId, el.dataset.token); }
   else if(a==='resendtoinvite'){
@@ -3900,9 +4015,9 @@ async function handleAction(e){
       const link=`${window.location.origin}${window.location.pathname}?invite=${token}`;
       await loadTeamMembers(tid);
       render();
-      try{ await navigator.clipboard.writeText(link); alert(`Nueva invitación generada y copiada ✓\n\nLink: ${link}`); }
-      catch(e){ prompt('Nueva invitación generada. Copiá el link:',link); }
-    }catch(e){ alert('Error al regenerar invitación.'); }
+      try{ await navigator.clipboard.writeText(link); showAlert('Nueva invitación generada y copiada ✓'); }
+      catch(e){ showAlert('Nueva invitación generada. No se pudo copiar automáticamente.'); }
+    }catch(e){ showAlert('Error al regenerar invitación.'); }
   }
   // PERMISSIONS & INVITATIONS
   else if(a==='toggleaccess'){
@@ -3931,7 +4046,7 @@ async function handleAction(e){
     const emailEl=document.getElementById('inv-email');
     if(emailEl) S.inviteForm.email=emailEl.value;
     const email=(S.inviteForm.email||'').trim();
-    if(!email){alert('Ingresá el email del invitado.');return;}
+    if(!email){showAlert('Ingresá el email del invitado.');return;}
     const {role,permissions}=S.inviteForm;
     // Filter out 'none' permissions
     const filteredPerms={};
@@ -3941,12 +4056,12 @@ async function handleAction(e){
       const link=`${window.location.origin}${window.location.pathname}?invite=${token}`;
       S.inviteLink=link;
       render();
-    }catch(err){alert('Error al crear invitación: '+err.message);}
+    }catch(err){showAlert('Error al crear invitación: '+err.message);}
   }
   else if(a==='copyinvitelink'){
     if(S.inviteLink){
-      try{await navigator.clipboard.writeText(S.inviteLink);alert('Link copiado al portapapeles ✓');}
-      catch(e){prompt('Copiá este link:',S.inviteLink);}
+      try{await navigator.clipboard.writeText(S.inviteLink);showAlert('Link copiado al portapapeles ✓');}
+      catch(e){showAlert('No se pudo copiar automáticamente.');}
     }
   }
   else if(a==='revokeaccess'){
@@ -3965,7 +4080,7 @@ async function handleAction(e){
   else if(a==='savenewteam'){
     const name=document.getElementById('tf-name')?.value.trim();
     const sport=document.getElementById('tf-sport')?.value||'Básquetbol';
-    if(!name){alert('Ingresá un nombre para el equipo.');return;}
+    if(!name){showAlert('Ingresá un nombre para el equipo.');return;}
     const tid='team_'+Date.now();
     const newTeam={name,sport,createdAt:TODAY,ownerId:currentUser.uid,categories:{}};
     if(S.pendingLogo) newTeam.logo=S.pendingLogo;
@@ -3989,7 +4104,7 @@ async function handleAction(e){
   else if(a==='saveeditteam'){
     const name=document.getElementById('tf-name')?.value.trim();
     const sport=document.getElementById('tf-sport')?.value||'Básquetbol';
-    if(!name){alert('Ingresá un nombre.');return;}
+    if(!name){showAlert('Ingresá un nombre.');return;}
     const tid=S.editingTeamId||S.teamId;
     S.teams[tid].name=name; S.teams[tid].sport=sport;
     if(S.pendingLogo){S.teams[tid].logo=S.pendingLogo; S.pendingLogo=null;}
@@ -3999,30 +4114,29 @@ async function handleAction(e){
   }
   else if(a==='deleteteam'){
     const tid=el.dataset.tid;
-    if(!isOwner(tid)){alert('Solo el dueño puede eliminar el equipo.');return;}
-    if(!confirm(`¿Eliminar el equipo "${S.teams[tid]?.name}"? Esta acción no se puede deshacer.`))return;
-    // Update state and close form immediately
-    delete S.teams[tid]; delete S.memberships[tid];
-    S.view='home'; S.teamId=null; S.teamFormMode=null; S.accessPanel=false; render();
-    // Then clean up Firebase
-    try {
-      await db.ref(`teams/${tid}`).remove();
-      await db.ref(`users/${currentUser.uid}/memberships/${tid}`).remove();
-    } catch(e){ console.error('Error deleting team:',e); setSyncBar('error','Error al eliminar el equipo'); }
+    if(!isOwner(tid)){showAlert('Solo el dueño puede eliminar el equipo.');return;}
+    const teamName=S.teams[tid]?.name||'este equipo';
+    showConfirm(`¿Eliminar el equipo "${teamName}"? Esta acción no se puede deshacer.`, async()=>{
+      delete S.teams[tid]; delete S.memberships[tid];
+      S.view='home'; S.teamId=null; S.teamFormMode=null; S.accessPanel=false; render();
+      try {
+        await db.ref(`teams/${tid}`).remove();
+        await db.ref(`users/${currentUser.uid}/memberships/${tid}`).remove();
+      } catch(e){ console.error('Error deleting team:',e); setSyncBar('error','Error al eliminar el equipo'); }
+    });
   }
   else if(a==='leaveteam'){
     const tid=el.dataset.tid;
-    if(isOwner(tid)){alert('El dueño no puede salir del equipo. Eliminalo desde el formulario de edición.');return;}
-    if(!confirm('¿Estás seguro que querés salir de este equipo? Perderás el acceso.'))return;
-    // Optimistic update
-    delete S.teams[tid]; delete S.memberships[tid];
-    render();
-    // Firebase cleanup
-    try{
-      await db.ref(`users/${currentUser.uid}/memberships/${tid}`).remove();
-      await db.ref(`teams/${tid}/memberIndex/${currentUser.uid}`).remove();
-      await db.ref(`teams/${tid}/memberPermissions/${currentUser.uid}`).remove();
-    }catch(e){console.error('Error leaving team:',e);setSyncBar('error','Error al salir del equipo');}
+    if(isOwner(tid)){showAlert('El dueño no puede salir del equipo. Eliminalo desde el formulario de edición.');return;}
+    showConfirm('¿Salir de este equipo? Perderás el acceso.', async()=>{
+      delete S.teams[tid]; delete S.memberships[tid];
+      render();
+      try{
+        await db.ref(`users/${currentUser.uid}/memberships/${tid}`).remove();
+        await db.ref(`teams/${tid}/memberIndex/${currentUser.uid}`).remove();
+        await db.ref(`teams/${tid}/memberPermissions/${currentUser.uid}`).remove();
+      }catch(e){console.error('Error leaving team:',e);setSyncBar('error','Error al salir del equipo');}
+    });
   }
   // CATEGORY MANAGEMENT
   else if(a==='newcat'){S.catFormMode='new';S.editingCatId=null;render();}
@@ -4030,7 +4144,7 @@ async function handleAction(e){
   else if(a==='cancelcatform'){S.catFormMode=null;S.editingCatId=null;render();}
   else if(a==='savenewcat'){
     const name=document.getElementById('cf-name')?.value.trim();
-    if(!name){alert('Ingresá un nombre para la categoría.');return;}
+    if(!name){showAlert('Ingresá un nombre para la categoría.');return;}
     const cid='cat_'+Date.now();
     const colorIdx=getCats().length%CAT_PALETTE.length;
     if(!S.teams[S.teamId].categories)S.teams[S.teamId].categories={};
@@ -4040,7 +4154,7 @@ async function handleAction(e){
   }
   else if(a==='saveeditcat'){
     const name=document.getElementById('cf-name')?.value.trim();
-    if(!name){alert('Ingresá un nombre.');return;}
+    if(!name){showAlert('Ingresá un nombre.');return;}
     const cid=S.editingCatId;
     if(S.teams[S.teamId].categories[cid])S.teams[S.teamId].categories[cid].name=name;
     S.catFormMode=null; S.editingCatId=null; render();
@@ -4048,21 +4162,20 @@ async function handleAction(e){
   }
   else if(a==='deletecat'){
     const tid=S.teamId;const cid=el.dataset.cid;
-    if(!isOwner(tid)){alert('Solo el dueño puede eliminar categorías.');return;}
+    if(!isOwner(tid)){showAlert('Solo el dueño puede eliminar categorías.');return;}
     const catName=S.teams[tid]?.categories?.[cid]?.name||'esta categoría';
-    if(!confirm(`¿Eliminar "${catName}"? Se perderán todos sus datos (asistencia, sesiones, atletas).`))return;
-    // Optimistic update
-    const prefix=`${tid}__${cid}__`;
-    const athleteKeys=Object.keys(S.athletes).filter(k=>k.startsWith(prefix));
-    athleteKeys.forEach(k=>delete S.athletes[k]);
-    delete S.teams[tid].categories[cid];
-    if(S.cat===cid)S.cat=null;
-    S.catFormMode=null;S.editingCatId=null;render();
-    // Firebase cleanup
-    try{
-      await db.ref(`teams/${tid}/categories/${cid}`).remove();
-      await Promise.all(athleteKeys.map(k=>db.ref(`teams/${tid}/athletes/${k}`).remove()));
-    }catch(e){console.error('Error deleting cat:',e);setSyncBar('error','Error al eliminar la categoría');}
+    showConfirm(`¿Eliminar "${catName}"? Se perderán todos sus datos (asistencia, sesiones, atletas).`, async()=>{
+      const prefix=`${tid}__${cid}__`;
+      const athleteKeys=Object.keys(S.athletes).filter(k=>k.startsWith(prefix));
+      athleteKeys.forEach(k=>delete S.athletes[k]);
+      delete S.teams[tid].categories[cid];
+      if(S.cat===cid)S.cat=null;
+      S.catFormMode=null;S.editingCatId=null;render();
+      try{
+        await db.ref(`teams/${tid}/categories/${cid}`).remove();
+        await Promise.all(athleteKeys.map(k=>db.ref(`teams/${tid}/athletes/${k}`).remove()));
+      }catch(e){console.error('Error deleting cat:',e);setSyncBar('error','Error al eliminar la categoría');}
+    });
   }
   // ATHLETE
   else if(a==='openathlete'){
@@ -4139,9 +4252,9 @@ async function handleAction(e){
     Object.keys(ev).forEach(k=>{if(ev[k]===null||ev[k]==='')delete ev[k];});
     ath.jumpTests[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);render();
   }
-  else if(a==='delevalmorpho'){if(confirm('¿Eliminar?')){const ath=getAthlete(S.athleteKey);delete ath.morphology[el.dataset.evid];await saveAthlete(S.athleteKey);render();}}
-  else if(a==='delevalantro'){if(confirm('¿Eliminar?')){const ath=getAthlete(S.athleteKey);delete ath.anthropometry[el.dataset.evid];await saveAthlete(S.athleteKey);render();}}
-  else if(a==='delevaltests'){if(confirm('¿Eliminar?')){const ath=getAthlete(S.athleteKey);delete ath.jumpTests[el.dataset.evid];await saveAthlete(S.athleteKey);render();}}
+  else if(a==='delevalmorpho'){const evid=el.dataset.evid;showConfirm('¿Eliminar esta evaluación?',async()=>{const ath=getAthlete(S.athleteKey);delete ath.morphology[evid];await saveAthlete(S.athleteKey);render();});}
+  else if(a==='delevalantro'){const evid=el.dataset.evid;showConfirm('¿Eliminar esta evaluación?',async()=>{const ath=getAthlete(S.athleteKey);delete ath.anthropometry[evid];await saveAthlete(S.athleteKey);render();});}
+  else if(a==='delevaltests'){const evid=el.dataset.evid;showConfirm('¿Eliminar esta evaluación?',async()=>{const ath=getAthlete(S.athleteKey);delete ath.jumpTests[evid];await saveAthlete(S.athleteKey);render();});}
   else if(a==='savefmsform'){
     const ath=getAthlete(S.athleteKey);const id=S.editingEvalId||Date.now().toString();S.editingEvalId=null;
     const gi=k=>{const v=parseInt(document.getElementById(k)?.value);return isNaN(v)?null:v;};
@@ -4149,7 +4262,7 @@ async function handleAction(e){
     Object.keys(ev).forEach(k=>{if(ev[k]===null||ev[k]==='')delete ev[k];});
     ath.fmsTests[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);render();
   }
-  else if(a==='delevalfms'){if(confirm('¿Eliminar?')){const ath=getAthlete(S.athleteKey);delete ath.fmsTests[el.dataset.evid];await saveAthlete(S.athleteKey);render();}}
+  else if(a==='delevalfms'){const evid=el.dataset.evid;showConfirm('¿Eliminar esta evaluación?',async()=>{const ath=getAthlete(S.athleteKey);delete ath.fmsTests[evid];await saveAthlete(S.athleteKey);render();});}
   else if(a==='editevalmorfo'){S.athleteForm='morfo';S.editingEvalId=el.dataset.evid;render();}
   else if(a==='editevalantro'){S.athleteForm='antro';S.editingEvalId=el.dataset.evid;render();}
   else if(a==='editevaltests'){S.athleteForm='tests';S.editingEvalId=el.dataset.evid;render();}
@@ -4192,7 +4305,7 @@ async function handleAction(e){
   else if(a==='saveexlibedit'){
     const name=(document.getElementById('exlib-name')?.value||'').trim();
     const cat=document.getElementById('exlib-cat')?.value||'Otro';
-    if(!name){alert('Ingresá un nombre.');return;}
+    if(!name){showAlert('Ingresá un nombre.');return;}
     if(S.exLibEdit.id==='__new'){
       await savePersonalExercise(name,cat);
     } else {
@@ -4203,26 +4316,29 @@ async function handleAction(e){
     S.exLibEdit=null;render();
   }
   else if(a==='deleteexlib'){
-    if(!confirm('¿Eliminar este ejercicio de tu biblioteca?'))return;
     const id=el.dataset.exid;
-    delete S.exercises.personal[id];
-    await db.ref(`users/${currentUser.uid}/exercises/${id}`).remove();
-    render();
+    showConfirm('¿Eliminar este ejercicio de tu biblioteca?', async()=>{
+      delete S.exercises.personal[id];
+      await db.ref(`users/${currentUser.uid}/exercises/${id}`).remove();
+      render();
+    });
   }
   // ── PROGRAMS ──────────────────────────────────────────────────
   else if(a==='newprog'){S.programForm={mode:'new',name:''};render();}
   else if(a==='cancelprogform'){S.programForm=null;render();}
   else if(a==='saveprogform'){
     const name=document.getElementById('prog-name-input')?.value.trim();
-    if(!name){alert('Ingresá un nombre para el programa.');return;}
+    if(!name){showAlert('Ingresá un nombre para el programa.');return;}
     const pid=S.programForm.progId||'prog_'+Date.now();
     S.programForm=null;
     await saveProgram(pid,{name,createdAt:Date.now(),days:S.programs[pid]?.days||{}});
     render();
   }
   else if(a==='deleteprog'){
-    if(!confirm('¿Eliminar este programa y todos sus días?'))return;
-    await deleteProgram(el.dataset.pid);render();
+    const pid=el.dataset.pid;
+    showConfirm('¿Eliminar este programa y todos sus días?', async()=>{
+      await deleteProgram(pid);render();
+    });
   }
   else if(a==='openprog'){S.programView={progId:el.dataset.pid};S.programForm=null;render();}
   else if(a==='backprograms'){S.programView=null;S.programForm=null;render();}
@@ -4230,7 +4346,7 @@ async function handleAction(e){
   else if(a==='savedayform'){
     const pid=el.dataset.pid;
     const name=document.getElementById('day-name-input')?.value.trim();
-    if(!name){alert('Ingresá un nombre para el día.');return;}
+    if(!name){showAlert('Ingresá un nombre para el día.');return;}
     const did='day_'+Date.now();
     const days=S.programs[pid]?.days||{};
     const order=Object.keys(days).length;
@@ -4239,8 +4355,10 @@ async function handleAction(e){
     render();
   }
   else if(a==='deleteprogday'){
-    if(!confirm('¿Eliminar este día?'))return;
-    await deleteProgramDay(el.dataset.pid,el.dataset.did);render();
+    const pid=el.dataset.pid, did=el.dataset.did;
+    showConfirm('¿Eliminar este día?', async()=>{
+      await deleteProgramDay(pid,did);render();
+    });
   }
   else if(a==='openprogday'){
     S.programView={progId:el.dataset.pid,dayId:el.dataset.did};S.programForm=null;render();
@@ -4276,12 +4394,33 @@ async function handleAction(e){
     S.planForm={mode:'edit',planId,name:plan.name||'',assignedToAll:plan.assignedToAll||false,assignedTo:{...(plan.assignedTo||{})}};render();
   }
   else if(a==='deleteplan'){
-    if(!confirm('¿Eliminar este plan?'))return;
-    await deleteSessionPlan(el.dataset.planid);render();
+    const planId=el.dataset.planid;
+    showConfirm('¿Eliminar este plan?', async()=>{
+      await deleteSessionPlan(planId);render();
+    });
+  }
+  else if(a==='exportplanpdf'){
+    const ctx=el.dataset.ctx;
+    if(ctx==='session'){
+      const planId=el.dataset.planid;
+      const plan=S.sessionPlans[planId];
+      if(!plan)return;
+      const cd=getCat();
+      const t=S.teams[S.lastCatTid];
+      const assignedNames=plan.assignedToAll?'Toda la categoría':Object.keys(plan.assignedTo||{}).map(pid=>{const p=cd.players.find(pl=>pl.id===pid);return p?p.name:'';}).filter(Boolean).join(', ')||'Sin asignar';
+      exportPlanPDF(plan,{title:plan.name||'Plan',subtitle:'Plan de sesión',teamName:t?.meta?.name||'',catName:cd.name||'',date:S.sessionDate||'',assigned:assignedNames});
+    } else {
+      const pid=el.dataset.pid, did=el.dataset.did;
+      const prog=S.programs[pid];
+      const day=prog?.days?.[did];
+      if(!day)return;
+      const dayBlocks=Object.entries(day.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+      exportPlanPDF({blocks:Object.fromEntries(dayBlocks)},{title:day.name||'Día',subtitle:prog.name||'Programa',teamName:'',catName:'',date:'',assigned:''});
+    }
   }
   else if(a==='newplanfromprogram'){
     const progEntries=Object.entries(S.programs||{});
-    if(!progEntries.length){alert('No tenés programas guardados. Creá uno desde la sección Programas.');return;}
+    if(!progEntries.length){showAlert('No tenés programas guardados. Creá uno desde la sección Programas.');return;}
     const opts=progEntries.map(([pid,p])=>{
       const days=Object.entries(p.days||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
       return days.map(([did,d])=>`${pid}|${did}|${p.name} → ${d.name}`);
@@ -4331,11 +4470,12 @@ async function handleAction(e){
     render();
   }
   else if(a==='deleteblock'){
-    if(!confirm('¿Eliminar este bloque y todos sus ejercicios?'))return;
     const ctx=el.dataset.ctx, bid=el.dataset.bid, planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
-    if(ctx==='session') await deleteBlockFromPlan(planId,bid);
-    else await deleteBlockFromDay(pid,did,bid);
-    render();
+    showConfirm('¿Eliminar este bloque y todos sus ejercicios?', async()=>{
+      if(ctx==='session') await deleteBlockFromPlan(planId,bid);
+      else await deleteBlockFromDay(pid,did,bid);
+      render();
+    });
   }
   else if(a==='toggleblock'){
     const key=el.dataset.colkey;
@@ -4391,7 +4531,7 @@ async function handleAction(e){
   else if(a==='confirmaddex'){
     const name=(document.getElementById('ex-add-name')?.value||'').trim();
     const cat=document.getElementById('ex-add-cat')?.value||'Otro';
-    if(!name){alert('Ingresá un nombre para el ejercicio.');return;}
+    if(!name){showAlert('Ingresá un nombre para el ejercicio.');return;}
     await savePersonalExercise(name,cat);
     S.exPickerAddForm=null;S.exPickerTab='personal';S.exPickerQuery='';
     const m=document.getElementById('ex-picker-modal');if(m)m.remove();
