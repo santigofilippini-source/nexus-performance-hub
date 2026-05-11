@@ -613,6 +613,19 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 .q-icon-btn{background:transparent;border:none;cursor:pointer;padding:4px 6px;border-radius:var(--r-1);color:var(--text-2);font-size:14px;line-height:1;transition:color .12s,background .12s;}
 .q-icon-btn:hover{background:var(--bg-3);color:var(--text-0);}
 
+/* Set edit form — expanded cell */
+.q-set-cell--expanded{vertical-align:top;padding:6px 8px !important;}
+.q-set-form{display:flex;flex-direction:column;gap:4px;min-width:160px;}
+.q-set-type-row{display:flex;gap:4px;}
+.q-set-type-btn{flex:1;padding:3px 6px;border-radius:var(--r-1);font-size:11px;font-weight:600;border:1px solid var(--line);background:var(--bg-3);color:var(--text-2);cursor:pointer;transition:background .1s;}
+.q-set-type-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.q-set-inputs{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.q-set-inputs input{width:100% !important;}
+
+/* My exercises library row */
+.q-ex-lib-row{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-top:1px solid var(--line);}
+.q-ex-lib-row:first-child{border-top:none;}
+
 /* Set action pills — visible add/remove per exercise */
 .q-set-actions{white-space:nowrap;vertical-align:middle;}
 .q-set-pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:var(--r-pill);font-size:11px;font-weight:600;cursor:pointer;border:1px solid;transition:background .12s,opacity .12s;margin-right:3px;}

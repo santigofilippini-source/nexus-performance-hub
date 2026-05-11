@@ -70,6 +70,15 @@ const BLOCK_TYPES = [
   {id:'custom',  label:'BLOQUE',    color:'#d97706'},
 ];
 function blockTypeInfo(id){return BLOCK_TYPES.find(b=>b.id===id)||BLOCK_TYPES[BLOCK_TYPES.length-1];}
+function formatSetDisplay(s){
+  if(!s) return '—';
+  const type=s.type||'reps';
+  const val=type==='time'?(s.time?s.time+'s':''):(s.reps||'');
+  const w=s.weight?s.weight+'kg':'';
+  const mod=s.rir?'RiR'+s.rir:(s.pct?s.pct+'%RM':'');
+  const parts=[val,w,mod].filter(Boolean);
+  return parts.length?parts.join(' · '):'—';
+}
 
 // ── Default exercise library (always visible in Global tab) ───
 const DEFAULT_EXERCISES = {
@@ -129,6 +138,7 @@ let S = {
   planForm:null,         // null | { mode:'new'|'edit', planId?, name, assignedToAll, assignedTo:{} }
   exPicker:null,         // null | { planId, blockId } or { progId, dayId, blockId }
   exPickerQuery:'', exPickerTab:'global', exPickerAddForm:null,
+  exLibEdit:null,        // null | { id, name, category } — editing a personal exercise
   planEditBlock:null,    // { planId, blockId } block name being edited
   planEditSet:null,      // { planId, blockId, itemId, setIdx, field } cell in edit
   planCollapsed:{},      // { 'planId__blockId': true }
@@ -473,11 +483,15 @@ function updateSidebarNav(){
   });
   // Programs section
   const progCount=Object.keys(S.programs||{}).length;
+  const exCount=Object.keys(S.exercises?.personal||{}).length;
   const progActive=S.view==='programs';
+  const exActive=S.view==='myexercises';
   h=`<div class="q-tree__section-label">MIS EQUIPOS</div>`+h;
   h+=`<div class="q-tree__section-label" style="margin-top:8px;">BIBLIOTECA</div>`;
   h+=`<div class="q-tree__cat${progActive?' active':''}" onclick="openPrograms()" style="border-radius:8px;">`;
   h+=`<span style="font-size:13px;">📋</span><span class="label" style="margin-left:6px;">Programas</span><span class="n">${progCount||''}</span></div>`;
+  h+=`<div class="q-tree__cat${exActive?' active':''}" onclick="openMyExercises()" style="border-radius:8px;">`;
+  h+=`<span style="font-size:13px;">🏋️</span><span class="label" style="margin-left:6px;">Mis ejercicios</span><span class="n">${exCount||''}</span></div>`;
   nav.innerHTML=h;
   // avatar / role footer
   const av=document.getElementById('nx-sidebar-avatar');
@@ -1364,7 +1378,8 @@ function render(){
   if(S.view==='home')      body.innerHTML=renderHome();
   else if(S.view==='team')     body.innerHTML=renderTeamView();
   else if(S.view==='cat')      body.innerHTML=renderCatHeader()+renderCat();
-  else if(S.view==='programs') body.innerHTML=renderProgramsView();
+  else if(S.view==='programs')    body.innerHTML=renderProgramsView();
+  else if(S.view==='myexercises') body.innerHTML=renderMyExercises();
   updateHeader();
   attachEvents();
   if(S.exPicker) renderExPickerModal();
@@ -1489,6 +1504,62 @@ function renderProgramDayEditor(){
     </div>
     <div class="q-plan-blocks">${blocksHtml}</div>
     <button class="q-btn q-btn--ghost q-add-block-btn" data-action="addblock" data-ctx="prog" data-pid="${pid}" data-did="${did}">+ Agregar bloque</button>
+  </div>`;
+}
+
+// ── MY EXERCISES (personal library management) ────────────────
+function openMyExercises(){S.view='myexercises';S.exLibEdit=null;render();}
+
+function renderMyExercises(){
+  const exs=Object.entries(S.exercises.personal||{}).sort((a,b)=>(a[1].category||'').localeCompare(b[1].category||'')||a[1].name.localeCompare(b[1].name));
+  const editForm=S.exLibEdit;
+  const grouped={};
+  exs.forEach(([id,ex])=>{
+    const cat=ex.category||'Otro';
+    if(!grouped[cat]) grouped[cat]=[];
+    grouped[cat].push({id,...ex});
+  });
+  const editFormHtml=editForm?`<div class="q-card" style="margin-bottom:12px;">
+    <div class="q-card__h"><h3>${editForm.id==='__new'?'Nuevo ejercicio':'Editar ejercicio'}</h3></div>
+    <div class="q-card__b" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
+      <div class="form-field"><label>Nombre</label>
+        <input type="text" id="exlib-name" class="q-input" value="${editForm.name||''}" placeholder="Nombre del ejercicio">
+      </div>
+      <div class="form-field"><label>Categoría</label>
+        <select id="exlib-cat" class="q-input" style="padding:6px 10px;">
+          ${EX_CATEGORIES.map(c=>`<option value="${c}"${editForm.category===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="q-btn q-btn--primary" data-action="saveexlibedit">Guardar</button>
+        <button class="q-btn" data-action="cancelexlibedit">Cancelar</button>
+      </div>
+    </div>
+  </div>`:'';
+  const listHtml=Object.keys(grouped).length?Object.entries(grouped).map(([cat,items])=>
+    `<div class="q-card" style="margin-bottom:10px;">
+      <div class="q-card__h"><h3>${cat} <span style="font-size:12px;font-weight:400;color:var(--text-2);">${items.length} ejercicios</span></h3></div>
+      <div>
+        ${items.map(ex=>`<div class="q-ex-lib-row">
+          <span style="font-size:13px;color:var(--text-0);">${ex.name}</span>
+          <div style="display:flex;gap:6px;">
+            <button class="q-icon-btn" data-action="editexlib" data-exid="${ex.id}" data-exname="${ex.name}" data-excat="${ex.category||'Otro'}" title="Editar">✏️</button>
+            <button class="q-icon-btn" data-action="deleteexlib" data-exid="${ex.id}" title="Eliminar" style="color:var(--bad);">🗑</button>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`
+  ).join(''):`<div class="q-empty-state"><div style="font-size:32px;margin-bottom:8px;">📚</div><div style="font-weight:600;">Sin ejercicios personales</div><div style="font-size:13px;color:var(--text-2);margin-top:4px;">Agregá ejercicios desde el selector o con el botón de arriba</div></div>`;
+  return`<div class="wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <div style="font-size:18px;font-weight:700;">Mis ejercicios</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${exs.length} ejercicios en tu biblioteca personal</div>
+      </div>
+      <button class="q-btn q-btn--primary" data-action="newexlib">+ Nuevo ejercicio</button>
+    </div>
+    ${editFormHtml}
+    ${listHtml}
   </div>`;
 }
 
@@ -1970,13 +2041,28 @@ function renderPlanBlock(bid, block, ctx){
       const s=sets[String(i)]||{};
       const isEditing=S.planEditSet&&S.planEditSet.blockId===bid&&S.planEditSet.itemId===iid&&S.planEditSet.setIdx===i;
       if(isEditing&&editable){
-        return`<td class="q-set-cell editing">
-          <input type="text" id="set-reps-${i}" value="${s.reps||''}" placeholder="Reps" style="width:52px;" class="q-input q-set-input">
-          <input type="text" id="set-weight-${i}" value="${s.weight||''}" placeholder="Peso" style="width:52px;" class="q-input q-set-input">
-          <button data-action="savesetcell" ${ctxAttrs} data-iid="${iid}" data-sidx="${i}" style="font-size:11px;" class="q-btn q-btn--primary">OK</button>
+        const editType=S.planEditSet.editType||s.type||'reps';
+        const dv=(k,fb)=>S.planEditSet['draft_'+k]!==undefined?S.planEditSet['draft_'+k]:(fb||'');
+        return`<td class="q-set-cell editing q-set-cell--expanded">
+          <div class="q-set-form">
+            <div class="q-set-type-row">
+              <button class="q-set-type-btn${editType==='reps'?' active':''}" data-action="settypetoggle" ${ctxAttrs} data-iid="${iid}" data-sidx="${i}" data-val="reps">Reps</button>
+              <button class="q-set-type-btn${editType==='time'?' active':''}" data-action="settypetoggle" ${ctxAttrs} data-iid="${iid}" data-sidx="${i}" data-val="time">Tiempo</button>
+            </div>
+            <div class="q-set-inputs">
+              ${editType==='time'
+                ?`<input type="text" id="set-time-${i}" value="${dv('time',s.time)}" placeholder="Duración (ej: 30s)" class="q-input q-set-input" style="width:100%;">`
+                :`<input type="text" id="set-reps-${i}" value="${dv('reps',s.reps)}" placeholder="Reps" class="q-input q-set-input">`
+              }
+              <input type="text" id="set-weight-${i}" value="${dv('weight',s.weight)}" placeholder="Peso (kg)" class="q-input q-set-input">
+              <input type="text" id="set-rir-${i}" value="${dv('rir',s.rir)}" placeholder="RiR" class="q-input q-set-input">
+              <input type="text" id="set-pct-${i}" value="${dv('pct',s.pct)}" placeholder="%RM" class="q-input q-set-input">
+            </div>
+            <button data-action="savesetcell" ${ctxAttrs} data-iid="${iid}" data-sidx="${i}" data-settype="${editType}" class="q-btn q-btn--primary" style="width:100%;margin-top:4px;font-size:12px;">OK</button>
+          </div>
         </td>`;
       }
-      const display=(s.reps||s.weight)?[(s.reps||''),s.weight?(s.weight+'kg'):''].filter(Boolean).join(' × '):'—';
+      const display=formatSetDisplay(s);
       return`<td class="q-set-cell${editable?' clickable':''}" ${editable?`data-action="editsetcell" ${ctxAttrs} data-iid="${iid}" data-sidx="${i}"`:''}>${display}</td>`;
     }).join('');
     return`<tr>
@@ -4099,6 +4185,30 @@ async function handleAction(e){
     S.injForm={ak,ikey,data:{...injData}};render();
   }
   else if(a==='deleteinjury'){await deleteInjury(el.dataset.ak,el.dataset.ikey);}
+  // ── MY EXERCISES LIBRARY ──────────────────────────────────────
+  else if(a==='newexlib'){S.exLibEdit={id:'__new',name:'',category:EX_CATEGORIES[0]};render();}
+  else if(a==='editexlib'){S.exLibEdit={id:el.dataset.exid,name:el.dataset.exname,category:el.dataset.excat};render();}
+  else if(a==='cancelexlibedit'){S.exLibEdit=null;render();}
+  else if(a==='saveexlibedit'){
+    const name=(document.getElementById('exlib-name')?.value||'').trim();
+    const cat=document.getElementById('exlib-cat')?.value||'Otro';
+    if(!name){alert('Ingresá un nombre.');return;}
+    if(S.exLibEdit.id==='__new'){
+      await savePersonalExercise(name,cat);
+    } else {
+      const id=S.exLibEdit.id;
+      S.exercises.personal[id]={...S.exercises.personal[id],name,category:cat};
+      await db.ref(`users/${currentUser.uid}/exercises/${id}`).update({name,category:cat});
+    }
+    S.exLibEdit=null;render();
+  }
+  else if(a==='deleteexlib'){
+    if(!confirm('¿Eliminar este ejercicio de tu biblioteca?'))return;
+    const id=el.dataset.exid;
+    delete S.exercises.personal[id];
+    await db.ref(`users/${currentUser.uid}/exercises/${id}`).remove();
+    render();
+  }
   // ── PROGRAMS ──────────────────────────────────────────────────
   else if(a==='newprog'){S.programForm={mode:'new',name:''};render();}
   else if(a==='cancelprogform'){S.programForm=null;render();}
@@ -4292,18 +4402,31 @@ async function handleAction(e){
     S.planEditSet={ctx:el.dataset.ctx,planId:el.dataset.planid||null,progId:el.dataset.pid||null,dayId:el.dataset.did||null,blockId:el.dataset.bid,itemId:el.dataset.iid,setIdx:parseInt(el.dataset.sidx)};
     render();
   }
+  else if(a==='settypetoggle'){
+    if(S.planEditSet){
+      const i=S.planEditSet.setIdx;
+      S.planEditSet.draft_reps=document.getElementById('set-reps-'+i)?.value||'';
+      S.planEditSet.draft_time=document.getElementById('set-time-'+i)?.value||'';
+      S.planEditSet.draft_weight=document.getElementById('set-weight-'+i)?.value||'';
+      S.planEditSet.draft_rir=document.getElementById('set-rir-'+i)?.value||'';
+      S.planEditSet.draft_pct=document.getElementById('set-pct-'+i)?.value||'';
+      S.planEditSet.editType=el.dataset.val;
+      render();
+    }
+  }
   else if(a==='savesetcell'){
     const ctx=el.dataset.ctx, bid=el.dataset.bid, iid=el.dataset.iid, sidx=parseInt(el.dataset.sidx);
     const planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
-    const reps=document.getElementById('set-reps-'+sidx)?.value.trim()||'';
-    const weight=document.getElementById('set-weight-'+sidx)?.value.trim()||'';
+    const type=el.dataset.settype||'reps';
+    const g=id=>document.getElementById(id+sidx)?.value.trim()||'';
+    const setData={type,reps:g('set-reps-'),time:g('set-time-'),weight:g('set-weight-'),rir:g('set-rir-'),pct:g('set-pct-')};
     S.planEditSet=null;
     if(ctx==='session'){
-      await saveSetInItem(planId,bid,iid,sidx,{reps,weight});
+      await saveSetInItem(planId,bid,iid,sidx,setData);
     } else {
       const item=S.programs[pid]?.days?.[did]?.blocks?.[bid]?.items?.[iid];
-      if(item){if(!item.sets)item.sets={};item.sets[String(sidx)]={reps,weight};}
-      await db.ref(`users/${currentUser.uid}/programs/${pid}/days/${did}/blocks/${bid}/items/${iid}/sets/${sidx}`).update({reps,weight});
+      if(item){if(!item.sets)item.sets={};item.sets[String(sidx)]=setData;}
+      await db.ref(`users/${currentUser.uid}/programs/${pid}/days/${did}/blocks/${bid}/items/${iid}/sets/${sidx}`).update(setData);
     }
     render();
   }
@@ -4316,12 +4439,14 @@ async function handleAction(e){
       sets=S.programs[pid]?.days?.[did]?.blocks?.[bid]?.items?.[iid]?.sets||{};
     }
     const nextIdx=Object.keys(sets).length;
+    const t0=sets['0']||{};
+    const newSet=(t0.reps||t0.time||t0.weight)?{...t0}:{type:'reps',reps:'',time:'',weight:'',rir:'',pct:''};
     if(ctx==='session'){
-      await saveSetInItem(planId,bid,iid,nextIdx,{reps:'',weight:'',notes:''});
+      await saveSetInItem(planId,bid,iid,nextIdx,newSet);
     } else {
       const item=S.programs[pid]?.days?.[did]?.blocks?.[bid]?.items?.[iid];
-      if(item){if(!item.sets)item.sets={};item.sets[String(nextIdx)]={reps:'',weight:'',notes:''};}
-      await db.ref(`users/${currentUser.uid}/programs/${pid}/days/${did}/blocks/${bid}/items/${iid}/sets/${nextIdx}`).set({reps:'',weight:'',notes:''});
+      if(item){if(!item.sets)item.sets={};item.sets[String(nextIdx)]=newSet;}
+      await db.ref(`users/${currentUser.uid}/programs/${pid}/days/${did}/blocks/${bid}/items/${iid}/sets/${nextIdx}`).set(newSet);
     }
     render();
   }
