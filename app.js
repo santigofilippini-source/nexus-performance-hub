@@ -3872,7 +3872,7 @@ function exportPlanPDF(planData, meta){
   const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
   <title>${meta.title}</title>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;}
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#111;background:#fff;}
     .page{padding:28px 32px;}
     .print-btn{position:fixed;top:16px;right:16px;background:#f97316;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(249,115,22,.35);}
