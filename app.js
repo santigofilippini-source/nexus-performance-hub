@@ -2111,8 +2111,13 @@ function renderPlanBlock(bid, block, ctx){
       const display=formatSetDisplay(s);
       return`<td class="q-set-cell${editable?' clickable':''}" ${editable?`data-action="editsetcell" ${ctxAttrs} data-iid="${iid}" data-sidx="${i}"`:''}>${display}</td>`;
     }).join('');
+    const _exVideoUrl=(DEFAULT_EXERCISES[item.exId]||S.exercises.personal[item.exId]||S.exercises.global[item.exId])?.videoUrl;
+    const _hasVideo=_exVideoUrl&&ytId(_exVideoUrl);
     return`<tr>
-      <td class="q-ex-name">${item.exName||'Ejercicio'}</td>
+      <td class="q-ex-name" style="white-space:nowrap;">
+        ${item.exName||'Ejercicio'}
+        ${_hasVideo?`<button class="q-icon-btn" data-action="showvideo" data-exid="${item.exId}" title="Ver video" style="font-size:10px;padding:2px 6px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);margin-left:6px;vertical-align:middle;">▶</button>`:''}
+      </td>
       ${setCells}
       ${editable?`<td class="q-set-cell q-set-actions">
         <button class="q-set-pill q-set-pill--add" data-action="addset" ${ctxAttrs} data-iid="${iid}" title="Agregar serie">+ Serie</button>
@@ -3893,7 +3898,7 @@ function renderVideoModal(){
         </div>
         <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;background:#000;">
           <iframe id="yt-iframe"
-            src="https://www.youtube.com/embed/${vid}?autoplay=1&rel=0"
+            src="https://www.youtube-nocookie.com/embed/${vid}?autoplay=1&rel=0"
             style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen></iframe>
