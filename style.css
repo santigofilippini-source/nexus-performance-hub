@@ -645,6 +645,10 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .q-set-cell{min-width:64px;}
 }
 
+/* Video modal */
+#app-video-modal .q-modal{width:calc(100vw - 40px);}
+@media(max-width:899px){#app-video-modal .q-modal{border-radius:10px;}}
+
 /* Custom confirm overlay */
 #app-confirm-overlay .q-modal-backdrop{cursor:default;}
 #app-confirm-overlay .q-modal{animation:q-pop-in .15s ease;}

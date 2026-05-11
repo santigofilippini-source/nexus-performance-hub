@@ -158,7 +158,8 @@ let S = {
   editingMember:null,   // uid of member being edited in access panel
   editMemberForm:{},    // {role, permissions} draft for member being edited
   confirmModal:null,    // {msg, cb} — custom confirm dialog
-  toastMsg:null         // string — brief toast notification
+  toastMsg:null,        // string — brief toast notification
+  videoModal:null       // {url, title} — YouTube embed modal
 };
 
 // ── Accessors ─────────────────────────────────────────────────
@@ -1325,9 +1326,10 @@ async function saveSetInItem(planId, bid, iid, sidx, data){
 }
 
 // ── Personal exercise library ──────────────────────────────────
-async function savePersonalExercise(name, category){
+async function savePersonalExercise(name, category, videoUrl=''){
   const id=Date.now().toString();
   const data={name,category:category||'Otro',createdAt:Date.now()};
+  if(videoUrl) data.videoUrl=videoUrl;
   S.exercises.personal[id]=data;
   await db.ref(`users/${currentUser.uid}/exercises/${id}`).set(data);
   return id;
@@ -1387,6 +1389,7 @@ function render(){
   updateHeader();
   attachEvents();
   if(S.exPicker) renderExPickerModal();
+  if(S.videoModal) renderVideoModal();
 }
 
 // ── PROGRAMS VIEW ────────────────────────────────────────────
@@ -1535,6 +1538,9 @@ function renderMyExercises(){
           ${EX_CATEGORIES.map(c=>`<option value="${c}"${editForm.category===c?' selected':''}>${c}</option>`).join('')}
         </select>
       </div>
+      <div class="form-field"><label>Video de YouTube <span style="font-weight:400;color:var(--text-2);">(opcional)</span></label>
+        <input type="url" id="exlib-video" class="q-input" value="${editForm.videoUrl||''}" placeholder="https://youtube.com/watch?v=...">
+      </div>
       <div style="display:flex;gap:8px;">
         <button class="q-btn q-btn--primary" data-action="saveexlibedit">Guardar</button>
         <button class="q-btn" data-action="cancelexlibedit">Cancelar</button>
@@ -1545,13 +1551,17 @@ function renderMyExercises(){
     `<div class="q-card" style="margin-bottom:10px;">
       <div class="q-card__h"><h3>${cat} <span style="font-size:12px;font-weight:400;color:var(--text-2);">${items.length} ejercicios</span></h3></div>
       <div>
-        ${items.map(ex=>`<div class="q-ex-lib-row">
-          <span style="font-size:13px;color:var(--text-0);">${ex.name}</span>
-          <div style="display:flex;gap:6px;">
-            <button class="q-icon-btn" data-action="editexlib" data-exid="${ex.id}" data-exname="${ex.name}" data-excat="${ex.category||'Otro'}" title="Editar">✏️</button>
-            <button class="q-icon-btn" data-action="deleteexlib" data-exid="${ex.id}" title="Eliminar" style="color:var(--bad);">🗑</button>
-          </div>
-        </div>`).join('')}
+        ${items.map(ex=>{
+          const hasVideo=ex.videoUrl&&ytId(ex.videoUrl);
+          return`<div class="q-ex-lib-row">
+            <span style="font-size:13px;color:var(--text-0);">${ex.name}</span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              ${hasVideo?`<button class="q-icon-btn" data-action="showvideo" data-exid="${ex.id}" title="Ver video" style="font-size:11px;padding:3px 8px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);">▶ Video</button>`:''}
+              <button class="q-icon-btn" data-action="editexlib" data-exid="${ex.id}" title="Editar">✏️</button>
+              <button class="q-icon-btn" data-action="deleteexlib" data-exid="${ex.id}" title="Eliminar" style="color:var(--bad);">🗑</button>
+            </div>
+          </div>`;
+        }).join('')}
       </div>
     </div>`
   ).join(''):`<div class="q-empty-state"><div style="font-size:32px;margin-bottom:8px;">📚</div><div style="font-weight:600;">Sin ejercicios personales</div><div style="font-size:13px;color:var(--text-2);margin-top:4px;">Agregá ejercicios desde el selector o con el botón de arriba</div></div>`;
@@ -2119,7 +2129,13 @@ function buildExPickerList(){
   return Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,exs])=>
     `<div style="margin-bottom:12px;">
       <div style="font-size:10px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">${cat}</div>
-      ${exs.map(ex=>`<div class="q-ex-pick-item" data-action="pickexercise" data-exid="${ex.id}" data-exname="${ex.name}">${ex.name}</div>`).join('')}
+      ${exs.map(ex=>{
+        const hasVideo=ex.videoUrl&&ytId(ex.videoUrl);
+        return`<div style="display:flex;align-items:center;gap:4px;">
+          <div class="q-ex-pick-item" style="flex:1;" data-action="pickexercise" data-exid="${ex.id}" data-exname="${ex.name}">${ex.name}</div>
+          ${hasVideo?`<button class="q-icon-btn" data-action="showvideo" data-exid="${ex.id}" title="Ver video" style="font-size:11px;padding:3px 8px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);flex-shrink:0;">▶</button>`:''}
+        </div>`;
+      }).join('')}
     </div>`
   ).join('')||`<div style="color:var(--text-2);font-size:13px;padding:20px 0;text-align:center;">${q?`Sin resultados para "${S.exPickerQuery}"`:'Sin ejercicios en esta biblioteca'}</div>`;
 }
@@ -3821,6 +3837,49 @@ function exportPlanPDF(planData, meta){
   setTimeout(()=>w.print(),400);
 }
 
+// ── YOUTUBE HELPERS ───────────────────────────────────────────
+function ytId(url){
+  if(!url) return null;
+  try{
+    const u=new URL(url);
+    if(u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('?')[0];
+    if(u.searchParams.get('v')) return u.searchParams.get('v');
+    if(u.pathname.includes('/shorts/')) return u.pathname.split('/shorts/')[1].split('?')[0];
+  }catch(e){}
+  return null;
+}
+function renderVideoModal(){
+  let el=document.getElementById('app-video-modal');
+  if(!el){el=document.createElement('div');el.id='app-video-modal';document.body.appendChild(el);}
+  if(!S.videoModal){el.innerHTML='';return;}
+  const vid=ytId(S.videoModal.url);
+  if(!vid){el.innerHTML='';return;}
+  el.innerHTML=`
+    <div class="q-modal-backdrop" style="z-index:9980;" id="video-backdrop">
+      <div class="q-modal" style="max-width:640px;padding:0;border-radius:14px;overflow:hidden;animation:q-pop-in .15s ease;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);">
+          <span style="font-weight:600;font-size:14px;color:var(--text-0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${S.videoModal.title||'Video'}</span>
+          <button id="video-close-btn" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:20px;padding:2px 6px;border-radius:var(--r-1);flex-shrink:0;">✕</button>
+        </div>
+        <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;background:#000;">
+          <iframe id="yt-iframe"
+            src="https://www.youtube.com/embed/${vid}?autoplay=1&rel=0"
+            style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('video-close-btn').onclick=closeVideoModal;
+  document.getElementById('video-backdrop').onclick=e=>{if(e.target.id==='video-backdrop')closeVideoModal();};
+}
+function closeVideoModal(){
+  const iframe=document.getElementById('yt-iframe');
+  if(iframe) iframe.src='';
+  S.videoModal=null;
+  renderVideoModal();
+}
+
 // ── CUSTOM DIALOGS ────────────────────────────────────────────
 function showConfirm(msg, cb){
   S.confirmModal={msg,cb};
@@ -3879,7 +3938,7 @@ function handleLogoUpload(input) {
 function handleSidebarSearch(val){S.searchQuery=val;if(val.length>1){if(S.view!=='search'){S.prevView=S.view;S.prevTeamId=S.teamId;S.prevCat=S.cat;S.searchReturnView=S.view;S.searchReturnTeamId=S.teamId;}S.view='search';render();}else if(val.length===0&&S.view==='search'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;render();}}
 function attachEvents(){
   document.querySelectorAll('[data-action]').forEach(el=>el.addEventListener('click',handleAction));
-  document.onkeydown=e=>{if(e.key==='Escape'&&S.view==='search'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;S.searchReturnView=null;S.searchReturnTeamId=null;const ssi=document.getElementById('sidebar-search-input');if(ssi){ssi.value='';S.searchQuery='';}render();}if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}};
+  document.onkeydown=e=>{if(e.key==='Escape'&&S.videoModal){closeVideoModal();return;}if(e.key==='Escape'&&S.view==='search'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;S.searchReturnView=null;S.searchReturnTeamId=null;const ssi=document.getElementById('sidebar-search-input');if(ssi){ssi.value='';S.searchQuery='';}render();}if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch();}};
   const di=document.getElementById('date-input');
   if(di)di.addEventListener('change',e=>{S.date=e.target.value;loadSession();if(S.tab==='session')loadSessionDraft();render();});
   const durI=document.getElementById('dur-input');
@@ -4300,19 +4359,29 @@ async function handleAction(e){
   }
   else if(a==='deleteinjury'){await deleteInjury(el.dataset.ak,el.dataset.ikey);}
   // ── MY EXERCISES LIBRARY ──────────────────────────────────────
-  else if(a==='newexlib'){S.exLibEdit={id:'__new',name:'',category:EX_CATEGORIES[0]};render();}
-  else if(a==='editexlib'){S.exLibEdit={id:el.dataset.exid,name:el.dataset.exname,category:el.dataset.excat};render();}
+  else if(a==='showvideo'){
+    const exid=el.dataset.exid;
+    const ex=S.exercises.personal[exid]||DEFAULT_EXERCISES[exid]||S.exercises.global[exid]||{};
+    if(!ex.videoUrl)return;
+    S.videoModal={url:ex.videoUrl,title:ex.name||'Video'};
+    renderVideoModal();
+  }
+  else if(a==='newexlib'){S.exLibEdit={id:'__new',name:'',category:EX_CATEGORIES[0],videoUrl:''};render();}
+  else if(a==='editexlib'){const _exid=el.dataset.exid;const _ex=S.exercises.personal[_exid]||{};S.exLibEdit={id:_exid,name:_ex.name||el.dataset.exname,category:_ex.category||el.dataset.excat||'Otro',videoUrl:_ex.videoUrl||''};render();}
   else if(a==='cancelexlibedit'){S.exLibEdit=null;render();}
   else if(a==='saveexlibedit'){
     const name=(document.getElementById('exlib-name')?.value||'').trim();
     const cat=document.getElementById('exlib-cat')?.value||'Otro';
+    const videoUrl=(document.getElementById('exlib-video')?.value||'').trim();
     if(!name){showAlert('Ingresá un nombre.');return;}
     if(S.exLibEdit.id==='__new'){
-      await savePersonalExercise(name,cat);
+      await savePersonalExercise(name,cat,videoUrl);
     } else {
       const id=S.exLibEdit.id;
-      S.exercises.personal[id]={...S.exercises.personal[id],name,category:cat};
-      await db.ref(`users/${currentUser.uid}/exercises/${id}`).update({name,category:cat});
+      const upd={name,category:cat};
+      if(videoUrl) upd.videoUrl=videoUrl; else upd.videoUrl=null;
+      S.exercises.personal[id]={...S.exercises.personal[id],...upd};
+      await db.ref(`users/${currentUser.uid}/exercises/${id}`).update(upd);
     }
     S.exLibEdit=null;render();
   }
