@@ -357,12 +357,11 @@ function setSyncBar(status, msg) {
 async function loadAll() {
   setSyncBar('loading');
   try {
-    // 0. Load global app config (betaMode, etc.)
-    const cfgSnap = await db.ref('config/app').get();
-    if(cfgSnap.exists()){
-      const cfg=cfgSnap.val();
-      S.betaMode = cfg.betaMode !== false; // default true if not set
-    }
+    // 0. Load global app config (betaMode, etc.) — failure is non-fatal
+    try {
+      const cfgSnap = await db.ref('config/app').get();
+      if(cfgSnap.exists()) S.betaMode = cfgSnap.val().betaMode !== false;
+    } catch(e) { /* rules may block this; default betaMode:true applies */ }
     // 1. Load memberships
     const mSnap = await db.ref(`users/${currentUser.uid}/memberships`).get();
     S.memberships = mSnap.exists() ? (mSnap.val()||{}) : {};
