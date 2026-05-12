@@ -2077,12 +2077,28 @@ function renderTeamView(){
   const t=getTeam();
   const cats=getCats();
   const color=t.color||CAT_PALETTE[0];
+  const _svgH=(d)=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const teamInitials=t.name.split(' ').filter(w=>w).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'Q';
+  const teamAvatarContent=t.logo?`<img src="${t.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`:teamInitials;
+  const unread=(S.teamNotifs[S.teamId]||[]).filter(n=>!n.read).length;
   const header=`<div class="sec-header">
-    <button class="back-btn" data-action="home">← Inicio</button>
-    <span class="sec-title">${t.name}</span>
-    <span class="sport-badge">${t.sport||''}</span>
-    ${isOwner()?`<button class="sm-btn" data-action="toggleaccess" data-tid="${S.teamId}" style="color:#60a5fa;border-color:#1e40af;position:relative;">👥${(()=>{const u=(S.teamNotifs[S.teamId]||[]).filter(n=>!n.read).length;return u?`<span style="position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;">${u}</span>`:''})()}</button>`:''}
-    ${isOwner()?`<button class="sm-btn" data-action="editteam">⚙ Editar</button>`:''}
+    <button class="sec-back-btn" data-action="home">${_svgH('<path d="m15 6-6 6 6 6"/>')}</button>
+    <div class="sec-team-identity">
+      <div class="sec-team-avatar" style="${t.logo?'background:transparent;':''}">${teamAvatarContent}</div>
+      <div class="sec-team-info">
+        <div class="sec-team-name">${t.name}</div>
+        ${t.sport?`<div class="sec-team-sport">${t.sport}</div>`:''}
+      </div>
+    </div>
+    <div class="sec-actions">
+      ${isOwner()?`<button class="sec-action-btn" data-action="toggleaccess" data-tid="${S.teamId}" title="Miembros del equipo">
+        ${_svgH('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>')}
+        ${unread?`<span class="sec-action-notif">${unread}</span>`:''}
+      </button>`:''}
+      ${isOwner()?`<button class="sec-action-btn" data-action="editteam" title="Editar equipo">
+        ${_svgH('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>')}
+      </button>`:''}
+    </div>
   </div>`;
 
   const catCards=cats.map((cid,i)=>{
