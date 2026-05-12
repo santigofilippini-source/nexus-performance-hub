@@ -2219,16 +2219,24 @@ function renderUpgradePanel(tid){
       <div style="border:1.5px solid #f97316;border-radius:10px;padding:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <span style="font-weight:600;color:#f97316;">Pro</span>
-          <span style="font-size:15px;font-weight:700;">$9<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+          <div style="text-align:right;">
+            <div style="font-size:11px;font-weight:400;color:var(--text2);text-decoration:line-through;line-height:1.2;">$15/mes</div>
+            <span style="font-size:15px;font-weight:700;">$9<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+          </div>
         </div>
+        <div style="font-size:9px;font-weight:600;color:#f97316;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Precio de lanzamiento</div>
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Hasta 2 equipos · 3 categorías · 20 jugadores · Exportar PDF</div>
         <button onclick="startCheckout('${tid}','pro')" style="width:100%;padding:9px;border-radius:8px;border:none;background:#f97316;color:#fff;font-weight:600;cursor:pointer;">Suscribirse a Pro</button>
       </div>
       <div style="border:1.5px solid #8b5cf6;border-radius:10px;padding:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <span style="font-weight:600;color:#8b5cf6;">Elite</span>
-          <span style="font-size:15px;font-weight:700;">$25<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+          <div style="text-align:right;">
+            <div style="font-size:11px;font-weight:400;color:var(--text2);text-decoration:line-through;line-height:1.2;">$39/mes</div>
+            <span style="font-size:15px;font-weight:700;">$25<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+          </div>
         </div>
+        <div style="font-size:9px;font-weight:600;color:#8b5cf6;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Precio de lanzamiento</div>
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Equipos, categorías y jugadores ilimitados · Todo Pro + branding</div>
         <button onclick="startCheckout('${tid}','elite')" style="width:100%;padding:9px;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;cursor:pointer;">Suscribirse a Elite</button>
       </div>
@@ -4704,9 +4712,9 @@ function renderSubscriptionModal(){
   const check=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
   const cross=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
   const tiers=[
-    {key:'free',  label:'Free',  price:'Gratis',       sub:''},
-    {key:'pro',   label:'Pro',   price:'$9',           sub:'/mes'},
-    {key:'elite', label:'Elite', price:'$25',          sub:'/mes'},
+    {key:'free',  label:'Free',  price:'Gratis', origPrice:null,  sub:''},
+    {key:'pro',   label:'Pro',   price:'$9',     origPrice:'$15', sub:'/mes'},
+    {key:'elite', label:'Elite', price:'$25',    origPrice:'$39', sub:'/mes'},
   ];
   const betaBanner = S.betaMode
     ? `<div class="q-sub-beta-banner">Beta abierta — acceso Elite para todos, sin costo.</div>`
@@ -4715,7 +4723,11 @@ function renderSubscriptionModal(){
     const isActive = S.betaMode ? t.key==='elite' : t.key===activeTierKey;
     return `<div class="q-sub-col${isActive?' q-sub-col--active':''}">
       <div class="q-sub-col__name">${t.label}</div>
-      <div class="q-sub-col__price">${t.price}<span>${t.sub}</span></div>
+      <div class="q-sub-col__price">
+        ${t.origPrice?`<div style="font-size:11px;font-weight:400;color:var(--text-3);text-decoration:line-through;line-height:1.3;margin-bottom:1px;">${t.origPrice}${t.sub}</div>`:''}
+        ${t.price}<span>${t.sub}</span>
+      </div>
+      ${t.origPrice?`<div style="font-size:9px;font-weight:600;color:#F97316;margin-top:3px;text-transform:uppercase;letter-spacing:.4px;">Precio de lanzamiento</div>`:''}
       ${isActive?`<div class="q-sub-col__badge">${S.betaMode&&t.key==='elite'?'Beta':'Plan actual'}</div>`:'<div class="q-sub-col__badge" style="opacity:0">·</div>'}
     </div>`;
   }).join('');
