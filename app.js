@@ -1874,8 +1874,8 @@ function renderProgramsList(){
             <div style="font-weight:600;font-size:15px;color:var(--text);">${p.name||'Sin nombre'}</div>
             <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${days.length} ${days.length===1?'rutina':'rutinas'}</div>
           </div>
-          <button class="q-icon-btn" data-action="editprog" data-pid="${pid}" title="Editar nombre" onclick="event.stopPropagation();">✏️</button>
-          <button class="q-icon-btn" data-action="deleteprog" data-pid="${pid}" title="Eliminar" onclick="event.stopPropagation();">🗑</button>
+          <button class="q-icon-btn" data-action="editprog" data-pid="${pid}" title="Editar nombre" onclick="event.stopPropagation();"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="q-icon-btn" data-action="deleteprog" data-pid="${pid}" title="Eliminar" onclick="event.stopPropagation();" style="color:var(--bad);opacity:.7;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
         </div>
         ${days.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">`+
           Object.entries(p.days||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0)).map(([did,d])=>
@@ -1936,8 +1936,8 @@ function renderProgramDetail(){
           <div style="font-weight:600;font-size:14px;">${d.name||'Sin nombre'}</div>
           <div style="font-size:12px;color:var(--text-2);">${blockCount} bloques · ${exCount} ejercicios</div>
         </div>
-        <button class="q-icon-btn" data-action="editprogday" data-pid="${pid}" data-did="${did}" onclick="event.stopPropagation();" title="Editar nombre">✏️</button>
-        <button class="q-icon-btn" data-action="deleteprogday" data-pid="${pid}" data-did="${did}" onclick="event.stopPropagation();">🗑</button>
+        <button class="q-icon-btn" data-action="editprogday" data-pid="${pid}" data-did="${did}" onclick="event.stopPropagation();" title="Editar nombre"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="q-icon-btn" data-action="deleteprogday" data-pid="${pid}" data-did="${did}" onclick="event.stopPropagation();" style="color:var(--bad);opacity:.7;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
       </div>
     </div>`;
   }).join('');
@@ -1961,7 +1961,7 @@ function renderProgramDayEditor(){
   const day=prog?.days?.[did];
   if(!day) return renderProgramDetail();
   const blocks=Object.entries(day.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
-  const blocksHtml=blocks.map(([bid,block])=>renderPlanBlock(bid,block,{progId:pid,dayId:did})).join('');
+  const blocksHtml=blocks.map(([bid,block],i)=>renderPlanBlock(bid,block,{progId:pid,dayId:did,blockIdx:i,blockCount:blocks.length})).join('');
   return`<div class="wrap">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
       <button class="q-btn" data-action="backprogdetail" data-pid="${pid}" style="padding:6px 10px;">← ${prog.name}</button>
@@ -1969,7 +1969,7 @@ function renderProgramDayEditor(){
         <div style="font-size:17px;font-weight:700;">${day.name}</div>
         <div style="font-size:12px;color:var(--text-2);">${blocks.length} bloques</div>
       </div>
-      <button class="q-icon-btn" data-action="exportplanpdf" data-ctx="prog" data-pid="${pid}" data-did="${did}" title="Exportar PDF">🖨</button>
+      <button class="q-icon-btn" data-action="exportplanpdf" data-ctx="prog" data-pid="${pid}" data-did="${did}" title="Exportar PDF"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
     </div>
     <div class="q-plan-blocks">${blocksHtml}</div>
     <button class="q-btn q-btn--ghost q-add-block-btn" data-action="addblock" data-ctx="prog" data-pid="${pid}" data-did="${did}">+ Agregar bloque</button>
@@ -2018,8 +2018,8 @@ function renderMyExercises(){
             <span style="font-size:13px;color:var(--text-0);">${ex.name}</span>
             <div style="display:flex;gap:6px;align-items:center;">
               ${hasVideo?`<button class="q-icon-btn" data-action="showvideo" data-exid="${ex.id}" title="Ver video" style="font-size:11px;padding:3px 8px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);">▶ Video</button>`:''}
-              <button class="q-icon-btn" data-action="editexlib" data-exid="${ex.id}" title="Editar">✏️</button>
-              <button class="q-icon-btn" data-action="deleteexlib" data-exid="${ex.id}" title="Eliminar" style="color:var(--bad);">🗑</button>
+              <button class="q-icon-btn" data-action="editexlib" data-exid="${ex.id}" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button class="q-icon-btn" data-action="deleteexlib" data-exid="${ex.id}" title="Eliminar" style="color:var(--bad);opacity:.7;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
             </div>
           </div>`;
         }).join('')}
@@ -2567,7 +2567,7 @@ function renderPlan(){
           </button>`:''}
         </div>
       </div>
-      ${isMinimized?'':`<div class="q-plan-blocks">${blocks.map(([bid,block])=>renderPlanBlock(bid,block,{planId})).join('')}</div>
+      ${isMinimized?'':`<div class="q-plan-blocks">${blocks.map(([bid,block],i)=>renderPlanBlock(bid,block,{planId,blockIdx:i,blockCount:blocks.length})).join('')}</div>
       ${editable?`<button class="q-btn q-btn--ghost q-add-block-btn" data-action="addblock" data-ctx="session" data-planid="${planId}">+ Agregar bloque</button>`:''}`}
     </div>`;
   }).join('');
@@ -2640,6 +2640,8 @@ function renderPlanBlock(bid, block, ctx){
   const items=Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
   const isSession=!!ctx.planId;
   const editable=isSession?canEdit():true;
+  const blockIdx=ctx.blockIdx??-1;
+  const blockCount=ctx.blockCount??1;
   const editingBlockName=S.planEditBlock&&S.planEditBlock.blockId===bid&&
     ((isSession&&S.planEditBlock.planId===ctx.planId)||(ctx.progId&&S.planEditBlock.progId===ctx.progId));
   const blockHeader=editingBlockName?
@@ -2711,9 +2713,10 @@ function renderPlanBlock(bid, block, ctx){
     <div class="q-block-card__head">
       ${blockHeader}
       <div style="display:flex;gap:4px;margin-left:4px;">
+        ${editable&&!editingBlockName&&blockCount>1?`<button class="q-icon-btn" data-action="moveblock" data-dir="-1" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Mover arriba" ${blockIdx===0?'disabled style="opacity:.25;cursor:default;"':''}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button class="q-icon-btn" data-action="moveblock" data-dir="1" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Mover abajo" ${blockIdx===blockCount-1?'disabled style="opacity:.25;cursor:default;"':''}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></button>`:''}
         <button class="q-icon-btn" data-action="toggleblock" data-colkey="${collapseKey}">${collapsed?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`}</button>
         ${editable&&!editingBlockName?`<button class="q-icon-btn" data-action="editblockname" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Renombrar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`:''}
-        ${editable?`<button class="q-icon-btn" data-action="deleteblock" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Eliminar bloque"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>`:''}
+        ${editable?`<button class="q-icon-btn" data-action="deleteblock" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Eliminar bloque" style="color:var(--bad);opacity:.7;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>`:''}
       </div>
     </div>
     ${!collapsed?`${tableHtml}
@@ -5546,6 +5549,30 @@ async function handleAction(e){
       else await deleteBlockFromDay(pid,did,bid);
       render();
     });
+  }
+  else if(a==='moveblock'){
+    if(el.disabled) return;
+    const ctx=el.dataset.ctx, bid=el.dataset.bid, dir=parseInt(el.dataset.dir);
+    const planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
+    const allBlocks=ctx==='session'
+      ?Object.entries(S.sessionPlans[planId]?.blocks||{})
+      :Object.entries(S.programs[pid]?.days?.[did]?.blocks||{});
+    const sorted=allBlocks.sort((a,b)=>(a[1].order??0)-(b[1].order??0));
+    const idx=sorted.findIndex(([id])=>id===bid);
+    const swapIdx=idx+dir;
+    if(swapIdx<0||swapIdx>=sorted.length) return;
+    const [bidA,blockA]=sorted[idx];
+    const [bidB,blockB]=sorted[swapIdx];
+    const oA=blockA.order??idx;
+    const oB=blockB.order??swapIdx;
+    if(ctx==='session'){
+      await updateBlockInPlan(planId,bidA,{order:oB});
+      await updateBlockInPlan(planId,bidB,{order:oA});
+    } else {
+      await saveBlockToDay(pid,did,bidA,{order:oB});
+      await saveBlockToDay(pid,did,bidB,{order:oA});
+    }
+    render();
   }
   else if(a==='toggleblock'){
     const key=el.dataset.colkey;
