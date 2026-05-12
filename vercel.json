@@ -1,6 +1,5 @@
 {
-  "buildCommand": "",
   "outputDirectory": ".",
-  "installCommand": "",
-  "framework": null
+  "framework": null,
+  "installCommand": "npm install"
 }

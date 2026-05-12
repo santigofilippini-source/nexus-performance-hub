@@ -306,7 +306,7 @@ function getCatColor(cat=S.cat, tid=S.teamId) {
 }
 function athleteKey(teamId=S.teamId, catId=S.cat, pid) { return `${teamId}__${catId}__${pid}`; }
 
-// ── Detect invite token from URL ──────────────────────────────
+// ── Detect invite token / Stripe redirect from URL ────────────
 (function(){
   const params=new URLSearchParams(window.location.search);
   const tok=params.get('invite');
@@ -317,6 +317,9 @@ function athleteKey(teamId=S.teamId, catId=S.cat, pid) { return `${teamId}__${ca
     // Switch to register tab by default for invite flow
     setTimeout(()=>switchLoginTab('register'),0);
   }
+  const upgrade=params.get('upgrade');
+  if(upgrade==='success') S.upgradeSuccess=params.get('tier')||'pro';
+  if(upgrade) window.history.replaceState({},'',window.location.pathname);
 })();
 
 // ── Login tab switch ──────────────────────────────────────────
@@ -403,6 +406,35 @@ async function doRegister() {
 }
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();});
 function doLogout(){showConfirm('¿Cerrar sesión?',()=>auth.signOut());}
+
+// ── Stripe checkout ───────────────────────────────────────────
+async function startCheckout(tid, tier) {
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teamId: tid, tier, idToken }),
+    });
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+    else showAlert('Error al iniciar el pago. Intentá de nuevo.');
+  } catch { showAlert('Error de conexión. Intentá de nuevo.'); }
+}
+
+async function openCustomerPortal(tid) {
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch('/api/customer-portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teamId: tid, idToken }),
+    });
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+    else showAlert('Error al abrir el portal.');
+  } catch { showAlert('Error de conexión.'); }
+}
 
 // ── Firebase Storage ──────────────────────────────────────────
 function setSyncBar(status, msg) {
@@ -1816,6 +1848,7 @@ function render(){
   if(S.videoModal) renderVideoModal();
   if(S.upgradeModal) renderUpgradeModal();
   if(S.subscriptionModal) renderSubscriptionModal();
+  if(S.upgradeSuccess){ showAlert(`✓ ¡Bienvenido a ${S.upgradeSuccess==='elite'?'Elite':'Pro'}! Tu plan ya está activo.`); S.upgradeSuccess=null; }
 }
 
 // ── PROGRAMS VIEW ────────────────────────────────────────────
@@ -2153,6 +2186,54 @@ function renderTeamForm(){
   </div>`;
 }
 
+// ── Subscription badge + upgrade button ──────────────────────
+function renderSubscriptionBtn(tid){
+  const sub = S.teams[tid]?.subscription || {};
+  const tier = sub.manualOverride ? sub.tier : (sub.tier||'free');
+  const TIER_COLORS = { free:'#64748b', pro:'#f97316', elite:'#8b5cf6' };
+  const TIER_LABELS = { free:'Free', pro:'Pro', elite:'Elite' };
+  const color = TIER_COLORS[tier] || TIER_COLORS.free;
+  const label = TIER_LABELS[tier] || 'Free';
+  const hasSub = !!sub.stripeSubscriptionId;
+  const btn = hasSub
+    ? `<button onclick="openCustomerPortal('${tid}')" style="font-size:11px;padding:3px 8px;border-radius:8px;border:1px solid ${color};color:${color};background:transparent;cursor:pointer;font-weight:600;">${label}</button>`
+    : tier==='free'
+      ? `<button onclick="openUpgradePanel('${tid}')" style="font-size:11px;padding:3px 8px;border-radius:8px;border:none;background:${color};color:#fff;cursor:pointer;font-weight:600;">Actualizar</button>`
+      : `<span style="font-size:11px;padding:3px 8px;border-radius:8px;background:${color}22;color:${color};font-weight:600;">${label}</span>`;
+  return btn;
+}
+
+function openUpgradePanel(tid){
+  S.upgradePanel = S.upgradePanel===tid ? null : tid;
+  render();
+}
+
+function renderUpgradePanel(tid){
+  if(S.upgradePanel!==tid) return '';
+  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin:0 16px 12px;">
+    <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Actualizar plan</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px;">Elegí el plan que mejor se adapta a tu equipo.</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="border:1.5px solid #f97316;border-radius:10px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-weight:600;color:#f97316;">Pro</span>
+          <span style="font-size:15px;font-weight:700;">$9<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Hasta 2 equipos · 3 categorías · 20 jugadores · Exportar PDF</div>
+        <button onclick="startCheckout('${tid}','pro')" style="width:100%;padding:9px;border-radius:8px;border:none;background:#f97316;color:#fff;font-weight:600;cursor:pointer;">Suscribirse a Pro</button>
+      </div>
+      <div style="border:1.5px solid #8b5cf6;border-radius:10px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-weight:600;color:#8b5cf6;">Elite</span>
+          <span style="font-size:15px;font-weight:700;">$25<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Equipos, categorías y jugadores ilimitados · Todo Pro + branding</div>
+        <button onclick="startCheckout('${tid}','elite')" style="width:100%;padding:9px;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;cursor:pointer;">Suscribirse a Elite</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 // ── TEAM VIEW: Categories list ────────────────────────────────
 function renderTeamView(){
   const t=getTeam();
@@ -2182,6 +2263,7 @@ function renderTeamView(){
       ${isOwner()?`<button class="sec-action-btn" data-action="editteam" title="Editar equipo">
         ${_svgH('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>')}
       </button>`:''}
+      ${isOwner()?renderSubscriptionBtn(S.teamId):''}
     </div>
   </div>`;
 
@@ -2225,6 +2307,7 @@ function renderTeamView(){
   return header+`<div class="wrap">
     ${S.accessPanel&&isOwner()?renderAccessPanel(S.teamId):''}
     ${S.athleteInvitePanel&&!isOwner()&&myRole()==='editor'?renderAthleteInvitePanel(S.teamId):''}
+    ${isOwner()?renderUpgradePanel(S.teamId):''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div style="font-size:13px;font-weight:600;color:var(--text2);">CATEGORÍAS</div>
       ${(isOwner()||myRole()==='editor')?`<button class="add-btn" data-action="newcat">+ Nueva categoría</button>`:''}
