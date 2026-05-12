@@ -2173,6 +2173,7 @@ function renderCatHeader(){
   const role=myRole();
   const rolePill=role&&role!=='owner'?`<span class="role-pill ${role==='editor'?'role-editor':'role-viewer'}">${role==='editor'?'Staff':'Observador'}</span>`:'';
   const svg=(d)=>`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="${d}"/></svg>`;
+  const svg16=(paths)=>`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
   const tabs=[
     {id:'attend',label:'Asistencia',icon:'M22 12h-4l-3 9L9 3l-3 9H2',num:c.players.length},
     {id:'session',label:'Sesión',icon:'M6.5 6.5 17.5 17.5M6.5 17.5 17.5 6.5M3 12h2m14 0h2M7 8v8m10-8v8'},
@@ -2183,12 +2184,13 @@ function renderCatHeader(){
   ];
   return`<div class="cat-wrap" style="padding-bottom:0;">
     <div class="q-section-h">
+      <button class="sec-back-btn" data-action="backtoTeam" title="${getTeam().name||'Equipo'}">${svg('m15 6-6 6 6 6')}</button>
       <div class="q-section-h__l">
         <h2>${catName} ${rolePill}</h2>
-        <p>${c.players.length} jugadores en plantel${isOwner()?` · <button class="sm-btn" style="padding:1px 7px;font-size:10px;" data-action="editcurrentcat">⚙ Editar</button>`:''}</p>
+        <p>${c.players.length} jugadores en plantel</p>
       </div>
       <div class="q-section-h__r">
-        <button class="q-btn q-btn--ghost q-btn--sm" data-action="backtoTeam">${svg('m15 6-6 6 6 6')} ${getTeam().name||'Equipo'}</button>
+        ${isOwner()?`<button class="sec-action-btn" data-action="editcurrentcat" title="Editar categoría">${svg16('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>')}</button>`:''}
         ${canEdit()&&S.tab==='attend'?`<button class="q-btn q-btn--primary q-btn--sm" data-action="save">Guardar asistencia</button>`:''}
       </div>
     </div>
@@ -2255,8 +2257,8 @@ function renderAttend(){
     <div class="q-date">
       <button class="q-date__btn" data-action="prevday">${svg('m15 6-6 6 6 6')}</button>
       <div class="q-date__main">
-        <span class="d">${dateStr}</span>
-        <span class="dow"><input type="date" value="${S.date}" id="date-input"></span>
+        <span class="d">${dateStr} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.35;vertical-align:middle;margin-left:2px;"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+        <input type="date" value="${S.date}" id="date-input" class="q-date__picker">
       </div>
       <button class="q-date__btn" data-action="nextday">${svg('m9 6 6 6-6 6')}</button>
     </div>
@@ -2317,8 +2319,8 @@ function renderSession(){
     <div class="q-date">
       <button class="q-date__btn" data-action="prevday">${svg('m15 6-6 6 6 6')}</button>
       <div class="q-date__main">
-        <span class="d">${dateStr}</span>
-        <span class="dow"><input type="date" value="${S.date}" id="date-input"></span>
+        <span class="d">${dateStr} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.35;vertical-align:middle;margin-left:2px;"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+        <input type="date" value="${S.date}" id="date-input" class="q-date__picker">
       </div>
       <button class="q-date__btn" data-action="nextday">${svg('m9 6 6 6-6 6')}</button>
     </div>
