@@ -508,6 +508,15 @@ function updateHeader() {
     if(nameEl){nameEl.textContent=player?.name||S.userProfile?.nombre||currentUser?.email?.split('@')[0]||'';}
     logo.innerHTML='<img src="public/brand/logo-icon.png" style="width:30px;height:30px;object-fit:contain;">';
     logo.style.background='transparent';logo.style.padding='2px';
+    const _searchBtn=document.querySelector('.icon-btn[title="Buscar jugador"]');
+    if(_searchBtn)_searchBtn.style.display='none';
+    const _logoutBtn=document.querySelector('.logout-btn');
+    if(_logoutBtn)_logoutBtn.style.display='none';
+    const _profileBtn=document.getElementById('profile-btn');
+    if(_profileBtn){
+      _profileBtn.innerHTML=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>`;
+      _profileBtn.onclick=openAthleteProfile;
+    }
     return;
   }
   // Display name from profile or email
@@ -5212,6 +5221,31 @@ async function handleAction(e){
   }
 }
 
+function openAthleteProfile(){
+  const existing=document.getElementById('ap-profile-modal');
+  if(existing){existing.remove();return;}
+  const ctx=getAthleteCtx();
+  const team=ctx?S.teams[ctx.tid]:null;
+  const cat=ctx?team?.categories?.[ctx.catId]:null;
+  const player=ctx?(cat?.players||[]).find(p=>p.id===ctx.pid):null;
+  const name=player?.name||S.userProfile?.nombre||currentUser?.email?.split('@')[0]||'—';
+  const initials=name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?';
+  const teamName=team?.name||'—';
+  const catName=cat?.name||'—';
+  const el=document.createElement('div');
+  el.id='ap-profile-modal';
+  el.innerHTML=`
+    <div class="ap-pm-backdrop" onclick="document.getElementById('ap-profile-modal').remove()"></div>
+    <div class="ap-pm-card">
+      <div class="ap-pm-avatar">${initials}</div>
+      <div class="ap-pm-name">${name}</div>
+      <div class="ap-pm-team">${teamName}</div>
+      <div class="ap-pm-cat">${catName}</div>
+      <button class="ap-pm-logout" onclick="doLogout()">Cerrar sesión</button>
+    </div>`;
+  document.body.appendChild(el);
+}
+
 // ── ATHLETE PORTAL ────────────────────────────────────────────
 
 function renderAthletePortal(ctx){
@@ -5223,14 +5257,14 @@ function renderAthletePortal(ctx){
   else if(tab==='attendance') content=renderAthleteAttendance(ctx);
   else if(tab==='progress')   content=renderAthleteProgress(ctx);
   const tabs=[
-    {id:'today',   icon:'☀️', label:'Hoy'},
-    {id:'routines',icon:'💪', label:'Rutinas'},
-    {id:'attendance',icon:'📋',label:'Asistencia'},
-    {id:'progress',icon:'📈',label:'Progreso'},
+    {id:'today',      label:'Hoy',        svg:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`},
+    {id:'routines',   label:'Rutinas',    svg:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="10" width="4" height="4" rx="1.5"/><rect x="18" y="10" width="4" height="4" rx="1.5"/><rect x="5.5" y="8" width="2.5" height="8" rx="1"/><rect x="16" y="8" width="2.5" height="8" rx="1"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`},
+    {id:'attendance', label:'Asistencia', svg:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>`},
+    {id:'progress',   label:'Progreso',   svg:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l4-5 4 3 4-6 4-2"/><path d="M15 7h4v4"/></svg>`},
   ];
   const tabNav=tabs.map(t=>
     `<button class="ap-nav-btn${tab===t.id?' on':''}" data-action="aptab" data-tab="${t.id}">
-      <span class="ap-nav-icon">${t.icon}</span>
+      <span class="ap-nav-icon">${t.svg}</span>
       <span>${t.label}</span>
     </button>`
   ).join('');
