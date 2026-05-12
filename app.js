@@ -1473,6 +1473,7 @@ function getMonthly(players,attendance){
 }
 
 // ── Session state ─────────────────────────────────────────────
+let _plansRef=null, _plansFn=null;
 function loadSession(){
   const cd=getCat();
   const ex=cd.attendance[S.date];
@@ -1487,13 +1488,21 @@ function loadSessionDraft(){
   cd.players.forEach(p=>{S.wellnessDraft[p.id]=w[p.id]?{...w[p.id]}:null;});
   S.wellnessExpanded={};
 }
-async function loadSessionPlans(){
-  const tid=S.teamId, cid=S.cat, date=S.date;
-  if(!tid||!cid||!date) return;
-  try {
-    const snap = await db.ref(`teams/${tid}/categories/${cid}/sessions/${date}/plans`).get();
-    S.sessionPlans = snap.exists() ? (snap.val()||{}) : {};
-  } catch(e){ S.sessionPlans={}; }
+function loadSessionPlans(){
+  if(_plansRef&&_plansFn){_plansRef.off('value',_plansFn);_plansRef=null;_plansFn=null;}
+  const tid=S.teamId,cid=S.cat,date=S.date;
+  if(!tid||!cid||!date){S.sessionPlans={};return Promise.resolve();}
+  const ref=db.ref(`teams/${tid}/categories/${cid}/sessions/${date}/plans`);
+  let resolved=false;
+  return new Promise(resolve=>{
+    _plansFn=snap=>{
+      S.sessionPlans=snap.exists()?(snap.val()||{}):{};
+      if(!resolved){resolved=true;resolve();}
+      else if(S.tab==='session'&&S.sessionSub==='plan')render();
+    };
+    _plansRef=ref;
+    ref.on('value',_plansFn,()=>{S.sessionPlans={};if(!resolved){resolved=true;resolve();}});
+  });
 }
 async function saveAttendance(){
   getCat().attendance[S.date]={...S.sess};
@@ -2206,9 +2215,9 @@ function renderAttend(){
       <button class="q-date__btn" data-action="prevday">${svg('m15 6-6 6 6 6')}</button>
       <div class="q-date__main">
         <span class="d">${dateStr}</span>
-        <span class="dow"><input type="date" value="${S.date}" max="${TODAY}" id="date-input"></span>
+        <span class="dow"><input type="date" value="${S.date}" id="date-input"></span>
       </div>
-      <button class="q-date__btn" data-action="nextday" ${S.date>=TODAY?'disabled':''}>${svg('m9 6 6 6-6 6')}</button>
+      <button class="q-date__btn" data-action="nextday">${svg('m9 6 6 6-6 6')}</button>
     </div>
     ${stDef?`<span style="font-size:12px;color:var(--text-2);padding:4px 8px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);">${stDef.icon} ${stDef.label}</span>`:''}
     ${editable?`<button class="q-btn q-btn--ghost q-btn--sm" data-action="allp">${svg('M20 6 9 17l-5-5')} Todos presente</button>
@@ -2268,9 +2277,9 @@ function renderSession(){
       <button class="q-date__btn" data-action="prevday">${svg('m15 6-6 6 6 6')}</button>
       <div class="q-date__main">
         <span class="d">${dateStr}</span>
-        <span class="dow"><input type="date" value="${S.date}" max="${TODAY}" id="date-input"></span>
+        <span class="dow"><input type="date" value="${S.date}" id="date-input"></span>
       </div>
-      <button class="q-date__btn" data-action="nextday" ${S.date>=TODAY?'disabled':''}>${svg('m9 6 6 6-6 6')}</button>
+      <button class="q-date__btn" data-action="nextday">${svg('m9 6 6 6-6 6')}</button>
     </div>
     <div class="q-att-toggle" style="margin-left:auto;">
       <button class="b${S.sessionSub==='plan'?' on p':''}" data-action="sessionsub" data-sub="plan">Plan</button>
@@ -4520,7 +4529,7 @@ async function handleAction(e){
   else if(a==='allp'){getCat().players.forEach(p=>S.sess[p.id]='P');render();}
   else if(a==='alla'){getCat().players.forEach(p=>S.sess[p.id]='A');render();}
   else if(a==='prevday'){const d=new Date(S.date+'T12:00:00');d.setDate(d.getDate()-1);S.date=d.toISOString().split('T')[0];loadSession();if(S.tab==='session'){loadSessionDraft();if(S.sessionSub==='plan'){S.sessionPlans={};loadSessionPlans().then(()=>render());return;}}render();}
-  else if(a==='nextday'){if(S.date>=TODAY)return;const d=new Date(S.date+'T12:00:00');d.setDate(d.getDate()+1);S.date=d.toISOString().split('T')[0];loadSession();if(S.tab==='session'){loadSessionDraft();if(S.sessionSub==='plan'){S.sessionPlans={};loadSessionPlans().then(()=>render());return;}}render();}
+  else if(a==='nextday'){const d=new Date(S.date+'T12:00:00');d.setDate(d.getDate()+1);S.date=d.toISOString().split('T')[0];loadSession();if(S.tab==='session'){loadSessionDraft();if(S.sessionSub==='plan'){S.sessionPlans={};loadSessionPlans().then(()=>render());return;}}render();}
   else if(a==='save'){await saveAttendance();}
   // SESSION
   else if(a==='teamrpe'){S.sessionDraft.teamRPE=parseInt(el.dataset.rpe);render();}
