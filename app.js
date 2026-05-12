@@ -217,6 +217,7 @@ let S = {
   memberships:{},       // { teamId: {role, permissions, joinedAt} }
   pendingInvite:null,   // token from URL ?invite=
   accessPanel:false,    // show access management in team view
+  athleteInvitePanel:false, // simplified athlete-only invite for editors
   inviteLink:null,      // generated link to copy
   teamMembers:{},       // { teamId: [{uid, email, role, permissions}] }
   teamNotifs:{},        // { teamId: [{id, email, displayName, role, timestamp, read}] }
@@ -1176,6 +1177,43 @@ async function markNotifsRead(tid){
   } catch(e){}
 }
 
+// ── Athlete invite panel (for editors) ───────────────────────
+function renderAthleteInvitePanel(tid){
+  const cats=Object.entries(S.teams[tid]?.categories||{});
+  const form=S.inviteForm;
+  const limitCheck=canInviteMember(tid);
+  if(!limitCheck.ok){
+    return`<div class="access-panel"><div class="access-panel-title">Invitar atleta <button class="sm-btn" data-action="toggleathletesinvite">✕ Cerrar</button></div><div style="font-size:13px;color:var(--text2);padding:8px 0;">Límite de miembros alcanzado para el plan actual.</div></div>`;
+  }
+  const catBtns=cats.map(([cid,cat])=>`<button class="perm-btn ${form.catId===cid?'sel-edit':''}" data-action="setinvitecategory" data-cid="${cid}">${cat.name}</button>`).join('');
+  let playerHtml='';
+  if(form.catId){
+    const players=S.teams[tid]?.categories?.[form.catId]?.players||[];
+    if(players.length){
+      const pBtns=players.map(p=>`<button class="perm-btn ${form.pid===p.id?'sel-edit':''}" style="font-size:11px;" data-action="setinviteplayer" data-pid="${p.id}">${p.name}</button>`).join('');
+      playerHtml=`<div style="margin-top:8px;"><div style="font-size:11px;color:var(--text3);margin-bottom:5px;">Jugador</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${pBtns}</div></div>`;
+    } else {
+      playerHtml=`<div style="font-size:12px;color:var(--text3);margin-top:6px;">Esta categoría no tiene jugadores en el plantel.</div>`;
+    }
+  }
+  const linkSection=S.inviteLink
+    ?`<div style="font-size:12px;color:#86efac;margin-bottom:4px;font-weight:500;">✓ Compartí este link:</div><div class="invite-link-box">${S.inviteLink}</div><button class="save-btn" style="width:100%;padding:8px;font-size:13px;background:var(--bg2);color:var(--accent);border:1px solid var(--accent);" data-action="copyinvitelink">📋 Copiar link</button>`
+    :'';
+  return`<div class="access-panel">
+    <div class="access-panel-title">Invitar atleta <button class="sm-btn" data-action="toggleathletesinvite">✕ Cerrar</button></div>
+    <div class="form-field" style="margin-bottom:8px;"><label>Email del atleta</label>
+      <input type="email" id="inv-email" class="form-input" style="margin:0;padding:8px 10px;font-size:13px;" placeholder="atleta@email.com" value="${form.email||''}">
+    </div>
+    <div style="margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:5px;">Categoría</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;">${catBtns}</div>
+    </div>
+    ${playerHtml}
+    <button class="save-btn" style="width:100%;margin-top:12px;" data-action="sendinvite" data-tid="${tid}">Generar link de invitación</button>
+    ${linkSection}
+  </div>`;
+}
+
 // ── Access panel render ───────────────────────────────────────
 function renderAccessPanel(tid){
   const cats    = Object.entries(S.teams[tid]?.categories||{});
@@ -2110,6 +2148,9 @@ function renderTeamView(){
         ${_svgH('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>')}
         ${unread?`<span class="sec-action-notif">${unread}</span>`:''}
       </button>`:''}
+      ${!isOwner()&&myRole()==='editor'?`<button class="sec-action-btn${S.athleteInvitePanel?' active':''}" data-action="toggleathletesinvite" title="Invitar atleta">
+        ${_svgH('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>')}
+      </button>`:''}
       ${isOwner()?`<button class="sec-action-btn" data-action="editteam" title="Editar equipo">
         ${_svgH('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>')}
       </button>`:''}
@@ -2155,6 +2196,7 @@ function renderTeamView(){
 
   return header+`<div class="wrap">
     ${S.accessPanel&&isOwner()?renderAccessPanel(S.teamId):''}
+    ${S.athleteInvitePanel&&!isOwner()&&myRole()==='editor'?renderAthleteInvitePanel(S.teamId):''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div style="font-size:13px;font-weight:600;color:var(--text2);">CATEGORÍAS</div>
       ${(isOwner()||myRole()==='editor')?`<button class="add-btn" data-action="newcat">+ Nueva categoría</button>`:''}
@@ -4795,6 +4837,13 @@ async function handleAction(e){
     }catch(e){ showAlert('Error al regenerar invitación.'); }
   }
   // PERMISSIONS & INVITATIONS
+  else if(a==='toggleathletesinvite'){
+    S.athleteInvitePanel=!S.athleteInvitePanel;
+    S.inviteLink=null;
+    S.inviteForm={role:'athlete',permissions:{},email:'',catId:null,pid:null};
+    if(S.athleteInvitePanel) await loadTeamMembers(S.teamId);
+    render();
+  }
   else if(a==='toggleaccess'){
     S.accessPanel=!S.accessPanel; S.inviteLink=null; S.inviteForm={role:'editor',permissions:{},email:''};
     if(S.accessPanel) await loadTeamMembers(S.teamId||el.dataset.tid);
