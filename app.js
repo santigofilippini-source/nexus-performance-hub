@@ -2101,7 +2101,7 @@ function renderTeamView(){
     ${S.accessPanel&&isOwner()?renderAccessPanel(S.teamId):''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div style="font-size:13px;font-weight:600;color:var(--text2);">CATEGORÍAS</div>
-      ${isOwner()?`<button class="add-btn" data-action="newcat">+ Nueva categoría</button>`:''}
+      ${(isOwner()||myRole()==='editor')?`<button class="add-btn" data-action="newcat">+ Nueva categoría</button>`:''}
     </div>
     ${S.teamFormMode==='edit'?renderTeamForm():''}
     ${S.catFormMode?renderCatForm():''}
@@ -4785,9 +4785,10 @@ async function handleAction(e){
     const cid='cat_'+Date.now();
     const colorIdx=getCats().length%CAT_PALETTE.length;
     if(!S.teams[S.teamId].categories)S.teams[S.teamId].categories={};
-    S.teams[S.teamId].categories[cid]={name,color:CAT_PALETTE[colorIdx],players:[],attendance:{},sessions:{}};
+    const newCatData={name,color:CAT_PALETTE[colorIdx],players:[],attendance:{},sessions:{}};
+    S.teams[S.teamId].categories[cid]=newCatData;
     S.catFormMode=null; render();
-    try { await persistTeam(S.teamId); } catch(e){ setSyncBar('error','Error al crear la categoría'); }
+    try { await db.ref(`teams/${S.teamId}/categories/${cid}`).set(newCatData); setSyncBar('ok'); } catch(e){ setSyncBar('error','Error al crear la categoría'); }
   }
   else if(a==='saveeditcat'){
     const name=document.getElementById('cf-name')?.value.trim();
