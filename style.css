@@ -868,6 +868,7 @@ body.is-auth.athlete #mob-tabbar{display:none!important}
 .ap-block-head{padding:7px 14px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
 .ap-exercise{padding:7px 14px;border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:baseline;gap:8px}
 .ap-exercise-name{font-size:13px;color:var(--text-1);flex:1}
+.ap-vid-btn{font-size:10px;padding:2px 7px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);cursor:pointer;margin-left:5px;vertical-align:middle;font-family:var(--font-ui)}
 .ap-exercise-sets{font-size:11px;color:var(--text-3);flex-shrink:0}
 
 /* Progress */

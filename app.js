@@ -5389,8 +5389,10 @@ function renderAthleteRoutines(ctx){
         const exHtml=items.map(([,item])=>{
           const sets=Object.values(item.sets||{});
           const setStr=sets.length?sets.map(s=>formatSetDisplay(s)).filter(s=>s!=='—').slice(0,2).join(' / '):'';
+          const _vidUrl=(DEFAULT_EXERCISES[item.exId]||S.exercises.personal[item.exId]||S.exercises.global[item.exId])?.videoUrl;
+          const _hasVid=_vidUrl&&ytId(_vidUrl);
           return`<div class="ap-exercise">
-            <span class="ap-exercise-name">${item.exName||'Ejercicio'}</span>
+            <span class="ap-exercise-name">${item.exName||'Ejercicio'}${_hasVid?` <button class="ap-vid-btn" data-action="showvideo" data-exid="${item.exId}">▶ Video</button>`:''}</span>
             <span class="ap-exercise-sets">${sets.length}×${setStr?' '+setStr:''}</span>
           </div>`;
         }).join('');
