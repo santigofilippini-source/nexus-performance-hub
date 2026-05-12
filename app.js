@@ -2765,7 +2765,7 @@ function renderSessionWellness(){
       const wellItems=W_KEYS.map(k=>{
         const v=w?.[k]??null;
         const opts=[1,2,3,4,5].map(n=>{const sel=v===n;const nc=wellColor(n);return`<button class="wb${sel?' wsel':''}" style="${sel?`background:${nc};border-color:${nc};color:#fff;`:`border-color:${nc};color:${nc};`}" data-action="wellness" data-pid="${p.id}" data-key="${k}" data-val="${n}">${n}</button>`;}).join('');
-        return`<div class="q-well-item"><span class="wkey">${W_ICONS[k]} ${W_LABELS[k]}</span><div class="wopts">${opts}</div>${v!==null?`<span style="font-size:11px;color:var(--text-2);margin-left:8px;">${W_TIPS[k][v-1]}</span>`:''}</div>`;
+        return`<div class="q-well-item"><span class="wkey">${W_SVGS[k]} ${W_LABELS[k]}</span><div class="wopts">${opts}</div>${v!==null?`<span style="font-size:11px;color:var(--text-2);margin-left:8px;">${W_TIPS[k][v-1]}</span>`:''}</div>`;
       }).join('');
       return`<div class="q-well-row" data-action="togglewellness" data-pid="${p.id}">
         <div class="q-well-head">
