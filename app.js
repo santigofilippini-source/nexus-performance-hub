@@ -976,7 +976,7 @@ function getAthleteCtx(){
 function getAthleteLastSessionDate(ctx){
   const{tid,catId,pid}=ctx;
   const att=S.teams[tid]?.categories?.[catId]?.attendance||{};
-  const dates=Object.keys(att).filter(d=>d<TODAY).sort().reverse();
+  const dates=Object.keys(att).filter(d=>d<=TODAY).sort().reverse();
   for(const d of dates){const s=att[d]?.[pid];if(s==='P'||s==='T')return d;}
   return null;
 }
@@ -1489,6 +1489,24 @@ function loadSessionDraft(){
   const w=ex.wellness||{};
   cd.players.forEach(p=>{S.wellnessDraft[p.id]=w[p.id]?{...w[p.id]}:null;});
   S.wellnessExpanded={};
+}
+async function refreshSessionDraftFromFirebase(){
+  const tid=S.teamId,cid=S.cat,date=S.date;
+  if(!tid||!cid||!date) return;
+  const[rpeSnap,wellSnap]=await Promise.all([
+    db.ref(`teams/${tid}/categories/${cid}/sessions/${date}/playerRPE`).get(),
+    db.ref(`teams/${tid}/categories/${cid}/sessions/${date}/wellness`).get(),
+  ]);
+  const cd=getCat();
+  if(!cd.sessions) cd.sessions={};
+  if(!cd.sessions[date]) cd.sessions[date]={};
+  const rpe=rpeSnap.exists()?rpeSnap.val():{};
+  const well=wellSnap.exists()?wellSnap.val():{};
+  cd.sessions[date].playerRPE=rpe;
+  cd.sessions[date].wellness=well;
+  S.sessionDraft.playerRPE={...rpe};
+  S.wellnessDraft={};
+  cd.players.forEach(p=>{S.wellnessDraft[p.id]=well[p.id]?{...well[p.id]}:null;});
 }
 function loadSessionPlans(){
   if(_plansRef&&_plansFn){_plansRef.off('value',_plansFn);_plansRef=null;_plansFn=null;}
@@ -4619,7 +4637,12 @@ async function handleAction(e){
   else if(a==='reportplayerpid'){S.reportPlayerPid=el.dataset.pid;render();}
   else if(a==='prevreportweek'){S.reportWeekOffset=(S.reportWeekOffset||0)-1;render();}
   else if(a==='nextreportweek'){S.reportWeekOffset=(S.reportWeekOffset||0)+1;render();}
-  else if(a==='sessionsub'){S.sessionSub=el.dataset.sub;if(el.dataset.sub==='plan'){S.sessionPlans={};loadSessionPlans().then(()=>render());}else render();}
+  else if(a==='sessionsub'){
+    S.sessionSub=el.dataset.sub;
+    if(el.dataset.sub==='plan'){S.sessionPlans={};loadSessionPlans().then(()=>render());}
+    else if(el.dataset.sub==='load'||el.dataset.sub==='wellness'){refreshSessionDraftFromFirebase().then(()=>render());}
+    else render();
+  }
   else if(a==='rpemode'){S.rpeMode=el.dataset.mode;render();}
   else if(a==='sessiontype'){S.sessionDraft.sessionType=el.dataset.type;render();}
   else if(a==='cancelsearch'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;S.searchReturnView=null;S.searchReturnTeamId=null;render();}
@@ -5503,9 +5526,9 @@ function renderAthleteToday(ctx){
     </div>
     <div class="ap-well-card">
       <div class="ap-well-card__h">
-        <h3>RPE — Última sesión</h3>
+        <h3>${lastDate===TODAY?'RPE — Sesión de hoy':'RPE — Última sesión'}</h3>
         <div style="display:flex;align-items:center;gap:8px;">
-          ${lastDate?`<span style="font-size:11px;color:var(--text-2);">${fmtDate(lastDate)}</span>`:''}
+          ${lastDate&&lastDate!==TODAY?`<span style="font-size:11px;color:var(--text-2);">${fmtDate(lastDate)}</span>`:''}
           ${rpeSavedBadge}
         </div>
       </div>
