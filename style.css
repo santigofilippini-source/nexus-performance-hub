@@ -801,6 +801,14 @@ body.is-auth.athlete #mob-tabbar{display:none!important}
 .ap-pm-logout:active{background:var(--bg-4)}
 
 /* Wellness check-in cards */
+/* Today's routine banner */
+.ap-today-banner{margin:8px 16px;background:var(--bg-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-2);overflow:hidden}
+.ap-today-banner__head{display:flex;align-items:center;gap:7px;padding:10px 14px 4px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.ap-today-plan{padding:3px 14px 8px}
+.ap-today-plan__name{font-size:14px;font-weight:600;color:var(--text-0)}
+.ap-today-plan__meta{font-size:11px;color:var(--text-2);margin-top:2px}
+.ap-today-banner__btn{width:100%;padding:10px 14px;background:transparent;border:none;border-top:1px solid var(--line);color:var(--accent);font-size:13px;font-weight:600;text-align:left;cursor:pointer;font-family:var(--font-ui);display:block}
+.ap-today-banner__btn:active{background:var(--bg-3)}
 .ap-well-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);margin:10px 16px}
 .ap-well-card__h{
   padding:11px 16px;border-bottom:1px solid var(--line);

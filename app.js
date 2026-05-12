@@ -5313,6 +5313,26 @@ function renderAthleteToday(ctx){
   const _mes=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const dateStr=`${_dias[_n.getDay()]} ${_n.getDate()} de ${_mes[_n.getMonth()]}`;
 
+  // Today's routine banner
+  const todayPlans=Object.entries(sess.plans||{}).filter(([,p])=>p.assignedToAll||p.assignedTo?.[pid]);
+  let routineBanner='';
+  if(todayPlans.length){
+    const planItems=todayPlans.map(([,plan])=>{
+      const blockCount=Object.keys(plan.blocks||{}).length;
+      const exCount=Object.values(plan.blocks||{}).reduce((a,b)=>a+Object.keys(b.items||{}).length,0);
+      return`<div class="ap-today-plan">
+        <div class="ap-today-plan__name">${plan.name||'Plan de entrenamiento'}</div>
+        <div class="ap-today-plan__meta">${blockCount} bloque${blockCount!==1?'s':''} · ${exCount} ejercicio${exCount!==1?'s':''}</div>
+      </div>`;
+    }).join('');
+    const dumbbell=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="10" width="4" height="4" rx="1.5"/><rect x="18" y="10" width="4" height="4" rx="1.5"/><rect x="5.5" y="8" width="2.5" height="8" rx="1"/><rect x="16" y="8" width="2.5" height="8" rx="1"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
+    routineBanner=`<div class="ap-today-banner">
+      <div class="ap-today-banner__head">${dumbbell}<span>Entrenamiento de hoy</span></div>
+      ${planItems}
+      <button class="ap-today-banner__btn" data-action="aptab" data-tab="routines">Ver rutina completa →</button>
+    </div>`;
+  }
+
   // Wellness rows
   const allWFilled=W_KEYS.every(k=>ci[k]!=null);
   const wVals=W_KEYS.map(k=>ci[k]).filter(v=>v!=null);
@@ -5343,6 +5363,7 @@ function renderAthleteToday(ctx){
 
   return`<div style="padding-top:4px;">
     <div style="padding:10px 16px 2px;font-size:12px;color:var(--text-2);">${dateStr}</div>
+    ${routineBanner}
     <div class="ap-well-card">
       <div class="ap-well-card__h">
         <h3>Cómo me siento hoy</h3>
