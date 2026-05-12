@@ -351,16 +351,34 @@ auth.onAuthStateChanged(async user => {
   }
 });
 
+let _loginFails=0, _loginCooldownUntil=0;
 async function doLogin() {
   const email=document.getElementById('email-input').value.trim();
   const pass=document.getElementById('pass-input').value;
   const btn=document.getElementById('login-btn');
   const err=document.getElementById('login-err');
+  const remaining=Math.ceil((_loginCooldownUntil-Date.now())/1000);
+  if(remaining>0){err.textContent=`Demasiados intentos. Esperá ${remaining}s.`;return;}
   if(!email||!pass){err.textContent='Ingresá email y contraseña.';return;}
   btn.disabled=true; btn.textContent='Ingresando...'; err.textContent='';
-  try { await auth.signInWithEmailAndPassword(email,pass); }
-  catch(e) {
-    const msgs={'auth/user-not-found':'Usuario no encontrado.','auth/wrong-password':'Contraseña incorrecta.','auth/invalid-credential':'Email o contraseña incorrectos.','auth/too-many-requests':'Demasiados intentos.'};
+  try {
+    await auth.signInWithEmailAndPassword(email,pass);
+    _loginFails=0;
+  } catch(e) {
+    _loginFails++;
+    if(_loginFails>=5){
+      _loginCooldownUntil=Date.now()+30000;
+      _loginFails=0;
+      let secs=30;
+      const tick=setInterval(()=>{
+        secs--;
+        if(secs<=0){clearInterval(tick);btn.disabled=false;btn.textContent='Iniciar sesión';err.textContent='';}
+        else{err.textContent=`Demasiados intentos. Esperá ${secs}s.`;}
+      },1000);
+      err.textContent='Demasiados intentos. Esperá 30s.';
+      return;
+    }
+    const msgs={'auth/user-not-found':'Usuario no encontrado.','auth/wrong-password':'Contraseña incorrecta.','auth/invalid-credential':'Email o contraseña incorrectos.','auth/too-many-requests':'Demasiados intentos. Intentá más tarde.'};
     err.textContent=msgs[e.code]||'Error: '+e.message;
     btn.disabled=false; btn.textContent='Iniciar sesión';
   }
