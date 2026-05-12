@@ -232,7 +232,8 @@ let S = {
   athleteCheckin:null,     // draft: { sleep,fatigue,soreness,stress,mood,rpe,rpeDate }
   athleteCollapsed:{},     // blockCollapseKey → true
   athleteCalOffset:0,      // months from current (0=now, -1=last month…)
-  athleteLogMode:null,     // null | { date, planId }
+  athleteLogMode:null,        // null | { date, planId }
+  athleteRoutineDayOffset:0,  // offset de días desde TODAY en tab Rutinas
 };
 
 // ── Admin ──────────────────────────────────────────────────────
@@ -4795,6 +4796,11 @@ async function handleAction(e){
     S.athleteCalOffset=Math.min(0,(S.athleteCalOffset||0)+parseInt(el.dataset.dir));
     render();
   }
+  else if(a==='aproutineday'){
+    S.athleteRoutineDayOffset=(S.athleteRoutineDayOffset||0)+parseInt(el.dataset.dir);
+    S.athleteLogMode=null;
+    render();
+  }
   else if(a==='aplogsession'){
     S.athleteLogMode={date:el.dataset.date,planId:el.dataset.planid};
     render();
@@ -5518,75 +5524,77 @@ function renderAthleteToday(ctx){
 function renderAthleteRoutines(ctx){
   const{tid,catId,pid}=ctx;
   const sessions=S.teams[tid]?.categories?.[catId]?.sessions||{};
-  const result=[];
-  for(let i=-7;i<=7;i++){
-    const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()+i);
-    const date=d.toISOString().split('T')[0];
-    const sess=sessions[date];
-    if(!sess?.plans) continue;
-    const myPlans=Object.entries(sess.plans).filter(([_,plan])=>plan.assignedToAll||plan.assignedTo?.[pid]);
-    if(myPlans.length) result.push({date,plans:myPlans});
+  const offset=S.athleteRoutineDayOffset||0;
+  const d=new Date(TODAY+'T12:00:00');
+  d.setDate(d.getDate()+offset);
+  const date=d.toISOString().split('T')[0];
+  const isToday=date===TODAY,isFuture=date>TODAY;
+  const DAY_NAMES=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const dateLabel=`${DAY_NAMES[d.getDay()]} ${String(d.getDate()).padStart(2,'0')} ${MES[d.getMonth()]}`;
+  const svgL=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>`;
+  const svgR=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>`;
+  const todayDot=!isToday?`<button class="ap-day-nav__today" data-action="aproutineday" data-dir="${-offset}" title="Volver a hoy">Hoy</button>`:'';
+  const navBar=`<div class="ap-day-nav">
+    <button class="ap-day-nav__btn" data-action="aproutineday" data-dir="-1">${svgL}</button>
+    <div class="ap-day-nav__center">
+      <span class="ap-day-nav__date">${dateLabel}</span>
+      ${isToday?`<span class="ap-day-nav__badge">HOY</span>`:isFuture?`<span class="ap-day-nav__badge ap-day-nav__badge--dim">Próximo</span>`:`<span class="ap-day-nav__badge ap-day-nav__badge--dim">Pasado</span>`}
+    </div>
+    <button class="ap-day-nav__btn" data-action="aproutineday" data-dir="1">${svgR}</button>
+  </div>${todayDot?`<div style="display:flex;justify-content:center;padding:0 0 4px;">${todayDot}</div>`:''}`;
+  const myPlans=sessions[date]?.plans?Object.entries(sessions[date].plans).filter(([,plan])=>plan.assignedToAll||plan.assignedTo?.[pid]):[];
+  if(!myPlans.length){
+    return`<div style="padding-top:8px;">${navBar}<div class="q-empty-state" style="padding:32px 20px;">
+      <div style="font-size:32px;margin-bottom:10px;">📋</div>
+      <div style="font-weight:600;margin-bottom:4px;">${isToday?'Sin rutina hoy':isFuture?'Sin rutina asignada':'Sin rutina este día'}</div>
+      <div style="font-size:13px;color:var(--text-2);">Tu coach no asignó planes para este día.</div>
+    </div></div>`;
   }
-  if(!result.length){
-    return`<div class="q-empty-state" style="padding:40px 20px;">
-      <div style="font-size:36px;margin-bottom:12px;">💪</div>
-      <div style="font-weight:600;margin-bottom:4px;">Sin planes asignados</div>
-      <div style="font-size:13px;color:var(--text-2);">Tu coach no te asignó rutinas en los próximos 7 días.</div>
-    </div>`;
-  }
-  const cards=result.map(({date,plans})=>{
-    const isToday=date===TODAY,isFuture=date>TODAY;
-    const dateBadge=isToday
-      ?`<span style="background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;">HOY</span>`
-      :isFuture
-        ?`<span style="background:var(--bg-4);color:var(--text-2);font-size:10px;padding:1px 8px;border-radius:20px;">Próximo</span>`
-        :`<span style="background:var(--bg-3);color:var(--text-2);font-size:10px;padding:1px 8px;border-radius:20px;">Pasado</span>`;
-    return plans.map(([planId,plan])=>{
-      const blocks=Object.entries(plan.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
-      const existingLog=sessions[date]?.workoutLog?.[pid]?.[planId]||null;
-      const isLogging=S.athleteLogMode?.date===date&&S.athleteLogMode?.planId===planId;
-      const blocksHtml=blocks.map(([bid,block])=>{
-        const bInfo=blockTypeInfo(block.type);
-        const collapseKey=`${date}_${bid}`;
-        const isCollapsed=!!S.athleteCollapsed[collapseKey];
-        const items=Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
-        const exHtml=items.map(([,item])=>{
-          const sets=Object.values(item.sets||{}).sort((a,b)=>(a.order||0)-(b.order||0));
-          const setStr=formatAthleteSetStr(sets);
-          const _vidUrl=(DEFAULT_EXERCISES[item.exId]||S.exercises.personal[item.exId]||S.exercises.global[item.exId])?.videoUrl;
-          const _hasVid=_vidUrl&&ytId(_vidUrl);
-          return`<div class="ap-exercise">
-            <div class="ap-ex-top">
-              <span class="ap-exercise-name">${item.exName||'Ejercicio'}</span>
-              ${_hasVid?`<button class="ap-vid-btn" data-action="showvideo" data-exid="${item.exId}">▶ Video</button>`:''}
-            </div>
-            ${setStr?`<div class="ap-ex-detail">${setStr}</div>`:''}
-          </div>`;
-        }).join('');
-        const chevron=`<svg class="ap-block-chevron${isCollapsed?'':' open'}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
-        const countBadge=isCollapsed?`<span class="ap-block-count">${items.length} ejercicio${items.length!==1?'s':''}</span>`:'';
-        return`<div class="ap-block">
-          <div class="ap-block-head" data-action="aptoggleblock" data-bkey="${collapseKey}" style="color:${bInfo.color};">
-            <span>${bInfo.label}${block.name&&block.name!==bInfo.label?' · '+block.name:''}</span>
-            <div style="display:flex;align-items:center;gap:6px;">${countBadge}${chevron}</div>
+  const cards=myPlans.map(([planId,plan])=>{
+    const blocks=Object.entries(plan.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+    const existingLog=sessions[date]?.workoutLog?.[pid]?.[planId]||null;
+    const isLogging=S.athleteLogMode?.date===date&&S.athleteLogMode?.planId===planId;
+    const blocksHtml=blocks.map(([bid,block])=>{
+      const bInfo=blockTypeInfo(block.type);
+      const collapseKey=`${date}_${bid}`;
+      const isCollapsed=!!S.athleteCollapsed[collapseKey];
+      const items=Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+      const exHtml=items.map(([,item])=>{
+        const sets=Object.values(item.sets||{}).sort((a,b)=>(a.order||0)-(b.order||0));
+        const setStr=formatAthleteSetStr(sets);
+        const _vidUrl=(DEFAULT_EXERCISES[item.exId]||S.exercises.personal[item.exId]||S.exercises.global[item.exId])?.videoUrl;
+        const _hasVid=_vidUrl&&ytId(_vidUrl);
+        return`<div class="ap-exercise">
+          <div class="ap-ex-top">
+            <span class="ap-exercise-name">${item.exName||'Ejercicio'}</span>
+            ${_hasVid?`<button class="ap-vid-btn" data-action="showvideo" data-exid="${item.exId}">▶ Video</button>`:''}
           </div>
-          ${isCollapsed?'':exHtml}
+          ${setStr?`<div class="ap-ex-detail">${setStr}</div>`:''}
         </div>`;
       }).join('');
-      const loggedBadge=existingLog&&!isLogging?`<span style="font-size:10px;background:#052e16;color:#22c55e;padding:2px 8px;border-radius:20px;font-weight:600;flex-shrink:0;">✓ Reg.</span>`:'';
-      const logBtn=date===TODAY&&!isLogging
-        ?`<div class="ap-plan-log-bar"><button class="${existingLog?'ap-log-edit-btn':'ap-log-start-btn'}" data-action="aplogsession" data-date="${date}" data-planid="${planId}">${existingLog?'✏ Editar registro':'Registrar sesión'}</button></div>`
-        :'';
-      return`<div class="ap-plan-card">
-        <div class="ap-plan-head">
-          <span class="ap-plan-name">${plan.name||'Plan de entrenamiento'}</span>
-          <div style="display:flex;align-items:center;gap:6px;">${loggedBadge}${dateBadge}<span class="ap-plan-date">${fmtDate(date)}</span></div>
+      const chevron=`<svg class="ap-block-chevron${isCollapsed?'':' open'}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
+      const countBadge=isCollapsed?`<span class="ap-block-count">${items.length} ejercicio${items.length!==1?'s':''}</span>`:'';
+      return`<div class="ap-block">
+        <div class="ap-block-head" data-action="aptoggleblock" data-bkey="${collapseKey}" style="color:${bInfo.color};">
+          <span>${bInfo.label}${block.name&&block.name!==bInfo.label?' · '+block.name:''}</span>
+          <div style="display:flex;align-items:center;gap:6px;">${countBadge}${chevron}</div>
         </div>
-        ${isLogging?renderAthleteLogForm(blocks,date,planId,existingLog):blocksHtml+logBtn}
+        ${isCollapsed?'':exHtml}
       </div>`;
     }).join('');
+    const loggedBadge=existingLog&&!isLogging?`<span style="font-size:10px;background:#052e16;color:#22c55e;padding:2px 8px;border-radius:20px;font-weight:600;flex-shrink:0;">✓ Reg.</span>`:'';
+    const logBtn=isToday&&!isLogging
+      ?`<div class="ap-plan-log-bar"><button class="${existingLog?'ap-log-edit-btn':'ap-log-start-btn'}" data-action="aplogsession" data-date="${date}" data-planid="${planId}">${existingLog?'✏ Editar registro':'Registrar sesión'}</button></div>`
+      :'';
+    return`<div class="ap-plan-card">
+      <div class="ap-plan-head">
+        <span class="ap-plan-name">${plan.name||'Plan de entrenamiento'}</span>
+        <div style="display:flex;align-items:center;gap:6px;">${loggedBadge}</div>
+      </div>
+      ${isLogging?renderAthleteLogForm(blocks,date,planId,existingLog):blocksHtml+logBtn}
+    </div>`;
   }).join('');
-  return`<div style="padding-top:8px;">${cards}</div>`;
+  return`<div style="padding-top:8px;">${navBar}${cards}</div>`;
 }
 
 function renderAthleteLogForm(blocks,date,planId,existingLog){
