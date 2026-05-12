@@ -24,6 +24,14 @@ const RPE_FG = ['#fff','#fff','#000','#fff','#fff','#fff','#fff','#fff','#fff','
 const W_KEYS   = ['sleep','fatigue','soreness','stress','mood'];
 const W_ICONS  = {sleep:'😴',fatigue:'⚡',soreness:'🤕',stress:'🧘',mood:'😊'};
 const W_LABELS = {sleep:'Sueño',fatigue:'Energía',soreness:'Dolor musc.',stress:'Estrés',mood:'Ánimo'};
+const _S=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">`;
+const W_SVGS={
+  sleep:   _S+`<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
+  fatigue: _S+`<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+  soreness:_S+`<path d="M8.5 18c.7 1.5 2.3 2.5 4.2 2.1 1.7-.4 3-2 2.8-3.8-.1-1.2-.8-2.2-1.8-2.8"/><path d="M8.5 18C7 16.4 6.7 13.5 8 10.8L11 5.5c.9-1.7 3.1-2 4.6-.8.7.6 1.1 1.6.9 2.6-.3 1.3-1.6 2-2.9 1.7"/><path d="M13.6 9c1.9 0 3.7-1.5 3.4-3.8-.2-1.5-1.5-2.6-3.1-2.7"/></svg>`,
+  stress:  _S+`<path d="M9.5 3C7.6 3 6 4.5 6 6.5c0 1.1.5 2.1 1.3 2.8C6.5 10.2 6 11.5 6 13c0 3 2.7 5 6 5s6-2 6-5c0-1.5-.5-2.8-1.3-3.7.8-.7 1.3-1.7 1.3-2.8C18 4.5 16.4 3 14.5 3c-.9 0-1.7.4-2.3 1-.6-.6-1.4-1-2.3-1l-.4 0z"/><line x1="12" y1="4" x2="12" y2="18"/><path d="M9 8.5c.5 1.2 1.7 1.8 3 1.8M15 8.5c-.5 1.2-1.7 1.8-3 1.8"/></svg>`,
+  mood:    _S+`<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+};
 const SESSION_TYPES=[{id:'practica',label:'Práctica',icon:'🏃'},{id:'partido',label:'Partido',icon:'⚽'},{id:'libre',label:'Día libre',icon:'😴'},{id:'recuperacion',label:'Recuperación',icon:'🔄'}];
 const ABSENCE_REASONS=[{id:'lesion',label:'Lesión',icon:'🤕'},{id:'illness',label:'Enfermedad',icon:'🤒'},{id:'other',label:'Otro',icon:'📝'}];
 const W_TIPS   = {
@@ -5300,7 +5308,7 @@ function renderAthleteToday(ctx){
     }).join('');
     const tip=v!=null?`<span class="ap-well-tip">${W_TIPS[k][v-1]}</span>`:'';
     return`<div class="ap-well-row">
-      <span class="ap-well-label">${W_ICONS[k]} ${W_LABELS[k]}</span>
+      <span class="ap-well-label">${W_SVGS[k]} ${W_LABELS[k]}</span>
       <div class="ap-well-btns">${btns}</div>${tip}
     </div>`;
   }).join('');
@@ -5466,7 +5474,7 @@ function renderAthleteProgress(ctx){
     const avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):null;
     const color=avg?wellColor(Math.round(parseFloat(avg))):'var(--text-2)';
     return`<div class="ap-well-stat">
-      <div class="ap-well-stat__icon">${W_ICONS[k]}</div>
+      <div class="ap-well-stat__icon">${W_SVGS[k]}</div>
       <div class="ap-well-stat__label">${W_LABELS[k]}</div>
       <div class="ap-well-stat__val" style="color:${color};">${avg||'—'}</div>
     </div>`;
