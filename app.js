@@ -12,6 +12,12 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.database();
 
+// ── Dev logging (silent in production) ────────────────────────
+const IS_DEV = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const devLog = IS_DEV ? console.log.bind(console) : ()=>{};
+const devWarn = IS_DEV ? console.warn.bind(console) : ()=>{};
+const devErr = IS_DEV ? console.error.bind(console) : ()=>{};
+
 // ── Constants ─────────────────────────────────────────────────
 const TODAY = new Date().toISOString().split('T')[0];
 const ALERT_N = 3;
@@ -424,7 +430,7 @@ async function loadAll() {
             // Team data missing from shared space (owner on legacy path)
             S.teams[tid]={ name:'Equipo pendiente de migración', sport:'', categories:{}, _legacyPending:true };
           }
-        } catch(e) { console.warn('Could not load team',tid,e); }
+        } catch(e) { devWarn('Could not load team',tid,e); }
       }));
     }
 
@@ -433,7 +439,7 @@ async function loadAll() {
     if(!Object.keys(S.teams).length){
       const legacySnap = await db.ref(`users/${currentUser.uid}/teams`).get();
       if(legacySnap.exists()){
-        console.warn('Using legacy path fallback — update Firebase rules to enable migration');
+        devWarn('Using legacy path fallback — update Firebase rules to enable migration');
         S.teams = legacySnap.val()||{};
         Object.keys(S.teams).forEach(tid=>{
           normalizeTeam(tid);
@@ -487,7 +493,7 @@ async function loadAll() {
 
     setSyncBar('ok');
   } catch(e) {
-    console.error(e); setSyncBar('error','Error al cargar los datos');
+    devErr(e); setSyncBar('error','Error al cargar los datos');
   }
   updateHeader();
   render();
@@ -865,7 +871,7 @@ async function migrateToSharedSpace(legacyTeams) {
         if(S.teams[tid]) writes[`teams/${tid}/athletes/${key}`]=val;
       });
     }
-  } catch(e) { console.warn('Could not read legacy athletes'); }
+  } catch(e) { devWarn('Could not read legacy athletes'); }
 
   // Step 2: try to write to new shared structure
   // If this fails (e.g. rules), the app still works via the legacy fallback in loadAll
@@ -873,9 +879,9 @@ async function migrateToSharedSpace(legacyTeams) {
     await db.ref().update(writes);
     // Only remove legacy AFTER confirmed write success
     await db.ref(`users/${currentUser.uid}/teams`).remove();
-    console.log('Migration to shared space complete');
+    devLog('Migration to shared space complete');
   } catch(e) {
-    console.warn('Migration write blocked (likely Firebase rules) — app will use legacy path until rules are updated. Error:', e.message);
+    devWarn('Migration write blocked (likely Firebase rules) — app will use legacy path until rules are updated. Error:', e.message);
     // S.teams and S.memberships are already populated above — app continues working
   }
 }
@@ -912,7 +918,7 @@ async function migrateOldData() {
       });
     }
     await db.ref().update(writes);
-  } catch(e) { console.error('Migration failed:',e); S.teams={}; }
+  } catch(e) { devErr('Migration failed:',e); S.teams={}; }
 }
 
 async function persistTeam(tid=S.teamId) {
@@ -924,7 +930,7 @@ async function persistTeam(tid=S.teamId) {
     await db.ref(`teams/${tid}`).update(clean);
     setSyncBar('ok');
   } catch(e) {
-    console.error('persistTeam error:', e.code, e.message, e);
+    devErr('persistTeam error:', e.code, e.message, e);
     setSyncBar('error', e.code||e.message||'Error al guardar');
   }
 }
@@ -938,7 +944,7 @@ async function persistCat(tid=S.teamId, cid=S.cat) {
     await db.ref(`teams/${tid}/categories/${cid}`).update(cat);
     setSyncBar('ok');
   } catch(e) {
-    console.error('persistCat error:', e.code, e.message, e);
+    devErr('persistCat error:', e.code, e.message, e);
     setSyncBar('error', e.code||e.message||'Error al guardar');
   }
 }
@@ -952,7 +958,7 @@ async function saveAthlete(key) {
     await db.ref(`teams/${tid}/athletes/${key}`).set(clean);
     setSyncBar('ok');
   } catch(e) {
-    console.error('saveAthlete error:', e.code, e.message, e);
+    devErr('saveAthlete error:', e.code, e.message, e);
     setSyncBar('error', e.code||e.message||'Error al guardar');
   }
 }
@@ -1009,7 +1015,11 @@ function initAthleteCheckin(ctx){
 }
 
 // ── Invitation system ─────────────────────────────────────────
-function genToken(){ return Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2); }
+function genToken(){
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, b => b.toString(16).padStart(2,'0')).join('');
+}
 
 async function createInvitation(tid, email, role, permissions, extra={}){
   const token = genToken();
@@ -1050,7 +1060,7 @@ async function handlePendingInvite(token){
     S.pendingInviteData={token,...inv};
     S.showInviteModal=true;
     render();
-  } catch(e){ console.error('Error loading invite:',e); }
+  } catch(e){ devErr('Error loading invite:',e); }
 }
 
 async function acceptInvitation(){
@@ -1060,8 +1070,8 @@ async function acceptInvitation(){
   try {
     const isAthlete = role === 'athlete';
     const membershipData = isAthlete
-      ? {role:'athlete', catId:catId||null, pid:pid||null, joinedAt:TODAY}
-      : {role, permissions, joinedAt:TODAY};
+      ? {role:'athlete', catId:catId||null, pid:pid||null, joinedAt:TODAY, _it:token}
+      : {role, permissions, joinedAt:TODAY, _it:token};
     const memberPermData = isAthlete
       ? {role:'athlete', catId:catId||null, pid:pid||null}
       : {role, permissions};
@@ -1097,7 +1107,7 @@ async function acceptInvitation(){
     render();
     const roleLabel=role==='editor'?'Staff':role==='athlete'?'Atleta':'Observador';
     showAlert(`✓ Te uniste a "${inv.teamName}" como ${roleLabel}.`);
-  } catch(e){ console.error('Error accepting invite:',e); showAlert('Error al aceptar la invitación.'); }
+  } catch(e){ devErr('Error accepting invite:',e); showAlert('Error al aceptar la invitación.'); }
 }
 
 async function revokeAccess(tid, memberUid){
@@ -5023,7 +5033,7 @@ async function handleAction(e){
       await db.ref(`teams/${tid}`).set(newTeam);
       setSyncBar('ok');
     } catch(e) {
-      console.error('Error saving team:',e);
+      devErr('Error saving team:',e);
       setSyncBar('error','Error al crear el equipo');
       // Data stays in memory so the session works; will retry on next loadAll
     }
@@ -5049,7 +5059,7 @@ async function handleAction(e){
       try {
         await db.ref(`teams/${tid}`).remove();
         await db.ref(`users/${currentUser.uid}/memberships/${tid}`).remove();
-      } catch(e){ console.error('Error deleting team:',e); setSyncBar('error','Error al eliminar el equipo'); }
+      } catch(e){ devErr('Error deleting team:',e); setSyncBar('error','Error al eliminar el equipo'); }
     });
   }
   else if(a==='leaveteam'){
@@ -5062,7 +5072,7 @@ async function handleAction(e){
         await db.ref(`users/${currentUser.uid}/memberships/${tid}`).remove();
         await db.ref(`teams/${tid}/memberIndex/${currentUser.uid}`).remove();
         await db.ref(`teams/${tid}/memberPermissions/${currentUser.uid}`).remove();
-      }catch(e){console.error('Error leaving team:',e);setSyncBar('error','Error al salir del equipo');}
+      }catch(e){devErr('Error leaving team:',e);setSyncBar('error','Error al salir del equipo');}
     });
   }
   // CATEGORY MANAGEMENT
@@ -5104,7 +5114,7 @@ async function handleAction(e){
       try{
         await db.ref(`teams/${tid}/categories/${cid}`).remove();
         await Promise.all(athleteKeys.map(k=>db.ref(`teams/${tid}/athletes/${k}`).remove()));
-      }catch(e){console.error('Error deleting cat:',e);setSyncBar('error','Error al eliminar la categoría');}
+      }catch(e){devErr('Error deleting cat:',e);setSyncBar('error','Error al eliminar la categoría');}
     });
   }
   // ATHLETE
@@ -6110,5 +6120,5 @@ async function saveAthleteCheckin(ctx){
     showAlert('✓ Check-in guardado');
     S.athleteCheckin=null; // re-init from saved on next render
     render();
-  }catch(e){console.error(e);showAlert('Error al guardar check-in.');}
+  }catch(e){devErr(e);showAlert('Error al guardar check-in.');}
 }
