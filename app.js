@@ -1053,7 +1053,7 @@ async function acceptInvitation(){
     S.pendingInvite=null; S.pendingInviteData=null; S.showInviteModal=false;
     window.history.replaceState({},'',window.location.pathname);
     render();
-    const roleLabel=role==='editor'?'Editor':role==='athlete'?'Atleta':'Lector';
+    const roleLabel=role==='editor'?'Staff':role==='athlete'?'Atleta':'Observador';
     showAlert(`✓ Te uniste a "${inv.teamName}" como ${roleLabel}.`);
   } catch(e){ console.error('Error accepting invite:',e); showAlert('Error al aceptar la invitación.'); }
 }
@@ -1151,7 +1151,7 @@ function renderAccessPanel(tid){
     const rows = notifs.slice(0,8).map(n=>{
       const ts = n.timestamp ? new Date(n.timestamp) : null;
       const ago = ts ? timeSince(ts) : '';
-      const roleLabel = n.role==='editor' ? 'Editor' : 'Lector';
+      const roleLabel = n.role==='editor' ? 'Staff' : 'Observador';
       return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:'+(n.read?'var(--bg2)':'#0c1a2e')+';border-radius:8px;margin-bottom:5px;border:1px solid '+(n.read?'var(--border)':'#1e40af')+';"><span style="font-size:15px;flex-shrink:0;">🎉</span><div style="flex:1;min-width:0;"><div style="font-size:13px;color:var(--text);font-weight:'+(n.read?'400':'600')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(n.displayName||n.email)+'</div><div style="font-size:11px;color:var(--text2);">Aceptó como <strong>'+roleLabel+'</strong></div>'+(ago?'<div style="font-size:10px;color:var(--text3);margin-top:1px;">'+ago+'</div>':'')+'</div></div>';
     }).join('');
     notifsHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Notificaciones'+(unreadCount?' <span style="background:#ef4444;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:4px;">'+unreadCount+' nuevas</span>':'')+'</div>'+(unreadCount?'<button class="sm-btn" data-action="markread" data-tid="'+tid+'" style="font-size:11px;">Marcar leídas</button>':'')+'</div>'+rows+'<div style="border-top:1px solid var(--border);margin:12px 0;"></div>';
@@ -1164,7 +1164,7 @@ function renderAccessPanel(tid){
       const exp = new Date(inv.expiresAt);
       const expired = now > exp;
       const daysLeft = expired ? 0 : Math.ceil((exp-now)/(1000*60*60*24));
-      const roleLabel = inv.role==='editor' ? 'Editor' : 'Lector';
+      const roleLabel = inv.role==='editor' ? 'Staff' : 'Observador';
       const invLink = window.location.origin+window.location.pathname+'?invite='+inv.token;
       const permsStr = JSON.stringify(inv.permissions||{}).replace(/'/g,"&#39;");
       return '<div style="background:var(--bg2);border-radius:8px;padding:9px 10px;margin-bottom:6px;border:1px solid '+(expired?'#7f1d1d':'var(--border')+';">'
@@ -1202,15 +1202,15 @@ function renderAccessPanel(tid){
         +'<button class="sm-btn" data-action="canceleditm">Cancelar</button></div>'
         +'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Rol</div>'
         +'<div style="display:flex;gap:6px;margin-bottom:10px;">'
-        +'<button class="perm-btn '+((draft.role||'editor')==='editor'?'sel-edit':'')+'" data-action="seditmerole" data-uid="'+m.uid+'" data-val="editor">Editor</button>'
-        +'<button class="perm-btn '+((draft.role||'editor')==='viewer'?'sel-view':'')+'" data-action="seditmerole" data-uid="'+m.uid+'" data-val="viewer">Lector</button>'
+        +'<button class="perm-btn '+((draft.role||'editor')==='editor'?'sel-edit':'')+'" data-action="seditmerole" data-uid="'+m.uid+'" data-val="editor">Staff</button>'
+        +'<button class="perm-btn '+((draft.role||'editor')==='viewer'?'sel-view':'')+'" data-action="seditmerole" data-uid="'+m.uid+'" data-val="viewer">Observador</button>'
         +'</div>'
         +(cats.length?'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Permisos por categoría</div>'+catPermRows:'')
         +'<button class="save-btn" style="width:100%;margin-top:10px;padding:8px;font-size:13px;" data-action="savememberchanges" data-tid="'+tid+'" data-uid="'+m.uid+'">Guardar cambios</button>'
         +'</div>';
     }
     const rolePillClass = m.role==='owner'?'role-owner':m.role==='editor'?'role-editor':m.role==='athlete'?'role-editor':'role-viewer';
-    const roleLabel = m.role==='owner'?'Dueño':m.role==='editor'?'Editor':m.role==='athlete'?'Atleta':'Lector';
+    const roleLabel = m.role==='owner'?'Dueño':m.role==='editor'?'Staff':m.role==='athlete'?'Atleta':'Observador';
     const isSelf = m.uid===currentUser.uid;
     const permsStr = JSON.stringify(m.permissions||{}).replace(/'/g,"&#39;");
     return '<div class="member-row">'
@@ -1272,8 +1272,8 @@ function renderAccessPanel(tid){
     +'<input type="email" id="inv-email" class="form-input" style="margin:0;padding:8px 10px;font-size:13px;" placeholder="atleta@email.com" value="'+(form.email||'')+'"></div>'
     +'<div class="form-field" style="margin-bottom:8px;"><label>Rol</label>'
     +'<div style="display:flex;gap:6px;margin-top:4px;">'
-    +'<button class="perm-btn '+((form.role||'editor')==='editor'?'sel-edit':'')+'" data-action="setinviterole" data-val="editor">Editor</button>'
-    +'<button class="perm-btn '+((form.role||'editor')==='viewer'?'sel-view':'')+'" data-action="setinviterole" data-val="viewer">Lector</button>'
+    +'<button class="perm-btn '+((form.role||'editor')==='editor'?'sel-edit':'')+'" data-action="setinviterole" data-val="editor">Staff</button>'
+    +'<button class="perm-btn '+((form.role||'editor')==='viewer'?'sel-view':'')+'" data-action="setinviterole" data-val="viewer">Observador</button>'
     +'<button class="perm-btn '+(form.role==='athlete'?'sel-edit':'')+'" data-action="setinviterole" data-val="athlete">Atleta</button>'
     +'</div></div>'
     +(isAthleteInvite ? athletePickerHtml : (cats.length ? '<div style="font-size:11px;color:var(--text3);margin:8px 0 4px;">Permisos por categoría</div>'+catPerms : ''))
@@ -1287,7 +1287,7 @@ function renderInviteModal(){
   const inv = S.pendingInviteData;
   if(!inv) return '';
   const teamName = inv.teamName||inv.teamId;
-  const role = inv.role==='editor'?'Editor':inv.role==='athlete'?'Atleta':'Lector (solo lectura)';
+  const role = inv.role==='editor'?'Staff':inv.role==='athlete'?'Atleta':'Observador';
   const perms = Object.entries(inv.permissions||{});
   const permDetail = perms.length ? perms.map(([cid,p])=>`<span style="font-size:11px;background:var(--bg2);padding:2px 8px;border-radius:12px;">${cid}: ${p}</span>`).join(' ') : '<span style="font-size:12px;color:var(--text2);">Acceso a todas las categorías</span>';
   return`<div class="invite-modal">
@@ -1903,7 +1903,7 @@ function renderHome(){
     const totalPlayers=cats.reduce((a,cid)=>{const c=t.categories[cid];return a+(Array.isArray(c.players)?c.players.length:Object.keys(c.players||{}).length);},0);
     const color=t.color||CAT_PALETTE[teamIds.indexOf(tid)%CAT_PALETTE.length];
     const role=myRole(tid);
-    const rolePill=role&&role!=='owner'?`<span class="role-pill ${role==='editor'?'role-editor':'role-viewer'}">${role==='editor'?'✏ Editor':'👁 Lector'}</span>`:role==='owner'&&t.ownerId!==currentUser.uid?'':'';
+    const rolePill=role&&role!=='owner'?`<span class="role-pill ${role==='editor'?'role-editor':'role-viewer'}">${role==='editor'?'✏ Staff':'👁 Observador'}</span>`:role==='owner'&&t.ownerId!==currentUser.uid?'':'';
     // Legacy pending: owner hasn't migrated yet
     if(t._legacyPending){
       return`<div class="team-card" style="opacity:.6;cursor:default;border-color:#92400e;">
@@ -2095,7 +2095,7 @@ function renderCatForm(){
 function renderCatHeader(){
   const c=getCat(); const catName=getCatName();
   const role=myRole();
-  const rolePill=role&&role!=='owner'?`<span class="role-pill ${role==='editor'?'role-editor':'role-viewer'}">${role==='editor'?'Editor':'Lector'}</span>`:'';
+  const rolePill=role&&role!=='owner'?`<span class="role-pill ${role==='editor'?'role-editor':'role-viewer'}">${role==='editor'?'Staff':'Observador'}</span>`:'';
   const svg=(d)=>`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="${d}"/></svg>`;
   const tabs=[
     {id:'attend',label:'Asistencia',icon:'M22 12h-4l-3 9L9 3l-3 9H2',num:c.players.length},
