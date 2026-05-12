@@ -205,7 +205,7 @@ let S = {
   planEditSet:null,      // { planId, blockId, itemId, setIdx, field } cell in edit
   planCollapsed:{},      // { 'planId__blockId': true }
   // User profile & logo
-  userProfile:{}, pendingLogo:null, profileView:false,
+  userProfile:{}, pendingLogo:null, pendingAthletePhoto:null, pendingProfilePhoto:null, profileView:false,
   // Permissions & invitations
   memberships:{},       // { teamId: {role, permissions, joinedAt} }
   pendingInvite:null,   // token from URL ?invite=
@@ -648,7 +648,7 @@ function updateSidebarNav(){
   const roleEl=document.getElementById('nx-sidebar-role');
   const n=S.userProfile?.nombre?S.userProfile.nombre:(currentUser?.displayName||currentUser?.email?.split('@')[0]||'—');
   const initials=n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()||'?';
-  if(av)av.textContent=initials;
+  if(av){if(S.userProfile?.photoUrl){av.innerHTML=`<img src="${S.userProfile.photoUrl}" style="width:100%;height:100%;border-radius:inherit;object-fit:cover;">`;av.style.background='transparent';}else{av.textContent=initials;av.style.background='';}}
   const su=document.getElementById('nx-sidebar-user');
   if(su)su.textContent=n;
   if(roleEl){const p=S.userProfile;roleEl.textContent=p?.rol||p?.club||'Preparador físico';}
@@ -769,10 +769,15 @@ function renderAdminPanel(){
 
 function renderProfileView() {
   const p = S.userProfile || {};
+  const photoSrc=S.pendingProfilePhoto||p.photoUrl||'';
+  const avatarInner=photoSrc
+    ?`<img src="${photoSrc}" style="width:56px;height:56px;border-radius:14px;object-fit:cover;">`
+    :`<div style="width:56px;height:56px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;">${p.nombre?p.nombre[0].toUpperCase():'👤'}</div>`;
   return `<div class="wrap">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-      <div style="width:56px;height:56px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;flex-shrink:0;">
-        ${p.nombre?p.nombre[0].toUpperCase():'👤'}
+      <div class="pf-avatar-wrap">
+        ${avatarInner}
+        <label class="pf-avatar-cam" title="Cambiar foto">📷<input type="file" accept="image/*" style="display:none;" onchange="handleProfilePhotoUpload(this)"></label>
       </div>
       <div>
         <div style="font-size:16px;font-weight:600;color:var(--text);">${p.nombre?p.nombre+' '+(p.apellido||''):'Mi perfil'}</div>
@@ -3605,9 +3610,10 @@ function renderAthleteView(){
   if(S.athleteTab==='antro')  content=renderAthleteAntro(a,cid,tid);
   if(S.athleteTab==='tests')  content=renderAthleteTests(a);
   if(S.athleteTab==='entrenamientos') content=renderAthleteWorkoutHistory(tid,cid,pid);
+  const athPhoto=a.personal?.photoUrl;
   return`<div class="ath-header">
     <button class="back-btn" data-action="backfromathlete">← Volver</button>
-    <div class="ath-avatar" style="background:${color};">${initials}</div>
+    <div class="ath-avatar" style="background:${athPhoto?'transparent':color};${athPhoto?'overflow:hidden;padding:0;':''}">${athPhoto?`<img src="${athPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`:initials}</div>
     <div class="ath-name-block">
       <div class="ath-fullname">${player.name}</div>
       <div class="ath-sub">${teamName} · ${catName}${age?' · '+age+' años':''}</div>
@@ -4578,6 +4584,31 @@ function handleLogoUpload(input) {
   reader.readAsDataURL(file);
 }
 
+function _compressPhoto(input,size,quality,onDone){
+  const file=input?.files?.[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      canvas.width=size;canvas.height=size;
+      const ctx=canvas.getContext('2d');
+      const s=Math.min(img.width,img.height);
+      ctx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,size,size);
+      onDone(canvas.toDataURL('image/jpeg',quality));
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function handleAthletePhotoUpload(input){
+  _compressPhoto(input,120,0.72,data=>{S.pendingAthletePhoto=data;openAthleteProfile('edit');});
+}
+function handleProfilePhotoUpload(input){
+  _compressPhoto(input,120,0.72,data=>{S.pendingProfilePhoto=data;render();});
+}
+
 function handleSidebarSearch(val){S.searchQuery=val;if(val.length>1){if(S.view!=='search'){S.prevView=S.view;S.prevTeamId=S.teamId;S.prevCat=S.cat;S.searchReturnView=S.view;S.searchReturnTeamId=S.teamId;}S.view='search';render();}else if(val.length===0&&S.view==='search'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;render();}}
 function attachEvents(){
   document.querySelectorAll('[data-action]').forEach(el=>el.addEventListener('click',handleAction));
@@ -4606,7 +4637,7 @@ function attachEvents(){
 async function handleAction(e){
   const el=e.currentTarget, a=el.dataset.action;
   e.stopPropagation();
-  if(a==='cancelprofile'){S.profileView=false;render();}
+  if(a==='cancelprofile'){S.pendingProfilePhoto=null;S.profileView=false;render();}
   else if(a==='saveprofile'){
     S.userProfile={
       nombre:document.getElementById('pf-nombre')?.value.trim()||'',
@@ -4614,8 +4645,10 @@ async function handleAction(e){
       pais:document.getElementById('pf-pais')?.value||'',
       rol:document.getElementById('pf-rol')?.value||'',
       club:document.getElementById('pf-club')?.value.trim()||'',
-      licencia:document.getElementById('pf-licencia')?.value.trim()||''
+      licencia:document.getElementById('pf-licencia')?.value.trim()||'',
+      photoUrl:S.pendingProfilePhoto||S.userProfile?.photoUrl||'',
     };
+    S.pendingProfilePhoto=null;
     setSyncBar('saving');
     try{await db.ref(`users/${currentUser.uid}/profile`).set(S.userProfile);setSyncBar('ok');}catch(e){setSyncBar('error','Error al guardar el perfil');}
     render();
@@ -4837,7 +4870,7 @@ async function handleAction(e){
     if(_ctx) await saveAthleteWorkoutLog(_ctx,el.dataset.date,el.dataset.planid);
   }
   else if(a==='apshowprofileedit'){ openAthleteProfile('edit'); }
-  else if(a==='apcancelprofileedit'){ openAthleteProfile('info'); }
+  else if(a==='apcancelprofileedit'){ S.pendingAthletePhoto=null; openAthleteProfile('info'); }
   else if(a==='apsaveprofileedit'){ await saveAthletePersonal(getAthleteCtx()); }
   // ATHLETE INVITE PICKER
   else if(a==='setinvitecategory'){
@@ -5418,8 +5451,15 @@ function openAthleteProfile(mode='toggle'){
     const ath=getAthlete(key);
     const p=ath.personal||{};
     const POSITIONS=['Base','Escolta','Alero','Ala-Pivot','Pivot'];
+    const editPhoto=S.pendingAthletePhoto||p.photoUrl||'';
+    const editAvatar=editPhoto
+      ?`<img src="${editPhoto}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">`
+      :initials;
     cardBody=`
-      <div class="ap-pm-avatar">${initials}</div>
+      <div class="ap-pm-avatar-wrap">
+        <div class="ap-pm-avatar" style="${editPhoto?'background:transparent;padding:0;overflow:hidden;':''}">${editAvatar}</div>
+        <label class="ap-pm-avatar-cam" title="Cambiar foto">📷<input type="file" accept="image/*" style="display:none;" onchange="handleAthletePhotoUpload(this)"></label>
+      </div>
       <div class="ap-pm-name" style="margin-bottom:16px;">${name}</div>
       <div class="ap-pm-form">
         <label class="ap-pm-form-label">Fecha de nacimiento<input type="date" id="apf-birthdate" value="${p.birthdate||''}"></label>
@@ -5437,13 +5477,16 @@ function openAthleteProfile(mode='toggle'){
       </div>`;
   } else {
     const p=ctx?getAthlete(`${ctx.tid}__${ctx.catId}__${ctx.pid}`).personal||{}:{};
+    const infoAvatar=p.photoUrl
+      ?`<img src="${p.photoUrl}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">`
+      :initials;
     const infoRows=[
       p.position?`<div class="ap-pm-info-row"><span>Posición</span><span>${p.position}</span></div>`:'',
       p.number?`<div class="ap-pm-info-row"><span>Número</span><span>#${p.number}</span></div>`:'',
       p.birthdate?`<div class="ap-pm-info-row"><span>Nacimiento</span><span>${fmtDate(p.birthdate)}</span></div>`:'',
     ].filter(Boolean).join('');
     cardBody=`
-      <div class="ap-pm-avatar">${initials}</div>
+      <div class="ap-pm-avatar" style="${p.photoUrl?'background:transparent;padding:0;overflow:hidden;':''}">${infoAvatar}</div>
       <div class="ap-pm-name">${name}</div>
       <div class="ap-pm-team">${teamName}</div>
       <div class="ap-pm-cat"${infoRows?' style="margin-bottom:12px;"':''}>${catName}</div>
@@ -5464,6 +5507,7 @@ async function saveAthletePersonal(ctx){
   if(!ctx) return;
   const{tid,catId,pid}=ctx;
   const key=`${tid}__${catId}__${pid}`;
+  const existing=getAthlete(key).personal||{};
   const personal={
     birthdate:document.getElementById('apf-birthdate')?.value||'',
     position:document.getElementById('apf-position')?.value||'',
@@ -5473,7 +5517,9 @@ async function saveAthletePersonal(ctx){
     documento:document.getElementById('apf-documento')?.value||'',
     mutualista:document.getElementById('apf-mutualista')?.value||'',
     notes:document.getElementById('apf-notes')?.value||'',
+    photoUrl:S.pendingAthletePhoto||existing.photoUrl||'',
   };
+  S.pendingAthletePhoto=null;
   getAthlete(key).personal=personal;
   await db.ref(`teams/${tid}/athletes/${key}/personal`).update(personal);
   showToast('Datos guardados');
