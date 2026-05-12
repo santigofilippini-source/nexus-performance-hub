@@ -230,6 +230,7 @@ let S = {
   // Athlete portal
   athletePortalTab:'today',
   athleteCheckin:null,     // draft: { sleep,fatigue,soreness,stress,mood,rpe,rpeDate }
+  athleteCollapsed:{},     // blockCollapseKey → true
 };
 
 // ── Admin ──────────────────────────────────────────────────────
@@ -4676,6 +4677,11 @@ async function handleAction(e){
   else if(a==='savetodaycheckin'){
     const _ctx=getAthleteCtx();if(_ctx) await saveAthleteCheckin(_ctx);
   }
+  else if(a==='aptoggleblock'){
+    const bkey=el.dataset.bkey;
+    S.athleteCollapsed[bkey]=!S.athleteCollapsed[bkey];
+    render();
+  }
   // ATHLETE INVITE PICKER
   else if(a==='setinvitecategory'){
     const emailEl=document.getElementById('inv-email');if(emailEl)S.inviteForm.email=emailEl.value;
@@ -5390,8 +5396,10 @@ function renderAthleteRoutines(ctx){
         :`<span style="background:var(--bg-3);color:var(--text-2);font-size:10px;padding:1px 8px;border-radius:20px;">Pasado</span>`;
     return plans.map(([,plan])=>{
       const blocks=Object.entries(plan.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
-      const blocksHtml=blocks.map(([,block])=>{
+      const blocksHtml=blocks.map(([bid,block])=>{
         const bInfo=blockTypeInfo(block.type);
+        const collapseKey=`${date}_${bid}`;
+        const isCollapsed=!!S.athleteCollapsed[collapseKey];
         const items=Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
         const exHtml=items.map(([,item])=>{
           const sets=Object.values(item.sets||{}).sort((a,b)=>(a.order||0)-(b.order||0));
@@ -5406,9 +5414,14 @@ function renderAthleteRoutines(ctx){
             ${setStr?`<div class="ap-ex-detail">${setStr}</div>`:''}
           </div>`;
         }).join('');
+        const chevron=`<svg class="ap-block-chevron${isCollapsed?'':' open'}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
+        const countBadge=isCollapsed?`<span class="ap-block-count">${items.length} ejercicio${items.length!==1?'s':''}</span>`:'';
         return`<div class="ap-block">
-          <div class="ap-block-head" style="color:${bInfo.color};">${bInfo.label}${block.name&&block.name!==bInfo.label?' · '+block.name:''}</div>
-          ${exHtml}
+          <div class="ap-block-head" data-action="aptoggleblock" data-bkey="${collapseKey}" style="color:${bInfo.color};">
+            <span>${bInfo.label}${block.name&&block.name!==bInfo.label?' · '+block.name:''}</span>
+            <div style="display:flex;align-items:center;gap:6px;">${countBadge}${chevron}</div>
+          </div>
+          ${isCollapsed?'':exHtml}
         </div>`;
       }).join('');
       return`<div class="ap-plan-card">
