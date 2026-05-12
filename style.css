@@ -866,10 +866,11 @@ body.is-auth.athlete #mob-tabbar{display:none!important}
 .ap-plan-date{font-size:11px;color:var(--text-2)}
 .ap-block{border-top:1px solid var(--line)}
 .ap-block-head{padding:7px 14px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
-.ap-exercise{padding:7px 14px;border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:baseline;gap:8px}
-.ap-exercise-name{font-size:13px;color:var(--text-1);flex:1}
-.ap-vid-btn{font-size:10px;padding:2px 7px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);cursor:pointer;margin-left:5px;vertical-align:middle;font-family:var(--font-ui)}
-.ap-exercise-sets{font-size:11px;color:var(--text-3);flex-shrink:0}
+.ap-exercise{padding:9px 14px;border-top:1px solid rgba(255,255,255,.04)}
+.ap-ex-top{display:flex;align-items:center;gap:8px}
+.ap-exercise-name{font-size:13.5px;color:var(--text-0);font-weight:500;flex:1;line-height:1.3}
+.ap-ex-detail{font-size:12px;color:var(--text-2);margin-top:3px;font-variant-numeric:tabular-nums}
+.ap-vid-btn{font-size:10px;padding:2px 7px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);cursor:pointer;font-family:var(--font-ui);flex-shrink:0}
 
 /* Progress */
 .ap-chart-card{margin:10px 16px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);padding:14px 16px}

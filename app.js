@@ -87,6 +87,13 @@ function formatSetDisplay(s){
   const parts=[val,w,mod].filter(Boolean);
   return parts.length?parts.join(' · '):'—';
 }
+function formatAthleteSetStr(sets){
+  if(!sets.length) return '';
+  const strs=sets.map(s=>formatSetDisplay(s)).filter(s=>s!=='—');
+  if(!strs.length) return '';
+  const allSame=strs.every(s=>s===strs[0]);
+  return allSame?`${sets.length} × ${strs[0]}`:strs.join(' → ');
+}
 
 // ── Default exercise library (always visible in Global tab) ───
 const DEFAULT_EXERCISES = {
@@ -5387,13 +5394,16 @@ function renderAthleteRoutines(ctx){
         const bInfo=blockTypeInfo(block.type);
         const items=Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
         const exHtml=items.map(([,item])=>{
-          const sets=Object.values(item.sets||{});
-          const setStr=sets.length?sets.map(s=>formatSetDisplay(s)).filter(s=>s!=='—').slice(0,2).join(' / '):'';
+          const sets=Object.values(item.sets||{}).sort((a,b)=>(a.order||0)-(b.order||0));
+          const setStr=formatAthleteSetStr(sets);
           const _vidUrl=(DEFAULT_EXERCISES[item.exId]||S.exercises.personal[item.exId]||S.exercises.global[item.exId])?.videoUrl;
           const _hasVid=_vidUrl&&ytId(_vidUrl);
           return`<div class="ap-exercise">
-            <span class="ap-exercise-name">${item.exName||'Ejercicio'}${_hasVid?` <button class="ap-vid-btn" data-action="showvideo" data-exid="${item.exId}">▶ Video</button>`:''}</span>
-            <span class="ap-exercise-sets">${sets.length}×${setStr?' '+setStr:''}</span>
+            <div class="ap-ex-top">
+              <span class="ap-exercise-name">${item.exName||'Ejercicio'}</span>
+              ${_hasVid?`<button class="ap-vid-btn" data-action="showvideo" data-exid="${item.exId}">▶ Video</button>`:''}
+            </div>
+            ${setStr?`<div class="ap-ex-detail">${setStr}</div>`:''}
           </div>`;
         }).join('');
         return`<div class="ap-block">
