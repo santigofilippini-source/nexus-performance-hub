@@ -4836,6 +4836,9 @@ async function handleAction(e){
     const _ctx=getAthleteCtx();
     if(_ctx) await saveAthleteWorkoutLog(_ctx,el.dataset.date,el.dataset.planid);
   }
+  else if(a==='apshowprofileedit'){ openAthleteProfile('edit'); }
+  else if(a==='apcancelprofileedit'){ openAthleteProfile('info'); }
+  else if(a==='apsaveprofileedit'){ await saveAthletePersonal(getAthleteCtx()); }
   // ATHLETE INVITE PICKER
   else if(a==='setinvitecategory'){
     const emailEl=document.getElementById('inv-email');if(emailEl)S.inviteForm.email=emailEl.value;
@@ -5397,9 +5400,10 @@ async function handleAction(e){
   }
 }
 
-function openAthleteProfile(){
+function openAthleteProfile(mode='toggle'){
   const existing=document.getElementById('ap-profile-modal');
-  if(existing){existing.remove();return;}
+  if(mode==='toggle'&&existing){existing.remove();return;}
+  if(existing) existing.remove();
   const ctx=getAthleteCtx();
   const team=ctx?S.teams[ctx.tid]:null;
   const cat=ctx?team?.categories?.[ctx.catId]:null;
@@ -5408,18 +5412,72 @@ function openAthleteProfile(){
   const initials=name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?';
   const teamName=team?.name||'—';
   const catName=cat?.name||'—';
+  let cardBody='';
+  if(mode==='edit'&&ctx){
+    const key=`${ctx.tid}__${ctx.catId}__${ctx.pid}`;
+    const ath=getAthlete(key);
+    const p=ath.personal||{};
+    const POSITIONS=['Base','Escolta','Alero','Ala-Pivot','Pivot'];
+    cardBody=`
+      <div class="ap-pm-avatar">${initials}</div>
+      <div class="ap-pm-name" style="margin-bottom:16px;">${name}</div>
+      <div class="ap-pm-form">
+        <label class="ap-pm-form-label">Fecha de nacimiento<input type="date" id="apf-birthdate" value="${p.birthdate||''}"></label>
+        <label class="ap-pm-form-label">Posición<select id="apf-position"><option value="">—</option>${POSITIONS.map(pos=>`<option value="${pos}"${p.position===pos?' selected':''}>${pos}</option>`).join('')}</select></label>
+        <label class="ap-pm-form-label">Número<input type="number" id="apf-number" value="${p.number||''}" min="0" max="99" placeholder="7"></label>
+        <label class="ap-pm-form-label">Lateralidad<select id="apf-laterality"><option value="">—</option><option value="Diestro"${p.laterality==='Diestro'?' selected':''}>Diestro</option><option value="Zurdo"${p.laterality==='Zurdo'?' selected':''}>Zurdo</option><option value="Ambidiestro"${p.laterality==='Ambidiestro'?' selected':''}>Ambidiestro</option></select></label>
+        <label class="ap-pm-form-label">Teléfono<input type="tel" id="apf-phone" value="${p.phone||''}" placeholder="+598 99 000 000"></label>
+        <label class="ap-pm-form-label">Documento<input type="text" id="apf-documento" value="${p.documento||''}" placeholder="CI / Pasaporte"></label>
+        <label class="ap-pm-form-label">Mutualista<input type="text" id="apf-mutualista" value="${p.mutualista||''}" placeholder="ASSE, Médica Uruguaya..."></label>
+        <label class="ap-pm-form-label">Notas<input type="text" id="apf-notes" value="${p.notes||''}" placeholder="Observaciones..."></label>
+      </div>
+      <div class="ap-pm-form-btns">
+        <button class="ap-pm-save" data-action="apsaveprofileedit">Guardar datos</button>
+        <button class="ap-pm-cancel" data-action="apcancelprofileedit">Cancelar</button>
+      </div>`;
+  } else {
+    const p=ctx?getAthlete(`${ctx.tid}__${ctx.catId}__${ctx.pid}`).personal||{}:{};
+    const infoRows=[
+      p.position?`<div class="ap-pm-info-row"><span>Posición</span><span>${p.position}</span></div>`:'',
+      p.number?`<div class="ap-pm-info-row"><span>Número</span><span>#${p.number}</span></div>`:'',
+      p.birthdate?`<div class="ap-pm-info-row"><span>Nacimiento</span><span>${fmtDate(p.birthdate)}</span></div>`:'',
+    ].filter(Boolean).join('');
+    cardBody=`
+      <div class="ap-pm-avatar">${initials}</div>
+      <div class="ap-pm-name">${name}</div>
+      <div class="ap-pm-team">${teamName}</div>
+      <div class="ap-pm-cat"${infoRows?' style="margin-bottom:12px;"':''}>${catName}</div>
+      ${infoRows?`<div class="ap-pm-info-rows">${infoRows}</div>`:''}
+      <button class="ap-pm-edit-btn" data-action="apshowprofileedit">Editar mis datos</button>
+      <button class="ap-pm-logout" onclick="doLogout()">Cerrar sesión</button>`;
+  }
   const el=document.createElement('div');
   el.id='ap-profile-modal';
   el.innerHTML=`
     <div class="ap-pm-backdrop" onclick="document.getElementById('ap-profile-modal').remove()"></div>
-    <div class="ap-pm-card">
-      <div class="ap-pm-avatar">${initials}</div>
-      <div class="ap-pm-name">${name}</div>
-      <div class="ap-pm-team">${teamName}</div>
-      <div class="ap-pm-cat">${catName}</div>
-      <button class="ap-pm-logout" onclick="doLogout()">Cerrar sesión</button>
-    </div>`;
+    <div class="ap-pm-card">${cardBody}</div>`;
   document.body.appendChild(el);
+  el.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',handleAction));
+}
+
+async function saveAthletePersonal(ctx){
+  if(!ctx) return;
+  const{tid,catId,pid}=ctx;
+  const key=`${tid}__${catId}__${pid}`;
+  const personal={
+    birthdate:document.getElementById('apf-birthdate')?.value||'',
+    position:document.getElementById('apf-position')?.value||'',
+    number:document.getElementById('apf-number')?.value||'',
+    laterality:document.getElementById('apf-laterality')?.value||'',
+    phone:document.getElementById('apf-phone')?.value||'',
+    documento:document.getElementById('apf-documento')?.value||'',
+    mutualista:document.getElementById('apf-mutualista')?.value||'',
+    notes:document.getElementById('apf-notes')?.value||'',
+  };
+  getAthlete(key).personal=personal;
+  await db.ref(`teams/${tid}/athletes/${key}/personal`).update(personal);
+  showToast('Datos guardados');
+  openAthleteProfile('info');
 }
 
 // ── ATHLETE PORTAL ────────────────────────────────────────────
