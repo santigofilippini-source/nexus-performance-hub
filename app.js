@@ -4581,6 +4581,7 @@ function showAlert(msg){
   clearTimeout(el._t);
   el._t=setTimeout(()=>{el.innerHTML='';},3500);
 }
+const showToast=showAlert;
 
 // ── EVENTS ────────────────────────────────────────────────────
 // ── Logo upload ───────────────────────────────────────────────
@@ -5230,8 +5231,10 @@ async function handleAction(e){
     const name=document.getElementById('planform-name')?.value.trim()||'Plan';
     const planId=S.planForm.planId||'plan_'+Date.now();
     const data={name,assignedToAll:S.planForm.assignedToAll,assignedTo:S.planForm.assignedTo||{},createdAt:S.planForm.planId?S.sessionPlans[planId]?.createdAt||Date.now():Date.now()};
+    const isEdit=!!S.planForm.planId;
     S.planForm=null;
     await saveSessionPlan(planId,data);
+    showAlert(isEdit?'Plan actualizado ✓':'Plan guardado ✓');
     render();
   }
   else if(a==='editplanmeta'){
@@ -5277,6 +5280,7 @@ async function handleAction(e){
     const planId='plan_'+Date.now();
     const planData={name:day.name,assignedToAll:false,assignedTo:{},createdAt:Date.now(),blocks:JSON.parse(JSON.stringify(day.blocks||{}))};
     await saveSessionPlan(planId,planData);
+    showAlert('Plan cargado ✓');
     render();
   }
   // ── BLOCKS ────────────────────────────────────────────────────
