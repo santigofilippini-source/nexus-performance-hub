@@ -5609,10 +5609,10 @@ function renderAthleteLogForm(blocks,date,planId,existingLog){
       const setsHtml=sets.map((s,idx)=>{
         const ex=existingLog?.[bid]?.[iid]?.[idx]||{};
         const isTime=s.type==='time';
-        const weightInput=`<label class="ap-log-label">kg<input type="number" id="aplog_${bid}_${iid}_${idx}_weight" class="ap-log-input" inputmode="decimal" value="${ex.weight||''}" placeholder="—"></label>`;
+        const weightInput=`<label class="ap-log-label">kg<input type="number" id="aplog_${bid}_${iid}_${idx}_weight" class="ap-log-input" inputmode="decimal" value="${ex.weight||s.weight||''}" placeholder="—"></label>`;
         const repsInput=isTime
           ?`<span class="ap-log-time-badge">${s.time?s.time+'s':'—'}</span>`
-          :`<label class="ap-log-label">reps<input type="number" id="aplog_${bid}_${iid}_${idx}_reps" class="ap-log-input ap-log-input--sm" inputmode="numeric" value="${ex.reps||''}" placeholder="—"></label>`;
+          :`<label class="ap-log-label">reps<input type="number" id="aplog_${bid}_${iid}_${idx}_reps" class="ap-log-input ap-log-input--sm" inputmode="numeric" value="${ex.reps||s.reps||''}" placeholder="—"></label>`;
         return`<div class="ap-log-set-row">
           <span class="ap-log-set-num">S${idx+1}</span>
           ${repsInput}
