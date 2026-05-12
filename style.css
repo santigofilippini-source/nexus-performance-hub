@@ -507,8 +507,13 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .q-stat__val{font-size:22px}
   .q-att-summary{grid-template-columns:repeat(3,1fr)}
   .q-att-summary .cell:nth-child(4),.q-att-summary .cell:nth-child(5){border-top:1px solid var(--line)}
+  .q-roster-wrap{position:relative}
+  .q-roster-wrap::after{content:'';position:absolute;top:0;right:0;bottom:0;width:44px;background:linear-gradient(to right,transparent,var(--bg-0));pointer-events:none;border-radius:0 var(--r-3) var(--r-3) 0}
   .q-roster{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .q-roster__head,.q-roster__row{grid-template-columns:minmax(110px,1fr) 160px 46px 72px 90px;min-width:520px}
+  .q-roster__row>span:first-child,.q-roster__head>span:first-child{position:sticky;left:0;z-index:2}
+  .q-roster__row>span:first-child{background:var(--bg-2)}
+  .q-roster__head>span:first-child{background:var(--bg-1)}
   .q-sess-grid{grid-template-columns:1fr}
   .q-rpe-grid{flex-wrap:wrap}
   .q-att-head{flex-wrap:wrap;gap:6px}
@@ -524,6 +529,9 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .q-tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .q-tab{padding:0 10px;font-size:12px;gap:5px;white-space:nowrap}
   .sub-tabs{flex-wrap:nowrap;overflow-x:auto}
+  /* Plan card — actions en segunda línea */
+  .q-plan-card__head{flex-wrap:wrap;row-gap:8px;padding:10px 12px}
+  .q-plan-actions{flex-basis:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
 }
 /* ══════════════════════════════════════════════════════════════ */
 /* ██  MÉDICO / LESIONES  ██                                     */
@@ -662,10 +670,32 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 .q-ex-pick-item:hover{background:var(--bg-3);color:var(--text-0);}
 
 @media(max-width:899px){
-  .q-plan-table{font-size:12px;}
-  .q-ex-name{min-width:100px;}
-  .q-set-cell{min-width:64px;}
+  /* Exercise table → card layout */
+  .q-plan-table,.q-plan-table tbody{display:block}
+  .q-plan-table thead{display:none}
+  .q-plan-table tr{display:block;padding:8px 10px;border-bottom:1px solid var(--line)}
+  .q-plan-table tr:last-child{border-bottom:none}
+  .q-plan-table tr:not(:last-child) td{border-bottom:none}
+  .q-ex-name{display:block;min-width:0;max-width:100%;white-space:normal;padding:0 0 5px 0;border:none;font-size:13px}
+  .q-set-cell{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:var(--r-1);background:var(--bg-3);font-size:11.5px;padding:3px 8px;margin:0 3px 3px 0;min-width:0;min-height:26px}
+  .q-set-cell.editing,.q-set-cell.q-set-cell--expanded{display:block;width:100%;box-sizing:border-box;margin:4px 0;border-radius:var(--r-2)}
+  .q-set-actions{display:flex;flex-wrap:wrap;gap:4px;padding:6px 0 0 0;border:none;min-width:0}
 }
+
+/* RPE Bottom Sheet (mobile) */
+.rpe-bs-overlay{display:flex;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end}
+.rpe-bs{background:var(--bg-1);border-radius:16px 16px 0 0;width:100%;padding-bottom:env(safe-area-inset-bottom,12px);overflow-y:auto}
+.rpe-bs__drag{width:36px;height:4px;background:var(--line);border-radius:2px;margin:12px auto 0}
+.rpe-bs__head{padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.rpe-bs__name{font-size:15px;font-weight:600;color:var(--text-0)}
+.rpe-bs__close{width:28px;height:28px;border-radius:50%;background:var(--bg-3);border:none;cursor:pointer;display:grid;place-items:center;color:var(--text-2);flex-shrink:0}
+.rpe-bs__body{padding:14px 16px 16px}
+.rpe-bs-dur-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.rpe-bs-dur-label{font-size:12px;color:var(--text-2)}
+.rpe-bs-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px}
+.rpe-bs-btn{height:42px;border:1px solid var(--line);border-radius:8px;background:var(--bg-3);color:var(--text-1);font:600 15px var(--font-mono);cursor:pointer;display:grid;place-items:center}
+.rpe-bs-btn.sel{border-color:currentColor}
+.rpe-bs-label{text-align:center;font-size:12px;font-weight:600;min-height:18px;margin-top:4px;padding:4px 12px;border-radius:8px}
 
 /* Program picker modal */
 .q-prog-day-pick{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--r-2);background:none;border:1px solid var(--line);cursor:pointer;margin-bottom:6px;transition:background .12s,border-color .12s;text-align:left;}

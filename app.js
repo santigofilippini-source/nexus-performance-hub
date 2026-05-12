@@ -184,7 +184,7 @@ let S = {
   view:'home', teams:{}, teamId:null, cat:null,
   tab:'attend', date:TODAY,
   sess:{}, absenceReasons:{}, sessionDraft:{duration:'',teamRPE:null,playerRPE:{},playerDuration:{},sessionType:null},
-  wellnessDraft:{}, wellnessExpanded:{}, sessionSub:'plan', rpeMode:'team',
+  wellnessDraft:{}, wellnessExpanded:{}, sessionSub:'plan', rpeMode:'team', rpeSheet:null,
   reportSub:'semanal', reportWeekOffset:0, reportPlayerPid:null, confirmDel:null, editId:null,
   loadFilter:'7d', loadFrom:'', loadTo:'',
   athletes:{}, athleteKey:null, athleteTab:'perfil', athleteForm:null, editingEvalId:null,
@@ -2351,15 +2351,17 @@ function renderAttend(){
       <span class="sub">${[counts.L?counts.L+' lesión':'',counts.J?counts.J+' just.':''].filter(Boolean).join(' · ')||'—'}</span>
     </div>
   </div>
-  <div class="q-roster">
-    <div class="q-roster__head">
-      <span>Atleta</span>
-      <span>Estado</span>
-      <span>RPE</span>
-      <span>Carga</span>
-      <span style="text-align:right;">Acciones</span>
+  <div class="q-roster-wrap">
+    <div class="q-roster">
+      <div class="q-roster__head">
+        <span>Atleta</span>
+        <span>Estado</span>
+        <span>RPE</span>
+        <span>Carga</span>
+        <span style="text-align:right;">Acciones</span>
+      </div>
+      ${rows}
     </div>
-    ${rows}
   </div>
   <div style="font-size:11.5px;color:var(--text-2);margin-top:8px;">${total} atletas · ${editable?'clic en estado para cambiar':'modo lectura'}</div>`;
 }
@@ -2766,6 +2768,7 @@ function renderIndividualRPE(){
   const editable=canEdit();
   const isMob=window.innerWidth<900;
   if(!S.rpeExpand)S.rpeExpand={};
+  const sheetHtml=isMob&&S.rpeSheet&&editable?renderRPEBottomSheet(S.rpeSheet.pid,dur,cd):'';
   return`<div style="border-top:1px solid var(--line);">
     <div style="padding:8px 16px;background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;">RPE por jugador</div>
     ${cd.players.map(p=>{
@@ -2773,17 +2776,17 @@ function renderIndividualRPE(){
       const rpeVal=S.sessionDraft.playerRPE[p.id]??null;
       const initials=p.name.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('').toUpperCase();
       if(!isPresent){const stateLabel={A:'Ausente',L:'Lesión',J:'Justificado'};return`<div class="q-ind-row absent"><div class="q-ind-ath"><span class="av">${initials}</span><span class="nm">${p.name}</span></div><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bad-soft);color:var(--bad);">${stateLabel[status]||'Sin registro'}</span></div>`;}
-      if(isMob&&!S.rpeExpand[p.id]){
+      if(isMob){
         const playerDur=S.sessionDraft.playerDuration[p.id]!=null?S.sessionDraft.playerDuration[p.id]:dur;
         const ua=rpeVal!==null&&playerDur?rpeVal*playerDur:null;
         const durTag=S.sessionDraft.playerDuration[p.id]!=null?`<span style="font-size:10px;color:var(--accent);font-family:var(--font-mono);padding:1px 5px;border-radius:4px;background:var(--accent-soft);">${playerDur}min</span>`:'';
+        const clickAttr=editable?`data-action="expandrpe" data-pid="${p.id}"`:'';
         const pill=rpeVal!==null
-          ?`<span style="width:38px;height:38px;border-radius:8px;display:grid;place-items:center;font:700 20px var(--font-mono);background:${RPE_BG[rpeVal]}22;color:${RPE_BG[rpeVal]};border:1.5px solid ${RPE_BG[rpeVal]}55;">${rpeVal}</span>${ua!==null?`<span style="font-size:11px;font-family:var(--font-mono);color:var(--text-2);">${ua} UA</span>`:''}${durTag}`
-          :`<span style="font-size:12px;color:var(--text-3);font-family:var(--font-mono);">—</span>`;
-        const btn=editable?`<button style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg-3);color:var(--text-1);cursor:pointer;" data-action="expandrpe" data-pid="${p.id}">${rpeVal!==null?'Cambiar':'Elegir'}</button>`:'';
+          ?`<span ${clickAttr} style="display:inline-flex;align-items:center;gap:6px;padding:4px 6px;border-radius:8px;border:1px solid ${RPE_BG[rpeVal]}55;${editable?'cursor:pointer;':''}"><span style="width:36px;height:36px;border-radius:6px;display:grid;place-items:center;font:700 19px var(--font-mono);background:${RPE_BG[rpeVal]}22;color:${RPE_BG[rpeVal]};">${rpeVal}</span>${ua!==null?`<span style="font-size:11px;font-family:var(--font-mono);color:var(--text-2);">${ua} UA</span>`:''}${durTag}</span>`
+          :`<span ${clickAttr} style="font-size:12px;color:var(--text-3);font-family:var(--font-mono);padding:6px 12px;border:1px dashed var(--line);border-radius:8px;${editable?'cursor:pointer;':''}">— Elegir</span>`;
         return`<div class="q-ind-row" style="justify-content:space-between;">
           <div class="q-ind-ath"><span class="av">${initials}</span><span class="nm">${p.name}</span></div>
-          <div style="display:flex;align-items:center;gap:8px;">${pill}${btn}</div>
+          <div style="display:flex;align-items:center;gap:8px;">${pill}</div>
         </div>`;
       }
       const btns=Array.from({length:11},(_,i)=>`<button class="b${rpeVal===i?' sel':''}"${rpeVal===i?` style="background:${RPE_BG[i]}22;color:${RPE_BG[i]};border-color:${RPE_BG[i]};"`:''}${editable?` data-action="playerrpe" data-pid="${p.id}" data-rpe="${i}"`:' disabled'}>${i}</button>`).join('');
@@ -2799,6 +2802,37 @@ function renderIndividualRPE(){
         <span style="font-size:12px;font-family:var(--font-mono);color:${rpeVal!==null?RPE_BG[rpeVal]:'var(--text-2)'};min-width:64px;text-align:right;">${rpeVal!==null?`RPE ${rpeVal}${playerDur?' · '+rpeVal*playerDur+' UA':''}`:''}</span>
       </div>`;
     }).join('')}
+  </div>${sheetHtml}`;
+}
+function renderRPEBottomSheet(pid,baseDur,cd){
+  const p=cd.players.find(pl=>pl.id===pid);
+  if(!p)return'';
+  const rpeVal=S.sessionDraft.playerRPE[pid]??null;
+  const playerDur=S.sessionDraft.playerDuration[pid]!=null?S.sessionDraft.playerDuration[pid]:baseDur;
+  const durChanged=S.sessionDraft.playerDuration[pid]!=null&&S.sessionDraft.playerDuration[pid]!==baseDur;
+  const btns=Array.from({length:11},(_,i)=>{
+    const sel=rpeVal===i;
+    return`<button class="rpe-bs-btn${sel?' sel':''}"${sel?` style="background:${RPE_BG[i]}22;color:${RPE_BG[i]};border-color:${RPE_BG[i]};"`:''}data-action="playerrpe" data-pid="${pid}" data-rpe="${i}">${i}</button>`;
+  }).join('');
+  const label=rpeVal!==null?`<div class="rpe-bs-label" style="color:${RPE_BG[rpeVal]};">${RPE_LABELS[rpeVal]}</div>`:'';
+  const xSvg=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+  return`<div class="rpe-bs-overlay" data-action="closerpesheet">
+    <div class="rpe-bs">
+      <div class="rpe-bs__drag"></div>
+      <div class="rpe-bs__head">
+        <div class="rpe-bs__name">${p.name}</div>
+        <button class="rpe-bs__close" data-action="closerpesheet">${xSvg}</button>
+      </div>
+      <div class="rpe-bs__body">
+        <div class="rpe-bs-dur-row">
+          <span class="rpe-bs-dur-label">Duración</span>
+          <input type="number" class="q-pdur-input" data-pid="${pid}" value="${playerDur||''}" placeholder="${baseDur||'—'}" min="1" max="300"${durChanged?' style="border-color:var(--accent);color:var(--accent);"':''}>
+          <span class="rpe-bs-dur-label">min</span>
+        </div>
+        <div class="rpe-bs-grid">${btns}</div>
+        ${label}
+      </div>
+    </div>
   </div>`;
 }
 function renderSessionWellness(){
@@ -4763,8 +4797,9 @@ async function handleAction(e){
   else if(a==='save'){await saveAttendance();}
   // SESSION
   else if(a==='teamrpe'){S.sessionDraft.teamRPE=parseInt(el.dataset.rpe);render();}
-  else if(a==='expandrpe'){if(!S.rpeExpand)S.rpeExpand={};S.rpeExpand[el.dataset.pid]=true;render();}
-  else if(a==='playerrpe'){const _pid=el.dataset.pid;S.sessionDraft.playerRPE[_pid]=parseInt(el.dataset.rpe);if(S.rpeExpand)delete S.rpeExpand[_pid];render();}
+  else if(a==='expandrpe'){const _mpid=el.dataset.pid;if(window.innerWidth<900){S.rpeSheet={pid:_mpid};}else{if(!S.rpeExpand)S.rpeExpand={};S.rpeExpand[_mpid]=true;}render();}
+  else if(a==='closerpesheet'){if(!e.target.closest('.rpe-bs')||e.target.closest('.rpe-bs__close')){S.rpeSheet=null;render();}}
+  else if(a==='playerrpe'){const _pid=el.dataset.pid;S.sessionDraft.playerRPE[_pid]=parseInt(el.dataset.rpe);if(S.rpeExpand)delete S.rpeExpand[_pid];if(S.rpeSheet&&S.rpeSheet.pid===_pid)S.rpeSheet=null;render();}
   else if(a==='wellness'){const pid=el.dataset.pid,key=el.dataset.key,val=parseInt(el.dataset.val);if(!S.wellnessDraft[pid])S.wellnessDraft[pid]={};S.wellnessDraft[pid][key]=val;render();}
   else if(a==='togglewellness'){S.wellnessExpanded[el.dataset.pid]=!S.wellnessExpanded[el.dataset.pid];render();}
   else if(a==='savesession'){const durI=document.getElementById('dur-input');if(durI)S.sessionDraft.duration=durI.value;await saveSessionDraft();render();const msg=document.getElementById('sess-save-msg');if(msg){msg.textContent='✓ Guardado';setTimeout(()=>{if(msg)msg.textContent='';},2500);}}
