@@ -1872,8 +1872,9 @@ function renderProgramsList(){
           <div style="width:44px;height:44px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📋</div>
           <div style="flex:1;min-width:0;">
             <div style="font-weight:600;font-size:15px;color:var(--text);">${p.name||'Sin nombre'}</div>
-            <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${days.length} ${days.length===1?'día':'días'}</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${days.length} ${days.length===1?'rutina':'rutinas'}</div>
           </div>
+          <button class="q-icon-btn" data-action="editprog" data-pid="${pid}" title="Editar nombre" onclick="event.stopPropagation();">✏️</button>
           <button class="q-icon-btn" data-action="deleteprog" data-pid="${pid}" title="Eliminar" onclick="event.stopPropagation();">🗑</button>
         </div>
         ${days.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">`+
@@ -1914,9 +1915,9 @@ function renderProgramDetail(){
   if(!prog) return renderProgramsList();
   const days=Object.entries(prog.days||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
   const form=S.programForm;
-  const dayFormHtml=form&&form.mode==='newday'?`<div class="q-card" style="margin-bottom:10px;">
+  const dayFormHtml=(form?.mode==='newday'||form?.mode==='editday')?`<div class="q-card" style="margin-bottom:10px;">
     <div class="q-card__b" style="padding:12px 16px;">
-      <div class="form-field"><label>Nombre del día</label>
+      <div class="form-field"><label>${form.mode==='editday'?'Editar rutina':'Nueva rutina'}</label>
         <input type="text" id="day-name-input" value="${form.dayName||''}" placeholder="ej: Día 1 — Tren inferior empuje" class="q-input">
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
@@ -1935,6 +1936,7 @@ function renderProgramDetail(){
           <div style="font-weight:600;font-size:14px;">${d.name||'Sin nombre'}</div>
           <div style="font-size:12px;color:var(--text-2);">${blockCount} bloques · ${exCount} ejercicios</div>
         </div>
+        <button class="q-icon-btn" data-action="editprogday" data-pid="${pid}" data-did="${did}" onclick="event.stopPropagation();" title="Editar nombre">✏️</button>
         <button class="q-icon-btn" data-action="deleteprogday" data-pid="${pid}" data-did="${did}" onclick="event.stopPropagation();">🗑</button>
       </div>
     </div>`;
@@ -1944,12 +1946,12 @@ function renderProgramDetail(){
       <button class="q-btn" data-action="backprograms" style="padding:6px 10px;">← Volver</button>
       <div style="flex:1;">
         <div style="font-size:18px;font-weight:700;">${prog.name}</div>
-        <div style="font-size:12px;color:var(--text-2);">${days.length} ${days.length===1?'día':'días'}</div>
+        <div style="font-size:12px;color:var(--text-2);">${days.length} ${days.length===1?'rutina':'rutinas'}</div>
       </div>
-      <button class="q-btn q-btn--primary" data-action="newprogday" data-pid="${pid}">+ Agregar día</button>
+      <button class="q-btn q-btn--primary" data-action="newprogday" data-pid="${pid}">+ Agregar rutina</button>
     </div>
     ${dayFormHtml}
-    <div style="display:flex;flex-direction:column;gap:8px;">${dayCards||`<div class="q-empty-state">Agregá días a este programa</div>`}</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">${dayCards||`<div class="q-empty-state">Agregá rutinas a este programa</div>`}</div>
   </div>`;
 }
 
@@ -5376,13 +5378,20 @@ async function handleAction(e){
   }
   // ── PROGRAMS ──────────────────────────────────────────────────
   else if(a==='newprog'){S.programForm={mode:'new',name:''};render();}
+  else if(a==='editprog'){
+    const pid=el.dataset.pid;
+    S.programForm={mode:'edit',progId:pid,name:S.programs[pid]?.name||''};
+    render();
+  }
   else if(a==='cancelprogform'){S.programForm=null;render();}
   else if(a==='saveprogform'){
     const name=document.getElementById('prog-name-input')?.value.trim();
     if(!name){showAlert('Ingresá un nombre para el programa.');return;}
-    const pid=S.programForm.progId||'prog_'+Date.now();
+    const isEdit=S.programForm.mode==='edit';
+    const pid=isEdit?S.programForm.progId:'prog_'+Date.now();
+    const data=isEdit?{name}:{name,createdAt:Date.now()};
     S.programForm=null;
-    await saveProgram(pid,{name,createdAt:Date.now(),days:S.programs[pid]?.days||{}});
+    await saveProgram(pid,data);
     render();
   }
   else if(a==='deleteprog'){
@@ -5394,20 +5403,31 @@ async function handleAction(e){
   else if(a==='openprog'){S.programView={progId:el.dataset.pid};S.programForm=null;render();}
   else if(a==='backprograms'){S.programView=null;S.programForm=null;render();}
   else if(a==='newprogday'){S.programForm={mode:'newday',progId:el.dataset.pid,dayName:''};render();}
+  else if(a==='editprogday'){
+    const pid=el.dataset.pid, did=el.dataset.did;
+    S.programForm={mode:'editday',progId:pid,dayId:did,dayName:S.programs[pid]?.days?.[did]?.name||''};
+    render();
+  }
   else if(a==='savedayform'){
     const pid=el.dataset.pid;
     const name=document.getElementById('day-name-input')?.value.trim();
-    if(!name){showAlert('Ingresá un nombre para el día.');return;}
-    const did='day_'+Date.now();
-    const days=S.programs[pid]?.days||{};
-    const order=Object.keys(days).length;
-    S.programForm=null;
-    await saveProgramDay(pid,did,{name,order,blocks:{}});
+    if(!name){showAlert('Ingresá un nombre para la rutina.');return;}
+    if(S.programForm?.mode==='editday'){
+      const did=S.programForm.dayId;
+      S.programForm=null;
+      await saveProgramDay(pid,did,{name});
+    } else {
+      const did='day_'+Date.now();
+      const days=S.programs[pid]?.days||{};
+      const order=Object.keys(days).length;
+      S.programForm=null;
+      await saveProgramDay(pid,did,{name,order,blocks:{}});
+    }
     render();
   }
   else if(a==='deleteprogday'){
     const pid=el.dataset.pid, did=el.dataset.did;
-    showConfirm('¿Eliminar este día?', async()=>{
+    showConfirm('¿Eliminar esta rutina?', async()=>{
       await deleteProgramDay(pid,did);render();
     });
   }
