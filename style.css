@@ -918,3 +918,31 @@ body.is-auth.athlete #mob-tabbar{display:none!important}
 
 /* Athlete invite picker */
 .ap-roster-pick{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+
+/* Workout logging — athlete portal */
+.ap-plan-log-bar{padding:8px 14px;border-top:1px solid var(--line)}
+.ap-log-start-btn{width:100%;padding:9px 12px;background:var(--accent);color:#fff;border:none;border-radius:var(--r-2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-ui)}
+.ap-log-edit-btn{width:100%;padding:9px 12px;background:var(--bg-4);color:var(--text-0);border:1px solid var(--line);border-radius:var(--r-2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-ui)}
+.ap-log-item{padding:10px 14px;border-top:1px solid rgba(255,255,255,.05)}
+.ap-log-item-name{font-size:13.5px;color:var(--text-0);font-weight:500}
+.ap-log-item-prescribed{font-size:11px;color:var(--text-3);margin-top:2px;font-variant-numeric:tabular-nums}
+.ap-log-sets{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.ap-log-set-row{display:flex;align-items:center;gap:10px}
+.ap-log-set-num{font-size:11px;font-weight:700;color:var(--text-3);width:22px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.ap-log-label{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--text-2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.ap-log-input{width:68px;padding:6px 8px;background:var(--bg-3);border:1px solid var(--line);border-radius:var(--r-1);color:var(--text-0);font-size:15px;font-family:var(--font-mono);text-align:center;-moz-appearance:textfield}
+.ap-log-input::-webkit-inner-spin-button,.ap-log-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.ap-log-input--sm{width:56px}
+.ap-log-input:focus{outline:none;border-color:var(--accent);background:var(--bg-4)}
+.ap-log-time-badge{font-size:13px;color:var(--text-3);font-variant-numeric:tabular-nums;padding:6px 10px;background:var(--bg-3);border-radius:var(--r-1);border:1px solid var(--line)}
+.ap-log-actions{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line);margin-top:4px}
+.ap-log-cancel-btn{flex:1;padding:10px;background:var(--bg-3);border:1px solid var(--line);color:var(--text-1);border-radius:var(--r-2);font-size:13px;cursor:pointer;font-family:var(--font-ui)}
+.ap-log-save-btn{flex:2;padding:10px;background:var(--accent);border:none;color:#fff;border-radius:var(--r-2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-ui)}
+
+/* Session logs view — coach */
+.q-logs-player-row{padding:10px 16px;border-top:1px solid var(--line)}
+.q-logs-player-name{font-size:13px;font-weight:600;color:var(--text-0);margin-bottom:8px}
+.q-logs-item{display:flex;align-items:baseline;gap:6px;padding:3px 0;flex-wrap:wrap}
+.q-logs-item-block{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
+.q-logs-item-name{font-size:12.5px;color:var(--text-1);flex:1;min-width:0}
+.q-logs-item-sets{font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums;flex-shrink:0}

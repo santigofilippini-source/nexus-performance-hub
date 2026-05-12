@@ -232,6 +232,7 @@ let S = {
   athleteCheckin:null,     // draft: { sleep,fatigue,soreness,stress,mood,rpe,rpeDate }
   athleteCollapsed:{},     // blockCollapseKey → true
   athleteCalOffset:0,      // months from current (0=now, -1=last month…)
+  athleteLogMode:null,     // null | { date, planId }
 };
 
 // ── Admin ──────────────────────────────────────────────────────
@@ -2285,9 +2286,10 @@ function renderSession(){
       <button class="b${S.sessionSub==='plan'?' on p':''}" data-action="sessionsub" data-sub="plan">Plan</button>
       <button class="b${S.sessionSub==='load'?' on p':''}" data-action="sessionsub" data-sub="load">Carga RPE</button>
       <button class="b${S.sessionSub==='wellness'?' on p':''}" data-action="sessionsub" data-sub="wellness">Wellness</button>
+      <button class="b${S.sessionSub==='logs'?' on p':''}" data-action="sessionsub" data-sub="logs">Registros</button>
     </div>
   </div>
-  ${S.sessionSub==='plan'?renderPlan():S.sessionSub==='load'?renderSessionLoad():renderSessionWellness()}`;
+  ${S.sessionSub==='plan'?renderPlan():S.sessionSub==='load'?renderSessionLoad():S.sessionSub==='logs'?renderSessionLogs():renderSessionWellness()}`;
 }
 // ── PLAN editor ───────────────────────────────────────────────
 function renderPlan(){
@@ -2361,6 +2363,56 @@ function renderPlan(){
     ${plansHtml}
     ${emptyHtml}
   </div>`;
+}
+
+function renderSessionLogs(){
+  const tid=S.teamId,cid=S.cat,date=S.date;
+  const cd=getCat();
+  const plans=Object.entries(S.sessionPlans||{});
+  const workoutLog=S.teams[tid]?.categories?.[cid]?.sessions?.[date]?.workoutLog||{};
+  if(!plans.length){
+    return`<div class="q-empty-state"><div style="font-size:32px;margin-bottom:8px;">📋</div><div style="font-weight:600;">Sin planes para este día</div><div style="font-size:13px;color:var(--text-2);margin-top:4px;">Creá un plan para poder ver registros.</div></div>`;
+  }
+  const html=plans.map(([planId,plan])=>{
+    const loggedPids=Object.keys(workoutLog).filter(pid=>workoutLog[pid]?.[planId]);
+    const blocks=Object.entries(plan.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+    const headHtml=`<div class="q-plan-card__head">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:15px;color:var(--text-0);">${plan.name||'Plan sin nombre'}</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${loggedPids.length?loggedPids.length+' registro'+(loggedPids.length!==1?'s':''):'Sin registros todavía'}</div>
+      </div>
+    </div>`;
+    if(!loggedPids.length) return`<div class="q-plan-card" style="margin-bottom:12px;">${headHtml}</div>`;
+    const playerRows=loggedPids.map(pid=>{
+      const player=cd.players.find(p=>p.id===pid);
+      const pLog=workoutLog[pid][planId];
+      const itemsHtml=blocks.flatMap(([bid,block])=>{
+        const bInfo=blockTypeInfo(block.type);
+        return Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0)).map(([iid,item])=>{
+          const loggedSets=pLog?.[bid]?.[iid]||{};
+          const setsStr=Object.entries(loggedSets).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).map(([idx,l])=>{
+            const parts=[];
+            if(l.reps) parts.push(l.reps+' reps');
+            if(l.weight) parts.push(l.weight+'kg');
+            return parts.length?`S${parseInt(idx)+1}: ${parts.join(' · ')}`:null;
+          }).filter(Boolean).join('  ·  ');
+          if(!setsStr) return null;
+          return`<div class="q-logs-item">
+            <span class="q-logs-item-block" style="color:${bInfo.color};">${bInfo.label}</span>
+            <span class="q-logs-item-name">${item.exName||'Ejercicio'}</span>
+            <span class="q-logs-item-sets">${setsStr}</span>
+          </div>`;
+        }).filter(Boolean);
+      }).join('');
+      if(!itemsHtml) return'';
+      return`<div class="q-logs-player-row">
+        <div class="q-logs-player-name">${player?.name||pid}</div>
+        ${itemsHtml}
+      </div>`;
+    }).filter(Boolean).join('');
+    return`<div class="q-plan-card" style="margin-bottom:12px;">${headHtml}${playerRows}</div>`;
+  }).join('');
+  return`<div style="padding-top:4px;">${html}</div>`;
 }
 
 function renderPlanBlock(bid, block, ctx){
@@ -3527,12 +3579,13 @@ function renderAthleteView(){
   const initials=player.name.split(',').map(s=>s.trim()[0]).join('').toUpperCase().slice(0,2)||'?';
   const catName=S.teams[tid]?.categories?.[cid]?.name||'—';
   const teamName=S.teams[tid]?.name||'—';
-  const tabs=[['perfil','Perfil'],['morfo','Morfología'],['antro','Antrop.'],['tests','Tests']];
+  const tabs=[['perfil','Perfil'],['morfo','Morfología'],['antro','Antrop.'],['tests','Tests'],['entrenamientos','Entrenamientos']];
   let content='';
   if(S.athleteTab==='perfil') content=renderAthletePerfil(a,tid,cid,pid);
   if(S.athleteTab==='morfo')  content=renderAthleteMorfo(a);
   if(S.athleteTab==='antro')  content=renderAthleteAntro(a,cid,tid);
   if(S.athleteTab==='tests')  content=renderAthleteTests(a);
+  if(S.athleteTab==='entrenamientos') content=renderAthleteWorkoutHistory(tid,cid,pid);
   return`<div class="ath-header">
     <button class="back-btn" data-action="backfromathlete">← Volver</button>
     <div class="ath-avatar" style="background:${color};">${initials}</div>
@@ -3959,6 +4012,52 @@ function initCharts(){
     if(!datasets.length)return;
     mkChart('chart-tests',{type:'line',data:{labels,datasets},options:{scales:{y:{position:'left',ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#1e293b22'},title:{display:true,text:'cm',color:'#94a3b8',font:{size:10}}},y2:{position:'right',ticks:{color:'#f472b6',font:{size:10}},grid:{display:false},title:{display:true,text:'RSI',color:'#f472b6',font:{size:10}}},x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#1e293b'}}}}});
   }
+}
+
+function renderAthleteWorkoutHistory(tid,cid,pid){
+  const sessions=S.teams[tid]?.categories?.[cid]?.sessions||{};
+  const logDates=Object.keys(sessions).filter(d=>sessions[d]?.workoutLog?.[pid]&&Object.keys(sessions[d].workoutLog[pid]).length>0).sort().reverse().slice(0,60);
+  if(!logDates.length){
+    return`<div class="q-empty-state" style="padding:40px 20px;"><div style="font-size:32px;margin-bottom:8px;">💪</div><div style="font-weight:600;">Sin registros de entrenamiento</div><div style="font-size:13px;color:var(--text-2);margin-top:4px;">El atleta no ha registrado ninguna sesión todavía.</div></div>`;
+  }
+  const html=logDates.map(date=>{
+    const dayLog=sessions[date].workoutLog[pid];
+    const plans=sessions[date].plans||{};
+    const entriesHtml=Object.keys(dayLog).map(planId=>{
+      const plan=plans[planId];
+      const pLog=dayLog[planId];
+      const blocks=Object.entries(plan?.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+      const itemsHtml=blocks.flatMap(([bid,block])=>{
+        const bInfo=blockTypeInfo(block.type);
+        return Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0)).map(([iid,item])=>{
+          const loggedSets=pLog?.[bid]?.[iid]||{};
+          const setsStr=Object.entries(loggedSets).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).map(([idx,l])=>{
+            const parts=[];
+            if(l.reps) parts.push(l.reps+' reps');
+            if(l.weight) parts.push(l.weight+'kg');
+            return parts.length?`S${parseInt(idx)+1}: ${parts.join(' · ')}`:null;
+          }).filter(Boolean).join('  ·  ');
+          if(!setsStr) return null;
+          return`<div class="q-logs-item">
+            <span class="q-logs-item-block" style="color:${bInfo.color};">${bInfo.label}</span>
+            <span class="q-logs-item-name">${item.exName||'Ejercicio'}</span>
+            <span class="q-logs-item-sets">${setsStr}</span>
+          </div>`;
+        }).filter(Boolean);
+      }).join('');
+      if(!itemsHtml) return'';
+      return`<div style="margin-bottom:6px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-1);padding:2px 0 4px;">${plan?.name||'Plan'}</div>
+        ${itemsHtml}
+      </div>`;
+    }).filter(Boolean).join('');
+    if(!entriesHtml) return'';
+    return`<div class="q-card" style="margin-bottom:10px;">
+      <div class="q-card__h"><h3>${fmtDate(date)}</h3></div>
+      <div class="q-card__b" style="padding:8px 16px 12px;">${entriesHtml}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+  return`<div style="padding:10px 0;">${html||'<div class="q-empty-state"><div style="font-weight:600;">Sin datos para mostrar</div></div>'}</div>`;
 }
 
 // ── EXPORTS ───────────────────────────────────────────────────
@@ -4696,6 +4795,18 @@ async function handleAction(e){
     S.athleteCalOffset=Math.min(0,(S.athleteCalOffset||0)+parseInt(el.dataset.dir));
     render();
   }
+  else if(a==='aplogsession'){
+    S.athleteLogMode={date:el.dataset.date,planId:el.dataset.planid};
+    render();
+  }
+  else if(a==='apcancellog'){
+    S.athleteLogMode=null;
+    render();
+  }
+  else if(a==='apsavelog'){
+    const _ctx=getAthleteCtx();
+    if(_ctx) await saveAthleteWorkoutLog(_ctx,el.dataset.date,el.dataset.planid);
+  }
   // ATHLETE INVITE PICKER
   else if(a==='setinvitecategory'){
     const emailEl=document.getElementById('inv-email');if(emailEl)S.inviteForm.email=emailEl.value;
@@ -5430,8 +5541,10 @@ function renderAthleteRoutines(ctx){
       :isFuture
         ?`<span style="background:var(--bg-4);color:var(--text-2);font-size:10px;padding:1px 8px;border-radius:20px;">Próximo</span>`
         :`<span style="background:var(--bg-3);color:var(--text-2);font-size:10px;padding:1px 8px;border-radius:20px;">Pasado</span>`;
-    return plans.map(([,plan])=>{
+    return plans.map(([planId,plan])=>{
       const blocks=Object.entries(plan.blocks||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+      const existingLog=sessions[date]?.workoutLog?.[pid]?.[planId]||null;
+      const isLogging=S.athleteLogMode?.date===date&&S.athleteLogMode?.planId===planId;
       const blocksHtml=blocks.map(([bid,block])=>{
         const bInfo=blockTypeInfo(block.type);
         const collapseKey=`${date}_${bid}`;
@@ -5460,16 +5573,105 @@ function renderAthleteRoutines(ctx){
           ${isCollapsed?'':exHtml}
         </div>`;
       }).join('');
+      const loggedBadge=existingLog&&!isLogging?`<span style="font-size:10px;background:#052e16;color:#22c55e;padding:2px 8px;border-radius:20px;font-weight:600;flex-shrink:0;">✓ Reg.</span>`:'';
+      const logBtn=date===TODAY&&!isLogging
+        ?`<div class="ap-plan-log-bar"><button class="${existingLog?'ap-log-edit-btn':'ap-log-start-btn'}" data-action="aplogsession" data-date="${date}" data-planid="${planId}">${existingLog?'✏ Editar registro':'Registrar sesión'}</button></div>`
+        :'';
       return`<div class="ap-plan-card">
         <div class="ap-plan-head">
           <span class="ap-plan-name">${plan.name||'Plan de entrenamiento'}</span>
-          <div style="display:flex;align-items:center;gap:6px;">${dateBadge}<span class="ap-plan-date">${fmtDate(date)}</span></div>
+          <div style="display:flex;align-items:center;gap:6px;">${loggedBadge}${dateBadge}<span class="ap-plan-date">${fmtDate(date)}</span></div>
         </div>
-        ${blocksHtml}
+        ${isLogging?renderAthleteLogForm(blocks,date,planId,existingLog):blocksHtml+logBtn}
       </div>`;
     }).join('');
   }).join('');
   return`<div style="padding-top:8px;">${cards}</div>`;
+}
+
+function renderAthleteLogForm(blocks,date,planId,existingLog){
+  const blocksHtml=blocks.map(([bid,block])=>{
+    const bInfo=blockTypeInfo(block.type);
+    const items=Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
+    if(!items.length) return'';
+    const itemsHtml=items.map(([iid,item])=>{
+      const sets=Object.values(item.sets||{}).sort((a,b)=>(a.order||0)-(b.order||0));
+      if(!sets.length) return'';
+      const setStr=formatAthleteSetStr(sets);
+      const setsHtml=sets.map((s,idx)=>{
+        const ex=existingLog?.[bid]?.[iid]?.[idx]||{};
+        const isTime=s.type==='time';
+        const weightInput=`<label class="ap-log-label">kg<input type="number" id="aplog_${bid}_${iid}_${idx}_weight" class="ap-log-input" inputmode="decimal" value="${ex.weight||''}" placeholder="—"></label>`;
+        const repsInput=isTime
+          ?`<span class="ap-log-time-badge">${s.time?s.time+'s':'—'}</span>`
+          :`<label class="ap-log-label">reps<input type="number" id="aplog_${bid}_${iid}_${idx}_reps" class="ap-log-input ap-log-input--sm" inputmode="numeric" value="${ex.reps||''}" placeholder="—"></label>`;
+        return`<div class="ap-log-set-row">
+          <span class="ap-log-set-num">S${idx+1}</span>
+          ${repsInput}
+          ${weightInput}
+        </div>`;
+      }).join('');
+      return`<div class="ap-log-item">
+        <div class="ap-log-item-name">${item.exName||'Ejercicio'}</div>
+        ${setStr?`<div class="ap-log-item-prescribed">${setStr} · prescripto</div>`:''}
+        <div class="ap-log-sets">${setsHtml}</div>
+      </div>`;
+    }).join('');
+    return`<div class="ap-block">
+      <div class="ap-block-head" style="color:${bInfo.color};cursor:default;">
+        <span>${bInfo.label}${block.name&&block.name!==bInfo.label?' · '+block.name:''}</span>
+      </div>
+      ${itemsHtml}
+    </div>`;
+  }).join('');
+  return`${blocksHtml}
+  <div class="ap-log-actions">
+    <button class="ap-log-cancel-btn" data-action="apcancellog">Cancelar</button>
+    <button class="ap-log-save-btn" data-action="apsavelog" data-date="${date}" data-planid="${planId}">Guardar registro</button>
+  </div>`;
+}
+
+async function saveAthleteWorkoutLog(ctx,date,planId){
+  const{tid,catId,pid}=ctx;
+  const plan=S.teams[tid]?.categories?.[catId]?.sessions?.[date]?.plans?.[planId];
+  if(!plan){showAlert('No se encontró el plan.');return;}
+  const base=`teams/${tid}/categories/${catId}/sessions/${date}/workoutLog/${pid}/${planId}`;
+  const updates={};
+  const logCache={};
+  Object.entries(plan.blocks||{}).forEach(([bid,block])=>{
+    Object.entries(block.items||{}).forEach(([iid,item])=>{
+      const sets=Object.values(item.sets||{}).sort((a,b)=>(a.order||0)-(b.order||0));
+      sets.forEach((s,idx)=>{
+        const isTime=s.type==='time';
+        const wEl=document.getElementById(`aplog_${bid}_${iid}_${idx}_weight`);
+        const rEl=!isTime?document.getElementById(`aplog_${bid}_${iid}_${idx}_reps`):null;
+        const weight=wEl?.value.trim();
+        const reps=rEl?.value.trim();
+        const entry={};
+        if(!isTime&&reps) entry.reps=reps;
+        if(weight) entry.weight=weight;
+        if(Object.keys(entry).length){
+          updates[`${base}/${bid}/${iid}/${idx}`]=entry;
+          if(!logCache[bid]) logCache[bid]={};
+          if(!logCache[bid][iid]) logCache[bid][iid]={};
+          logCache[bid][iid][idx]=entry;
+        }
+      });
+    });
+  });
+  if(!Object.keys(updates).length){showAlert('Ingresá al menos un dato para guardar.');return;}
+  try{
+    await db.ref().update(updates);
+    const catData=S.teams[tid].categories[catId];
+    if(!catData.sessions) catData.sessions={};
+    if(!catData.sessions[date]) catData.sessions[date]={};
+    if(!catData.sessions[date].workoutLog) catData.sessions[date].workoutLog={};
+    if(!catData.sessions[date].workoutLog[pid]) catData.sessions[date].workoutLog[pid]={};
+    catData.sessions[date].workoutLog[pid][planId]=logCache;
+    showAlert('✓ Registro guardado');
+    S.athleteLogMode=null;
+    render();
+  }catch(e){showAlert('Error al guardar: '+e.message);}
 }
 
 function renderAthleteAttendance(ctx){
