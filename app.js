@@ -32,7 +32,13 @@ const W_SVGS={
   stress:  _S+`<path d="M9.5 3C7.6 3 6 4.5 6 6.5c0 1.1.5 2.1 1.3 2.8C6.5 10.2 6 11.5 6 13c0 3 2.7 5 6 5s6-2 6-5c0-1.5-.5-2.8-1.3-3.7.8-.7 1.3-1.7 1.3-2.8C18 4.5 16.4 3 14.5 3c-.9 0-1.7.4-2.3 1-.6-.6-1.4-1-2.3-1l-.4 0z"/><line x1="12" y1="4" x2="12" y2="18"/><path d="M9 8.5c.5 1.2 1.7 1.8 3 1.8M15 8.5c-.5 1.2-1.7 1.8-3 1.8"/></svg>`,
   mood:    _S+`<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
 };
-const SESSION_TYPES=[{id:'practica',label:'Práctica',icon:'🏃'},{id:'partido',label:'Partido',icon:'⚽'},{id:'libre',label:'Día libre',icon:'😴'},{id:'recuperacion',label:'Recuperación',icon:'🔄'}];
+const _ST=`width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`;
+const SESSION_TYPES=[
+  {id:'practica',label:'Práctica',icon:`<svg ${_ST}><line x1="6" y1="12" x2="18" y2="12"/><path d="M6 5v14M18 5v14M2 9v6M22 9v6"/></svg>`},
+  {id:'partido',label:'Partido',icon:`<svg ${_ST}><path d="M7 4h10l-1 7a5 5 0 0 1-8 0Z"/><path d="M5 4H2v4a4 4 0 0 0 4 4"/><path d="M19 4h3v4a4 4 0 0 1-4 4"/><line x1="12" y1="17" x2="12" y2="21"/><polyline points="8 21 16 21"/></svg>`},
+  {id:'libre',label:'Día libre',icon:`<svg ${_ST}><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`},
+  {id:'recuperacion',label:'Recuperación',icon:`<svg ${_ST}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`}
+];
 const ABSENCE_REASONS=[{id:'lesion',label:'Lesión',icon:'🤕'},{id:'illness',label:'Enfermedad',icon:'🤒'},{id:'other',label:'Otro',icon:'📝'}];
 const W_TIPS   = {
   sleep:['Muy malo','Malo','Regular','Bueno','Excelente'],
@@ -2645,12 +2651,10 @@ function renderSessionLoad(){
   const dur=parseInt(sd.duration)||0;
   const stVal=sd.sessionType;const stDef=stVal?SESSION_TYPES.find(t=>t.id===stVal):null;
   const convocados=cd.players.filter(p=>S.sess[p.id]==='P'||S.sess[p.id]==='T').length;
-  const teamRpe=sd.teamRPE;
   const indRpeVals=Object.values(sd.playerRPE||{});
   const avgIndRpe=indRpeVals.length>0?Math.round(indRpeVals.reduce((a,b)=>a+b,0)/indRpeVals.length*10)/10:null;
-  const rpeDisplay=teamRpe!==null?teamRpe:avgIndRpe;
-  const loadEst=rpeDisplay!==null&&dur?Math.round(rpeDisplay*dur):null;
-  const hasLoad=ex.duration&&(ex.teamRPE!=null||Object.keys(ex.playerRPE||{}).length);
+  const loadEst=avgIndRpe!==null&&dur?Math.round(avgIndRpe*dur):null;
+  const hasLoad=ex.duration&&(ex.teamRPE!=null||Object.keys(ex.playerRPE||{}).length>0);
   const stBtns=SESSION_TYPES.map(t=>`<button class="q-sess-type-btn${stVal===t.id?' active':''}" ${editable?`data-action="sessiontype" data-type="${t.id}"`:'disabled'}>${t.icon} ${t.label}</button>`).join('');
   return`${!editable?`<div class="readonly-banner" style="margin-bottom:12px;">👁 Modo lectura — no podés editar sesiones en esta categoría.</div>`:''}
   <div class="q-att-summary" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px;">
@@ -2662,12 +2666,12 @@ function renderSessionLoad(){
     <div class="cell">
       <span class="lbl">Carga estimada</span>
       <span class="v" style="color:var(--accent);">${loadEst!==null?loadEst:'—'}<span class="pct">${loadEst?' UA':''}</span></span>
-      <span class="sub">${dur&&rpeDisplay!==null?dur+'min × RPE'+rpeDisplay:'—'}</span>
+      <span class="sub">${dur&&avgIndRpe!==null?dur+'min × RPE'+avgIndRpe:'—'}</span>
     </div>
     <div class="cell">
       <span class="lbl">RPE</span>
-      <span class="v">${rpeDisplay!==null?rpeDisplay:'—'}<span class="pct">${rpeDisplay!==null?' /10':''}</span></span>
-      <span class="sub">${S.rpeMode==='team'?'Equipo':'Individual'}</span>
+      <span class="v">${avgIndRpe!==null?avgIndRpe:'—'}<span class="pct">${avgIndRpe!==null?' /10':''}</span></span>
+      <span class="sub">Promedio</span>
     </div>
     <div class="cell">
       <span class="lbl">Convocados</span>
@@ -2678,7 +2682,7 @@ function renderSessionLoad(){
   <div class="q-card">
     <div class="q-card__h">
       <h3>Tipo de sesión · Duración</h3>
-      ${hasLoad?`<span class="meta">✓ Guardado · ${ex.duration}min · RPE ${ex.teamRPE!=null?ex.teamRPE+' (equipo)':'individual'}</span>`:'<span class="meta">Sin guardar</span>'}
+      ${hasLoad?`<span class="meta">✓ Guardado · ${ex.duration}min</span>`:'<span class="meta">Sin guardar</span>'}
     </div>
     <div class="q-card__b" style="padding:12px 16px;">
       <div class="q-sess-type-row">${stBtns}</div>
@@ -2688,13 +2692,9 @@ function renderSessionLoad(){
           <input type="number" id="dur-input" value="${sd.duration||''}" placeholder="90" min="1" max="300" class="q-dur-input" ${editable?'':'disabled'}>
           <span style="font-size:12px;color:var(--text-2);">min</span>
         </div>
-        ${editable?`<div class="q-att-toggle" style="margin-left:auto;">
-          <button class="b${S.rpeMode==='team'?' on p':''}" data-action="rpemode" data-mode="team">Equipo</button>
-          <button class="b${S.rpeMode==='individual'?' on p':''}" data-action="rpemode" data-mode="individual">Individual</button>
-        </div>`:''}
       </div>
     </div>
-    ${S.rpeMode==='team'?renderTeamRPE():renderIndividualRPE()}
+    ${renderIndividualRPE()}
     ${editable?`<div style="padding:12px 16px;border-top:1px solid var(--line);">
       <button class="q-btn q-btn--primary" style="width:100%;" data-action="savesession">Guardar sesión</button>
       <span id="sess-save-msg" style="display:block;text-align:center;font-size:12px;color:var(--ok);font-weight:500;margin-top:6px;min-height:18px;"></span>
