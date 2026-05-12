@@ -346,6 +346,7 @@ auth.onAuthStateChanged(async user => {
     if(S.pendingInvite){
       await handlePendingInvite(S.pendingInvite);
     }
+    showBetaDisclaimer();
   } else {
     currentUser=null;
     document.getElementById('login-screen').style.display='flex';
@@ -365,6 +366,7 @@ async function doLogin() {
   if(!email||!pass){err.textContent='Ingresá email y contraseña.';return;}
   btn.disabled=true; btn.textContent='Ingresando...'; err.textContent='';
   try {
+    await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
     await auth.signInWithEmailAndPassword(email,pass);
     _loginFails=0;
   } catch(e) {
@@ -4765,6 +4767,46 @@ function renderSubscriptionModal(){
 }
 
 // ── CUSTOM DIALOGS ────────────────────────────────────────────
+function showBetaDisclaimer(){
+  if(sessionStorage.getItem('qoore_beta_ack')) return;
+  let el=document.getElementById('app-beta-disclaimer');
+  if(!el){el=document.createElement('div');el.id='app-beta-disclaimer';document.body.appendChild(el);}
+  el.innerHTML=`
+    <div class="q-modal-backdrop" style="z-index:9995;">
+      <div class="q-modal" style="max-width:420px;padding:0;border-radius:16px;overflow:hidden;animation:q-pop-in .2s ease;">
+        <div style="background:rgba(249,115,22,.08);border-bottom:1px solid rgba(249,115,22,.18);padding:20px 24px 16px;display:flex;align-items:center;gap:12px;">
+          <div style="width:42px;height:42px;border-radius:50%;background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.28);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text-0);">Versión Beta</div>
+            <div style="font-size:11px;color:#F97316;font-weight:500;margin-top:1px;">Plataforma en desarrollo activo</div>
+          </div>
+        </div>
+        <div style="padding:20px 24px 4px;">
+          <p style="font-size:13px;color:var(--text-1);line-height:1.65;margin:0 0 14px;">
+            Estás accediendo a una versión beta de <strong style="color:var(--text-0);">Qoore</strong>. La plataforma está en construcción activa y puede presentar comportamientos inesperados.
+          </p>
+          <ul style="font-size:12.5px;color:var(--text-2);line-height:1.85;margin:0 0 14px;padding-left:18px;">
+            <li>Pueden aparecer errores visuales o funcionales.</li>
+            <li>En casos excepcionales podría ocurrir pérdida parcial de datos.</li>
+            <li>Algunas funciones están incompletas o pueden cambiar sin previo aviso.</li>
+            <li>No se recomienda para gestión crítica de información por el momento.</li>
+          </ul>
+          <p style="font-size:11.5px;color:var(--text-3);line-height:1.6;margin:0 0 20px;">
+            Trabajamos continuamente para mejorar la experiencia. Si encontrás algún problema, no dudes en reportarlo — ¡tu feedback es clave en esta etapa!
+          </p>
+        </div>
+        <div style="padding:0 24px 22px;">
+          <button id="beta-ack-btn" style="width:100%;padding:11px;border-radius:var(--r-2);background:#F97316;color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Entendido, continuar</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('beta-ack-btn').onclick=()=>{
+    sessionStorage.setItem('qoore_beta_ack','1');
+    el.innerHTML='';
+  };
+}
 function showConfirm(msg, cb){
   S.confirmModal={msg,cb};
   _renderConfirmOverlay();
