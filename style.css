@@ -846,6 +846,26 @@ body.is-auth.athlete #mob-tabbar{display:none!important}
 .ap-rpe-btn.sel{border-width:2px}
 
 /* Attendance */
+/* Attendance calendar */
+.ap-cal{margin:0 16px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);overflow:hidden}
+.ap-cal-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 10px 6px}
+.ap-cal-nbtn{background:none;border:none;color:var(--text-1);cursor:pointer;padding:5px 8px;border-radius:6px;display:flex;align-items:center;line-height:1}
+.ap-cal-nbtn:active{background:var(--bg-3)}
+.ap-cal-nbtn--dim{opacity:.25;cursor:default}
+.ap-cal-title{font-size:14px;font-weight:600;color:var(--text-0)}
+.ap-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:0 6px 8px;gap:2px}
+.ap-cal-dh{text-align:center;font-size:9px;color:var(--text-3);font-weight:600;padding:4px 0;text-transform:uppercase}
+.ap-cal-day{display:flex;flex-direction:column;align-items:center;padding:3px 1px;gap:3px;position:relative;min-height:42px}
+.ap-cal-day--future .ap-cal-num{opacity:.25}
+.ap-cal-num{font-size:12px;color:var(--text-1);width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-variant-numeric:tabular-nums}
+.ap-cal-day--today .ap-cal-num{background:var(--accent);color:#fff;font-weight:700}
+.ap-cal-dot{width:5px;height:5px;border-radius:50%;background:transparent;flex-shrink:0}
+.ap-cal-dot--present{background:var(--ok)}
+.ap-cal-dot--absent{background:var(--bad)}
+.ap-cal-dot--justified{background:#eab308}
+.ap-cal-wdot{position:absolute;top:2px;right:4px;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.ap-cal-legend{display:flex;gap:10px;padding:8px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.ap-cal-leg{font-size:10px;color:var(--text-2);display:flex;align-items:center;gap:4px}
 .ap-att-list{padding:8px 16px;display:flex;flex-direction:column;gap:6px}
 .ap-att-row{
   display:flex;align-items:center;gap:10px;

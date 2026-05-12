@@ -231,6 +231,7 @@ let S = {
   athletePortalTab:'today',
   athleteCheckin:null,     // draft: { sleep,fatigue,soreness,stress,mood,rpe,rpeDate }
   athleteCollapsed:{},     // blockCollapseKey → true
+  athleteCalOffset:0,      // months from current (0=now, -1=last month…)
 };
 
 // ── Admin ──────────────────────────────────────────────────────
@@ -4682,6 +4683,10 @@ async function handleAction(e){
     S.athleteCollapsed[bkey]=!S.athleteCollapsed[bkey];
     render();
   }
+  else if(a==='aptogglecalmonth'){
+    S.athleteCalOffset=Math.min(0,(S.athleteCalOffset||0)+parseInt(el.dataset.dir));
+    render();
+  }
   // ATHLETE INVITE PICKER
   else if(a==='setinvitecategory'){
     const emailEl=document.getElementById('inv-email');if(emailEl)S.inviteForm.email=emailEl.value;
@@ -5439,42 +5444,80 @@ function renderAthleteRoutines(ctx){
 function renderAthleteAttendance(ctx){
   const{tid,catId,pid}=ctx;
   const att=S.teams[tid]?.categories?.[catId]?.attendance||{};
-  const rows=[];
-  for(let i=29;i>=0;i--){
-    const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);
-    const date=d.toISOString().split('T')[0];
-    const status=att[date]?.[pid];
-    if(status) rows.push({date,status});
-  }
-  const statusLabel={P:'Presente',T:'Presente',A:'Ausente',L:'Lesión',J:'Justificado'};
-  const presentCount=rows.filter(r=>r.status==='P'||r.status==='T').length;
-  const total=rows.length;
-  const pct=total>0?Math.round(presentCount/total*100):null;
-  const pctColor=pct===null?'var(--text-2)':pct>=85?'var(--ok)':pct>=70?'#eab308':'var(--bad)';
-  if(!rows.length){
-    return`<div class="q-empty-state" style="padding:40px 20px;">
-      <div style="font-size:36px;margin-bottom:12px;">📋</div>
-      <div style="font-weight:600;margin-bottom:4px;">Sin registros</div>
-      <div style="font-size:13px;color:var(--text-2);">No hay asistencia registrada en los últimos 30 días.</div>
+  const sess=S.teams[tid]?.categories?.[catId]?.sessions||{};
+
+  // ── Calendar ──────────────────────────────────────────────
+  const offset=S.athleteCalOffset||0;
+  const now=new Date();
+  const calDate=new Date(now.getFullYear(),now.getMonth()+offset,1);
+  const year=calDate.getFullYear(),month=calDate.getMonth();
+  const MNAMES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const firstDow=calDate.getDay();
+  const startOffset=firstDow===0?6:firstDow-1;
+  const daysInMonth=new Date(year,month+1,0).getDate();
+
+  const dhHtml=['L','M','X','J','V','S','D'].map(d=>`<div class="ap-cal-dh">${d}</div>`).join('');
+  let cells='';
+  for(let i=0;i<startOffset;i++) cells+=`<div class="ap-cal-day ap-cal-day--empty"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const status=att[ds]?.[pid];
+    const hasW=!!sess[ds]?.wellness?.[pid];
+    const isToday=ds===TODAY, isFuture=ds>TODAY;
+    let dotCls='';
+    if(status==='P'||status==='T') dotCls='ap-cal-dot--present';
+    else if(status==='A') dotCls='ap-cal-dot--absent';
+    else if(status==='L'||status==='J') dotCls='ap-cal-dot--justified';
+    cells+=`<div class="ap-cal-day${isToday?' ap-cal-day--today':''}${isFuture?' ap-cal-day--future':''}">
+      <span class="ap-cal-num">${d}</span>
+      <span class="ap-cal-dot${dotCls?' '+dotCls:''}"></span>
+      ${hasW&&!isFuture?`<span class="ap-cal-wdot"></span>`:''}
     </div>`;
   }
-  const summary=`<div style="display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);">
+  const canNext=offset<0;
+  const prevBtn=`<button class="ap-cal-nbtn" data-action="aptogglecalmonth" data-dir="-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>`;
+  const nextBtn=`<button class="ap-cal-nbtn${!canNext?' ap-cal-nbtn--dim':''}" data-action="aptogglecalmonth" data-dir="1"${!canNext?' disabled':''}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>`;
+  const calHtml=`<div class="ap-cal">
+    <div class="ap-cal-nav">${prevBtn}<span class="ap-cal-title">${MNAMES[month]} ${year}</span>${nextBtn}</div>
+    <div class="ap-cal-grid">${dhHtml}${cells}</div>
+    <div class="ap-cal-legend">
+      <span class="ap-cal-leg"><span class="ap-cal-dot ap-cal-dot--present"></span>Presente</span>
+      <span class="ap-cal-leg"><span class="ap-cal-dot ap-cal-dot--absent"></span>Ausente</span>
+      <span class="ap-cal-leg"><span class="ap-cal-dot ap-cal-dot--justified"></span>Justificado</span>
+      <span class="ap-cal-leg"><span class="ap-cal-wdot" style="position:static;display:inline-block;"></span>Check-in</span>
+    </div>
+  </div>`;
+
+  // ── Stats for displayed month ──────────────────────────────
+  const statusLabel={P:'Presente',T:'Presente',A:'Ausente',L:'Lesión',J:'Justificado'};
+  const monthRows=[];
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    if(ds>TODAY) break;
+    const status=att[ds]?.[pid];
+    if(status) monthRows.push({date:ds,status});
+  }
+  const presentCount=monthRows.filter(r=>r.status==='P'||r.status==='T').length;
+  const total=monthRows.length;
+  const pct=total>0?Math.round(presentCount/total*100):null;
+  const pctColor=pct===null?'var(--text-2)':pct>=85?'var(--ok)':pct>=70?'#eab308':'var(--bad)';
+  const summaryHtml=total>0?`<div style="display:flex;gap:10px;padding:12px 16px;">
     <div style="flex:1;background:var(--bg-2);border-radius:var(--r-2);padding:10px 14px;border:1px solid var(--line);">
-      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;">Asistencia 30d</div>
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;">Asistencia</div>
       <div style="font-size:24px;font-weight:700;font-family:var(--font-mono);color:${pctColor};margin-top:2px;">${pct!==null?pct+'%':'—'}</div>
     </div>
     <div style="flex:1;background:var(--bg-2);border-radius:var(--r-2);padding:10px 14px;border:1px solid var(--line);">
-      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;">Sesiones presentes</div>
+      <div style="font-size:10px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;">Sesiones</div>
       <div style="font-size:24px;font-weight:700;font-family:var(--font-mono);color:var(--text-0);margin-top:2px;">${presentCount}<span style="font-size:14px;color:var(--text-2);">/${total}</span></div>
     </div>
-  </div>`;
-  const attRows=[...rows].reverse().map(({date,status})=>
+  </div>`:'';
+  const attRows=[...monthRows].reverse().map(({date,status})=>
     `<div class="ap-att-row">
       <span class="ap-att-date">${fmtDate(date)}</span>
       <span class="ap-att-badge ap-att-${status}">${statusLabel[status]||status}</span>
     </div>`
   ).join('');
-  return`<div>${summary}<div class="ap-att-list">${attRows}</div></div>`;
+  return`<div style="padding-top:8px;">${calHtml}${summaryHtml}${attRows?`<div class="ap-att-list">${attRows}</div>`:''}</div>`;
 }
 
 function renderAthleteProgress(ctx){
