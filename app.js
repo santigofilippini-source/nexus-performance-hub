@@ -4791,7 +4791,6 @@ function showBetaDisclaimer(){
             <li>Pueden aparecer errores visuales o funcionales.</li>
             <li>En casos excepcionales podría ocurrir pérdida parcial de datos.</li>
             <li>Algunas funciones están incompletas o pueden cambiar sin previo aviso.</li>
-            <li>No se recomienda para gestión crítica de información por el momento.</li>
           </ul>
           <p style="font-size:11.5px;color:var(--text-3);line-height:1.6;margin:0 0 20px;">
             Trabajamos continuamente para mejorar la experiencia. Si encontrás algún problema, no dudes en reportarlo — ¡tu feedback es clave en esta etapa!
