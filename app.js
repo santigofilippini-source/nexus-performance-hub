@@ -204,6 +204,7 @@ let S = {
   planEditBlock:null,    // { planId, blockId } block name being edited
   planEditSet:null,      // { planId, blockId, itemId, setIdx, field } cell in edit
   planCollapsed:{},      // { 'planId__blockId': true }
+  planMinimized:{},     // { planId: true } plan body collapsed
   // User profile & logo
   userProfile:{}, pendingLogo:null, pendingAthletePhoto:null, pendingProfilePhoto:null, profileView:false,
   // Permissions & invitations
@@ -2367,8 +2368,12 @@ function renderPlan(){
       const p=cd.players.find(pl=>pl.id===pid);return p?p.name:'';
     }).filter(Boolean).join(', ')||'Sin asignar';
     const isUnassigned=!plan.assignedToAll&&!Object.keys(plan.assignedTo||{}).length;
+    const isMinimized=!!S.planMinimized[planId];
+    const chevronDown=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+    const chevronUp=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`;
     return`<div class="q-plan-card">
       <div class="q-plan-card__head">
+        <button class="q-plan-collapse-btn" data-action="toggleplan" data-planid="${planId}" title="${isMinimized?'Expandir':'Colapsar'}">${isMinimized?chevronDown:chevronUp}</button>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:15px;color:var(--text-0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${plan.name||'Plan sin nombre'}</div>
           <div style="font-size:12px;margin-top:3px;display:flex;align-items:center;gap:5px;color:${isUnassigned?'var(--warn)':'var(--text-2)'};">
@@ -2391,8 +2396,8 @@ function renderPlan(){
           </button>`:''}
         </div>
       </div>
-      <div class="q-plan-blocks">${blocks.map(([bid,block])=>renderPlanBlock(bid,block,{planId})).join('')}</div>
-      ${editable?`<button class="q-btn q-btn--ghost q-add-block-btn" data-action="addblock" data-ctx="session" data-planid="${planId}">+ Agregar bloque</button>`:''}
+      ${isMinimized?'':`<div class="q-plan-blocks">${blocks.map(([bid,block])=>renderPlanBlock(bid,block,{planId})).join('')}</div>
+      ${editable?`<button class="q-btn q-btn--ghost q-add-block-btn" data-action="addblock" data-ctx="session" data-planid="${planId}">+ Agregar bloque</button>`:''}`}
     </div>`;
   }).join('');
   const emptyHtml=!plans.length&&!planForm?`<div class="q-empty-state"><div style="font-size:32px;margin-bottom:8px;">🏋️</div><div style="font-weight:600;">Sin plan para este día</div><div style="font-size:13px;color:var(--text-2);margin-top:4px;">Creá un plan o cargá desde un programa guardado</div></div>`:'';
@@ -2515,13 +2520,13 @@ function renderPlanBlock(bid, block, ctx){
     return`<tr>
       <td class="q-ex-name" style="white-space:nowrap;">
         ${item.exName||'Ejercicio'}
-        ${_hasVideo?`<button class="q-icon-btn" data-action="showvideo" data-exid="${item.exId}" title="Ver video" style="font-size:10px;padding:2px 6px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);margin-left:6px;vertical-align:middle;">▶</button>`:''}
+        ${_hasVideo?`<button class="q-icon-btn" data-action="showvideo" data-exid="${item.exId}" title="Ver video" style="padding:2px 6px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);margin-left:6px;vertical-align:middle;"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>`:''}
       </td>
       ${setCells}
       ${editable?`<td class="q-set-cell q-set-actions">
         <button class="q-set-pill q-set-pill--add" data-action="addset" ${ctxAttrs} data-iid="${iid}" title="Agregar serie">+ Serie</button>
         ${setCount>1?`<button class="q-set-pill q-set-pill--rem" data-action="removelastset" ${ctxAttrs} data-iid="${iid}" title="Quitar última serie">− Serie</button>`:''}
-        <button class="q-icon-btn" data-action="removeitem" ${ctxAttrs} data-iid="${iid}" title="Eliminar ejercicio" style="color:var(--bad);opacity:.7;">🗑</button>
+        <button class="q-icon-btn" data-action="removeitem" ${ctxAttrs} data-iid="${iid}" title="Eliminar ejercicio" style="color:var(--bad);opacity:.7;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
       </td>`:''}
     </tr>`;
   }).join('');
@@ -2535,9 +2540,9 @@ function renderPlanBlock(bid, block, ctx){
     <div class="q-block-card__head">
       ${blockHeader}
       <div style="display:flex;gap:4px;margin-left:4px;">
-        <button class="q-icon-btn" data-action="toggleblock" data-colkey="${collapseKey}">${collapsed?'▼':'▲'}</button>
-        ${editable&&!editingBlockName?`<button class="q-icon-btn" data-action="editblockname" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Renombrar">✏️</button>`:''}
-        ${editable?`<button class="q-icon-btn" data-action="deleteblock" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Eliminar bloque">🗑</button>`:''}
+        <button class="q-icon-btn" data-action="toggleblock" data-colkey="${collapseKey}">${collapsed?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`}</button>
+        ${editable&&!editingBlockName?`<button class="q-icon-btn" data-action="editblockname" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Renombrar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`:''}
+        ${editable?`<button class="q-icon-btn" data-action="deleteblock" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" title="Eliminar bloque"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>`:''}
       </div>
     </div>
     ${!collapsed?`${tableHtml}
@@ -5318,6 +5323,11 @@ async function handleAction(e){
   else if(a==='toggleblock'){
     const key=el.dataset.colkey;
     S.planCollapsed[key]=!S.planCollapsed[key];render();
+  }
+  else if(a==='toggleplan'){
+    const pid=el.dataset.planid;
+    S.planMinimized={...S.planMinimized,[pid]:!S.planMinimized[pid]};
+    render();
   }
   // ── EXERCISES ─────────────────────────────────────────────────
   else if(a==='addexercise'){
