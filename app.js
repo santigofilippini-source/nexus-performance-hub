@@ -932,8 +932,9 @@ async function persistCat(tid=S.teamId, cid=S.cat) {
   if(!currentUser||!S.teams[tid]?.categories?.[cid]) return;
   setSyncBar('saving');
   try {
-    const clean=JSON.parse(JSON.stringify(S.teams[tid].categories[cid]));
-    await db.ref(`teams/${tid}/categories/${cid}`).set(clean);
+    const cat=JSON.parse(JSON.stringify(S.teams[tid].categories[cid]));
+    delete cat.sessions; // sessions written separately to avoid clobbering plans subtree
+    await db.ref(`teams/${tid}/categories/${cid}`).update(cat);
     setSyncBar('ok');
   } catch(e) {
     console.error('persistCat error:', e.code, e.message, e);
@@ -1550,13 +1551,20 @@ async function saveSessionDraft(){
   Object.entries(S.wellnessDraft).forEach(([pid,w])=>{if(w!==null)wellness[pid]=w;});
   const playerRPE={...(ex.playerRPE||{}),...S.sessionDraft.playerRPE};
   const playerDuration={...(ex.playerDuration||{}),...S.sessionDraft.playerDuration};
-  cd.sessions[S.date]={
+  const sessData={
     duration:S.sessionDraft.duration?parseInt(S.sessionDraft.duration):ex.duration,
     teamRPE:S.sessionDraft.teamRPE!==null?S.sessionDraft.teamRPE:ex.teamRPE,
     sessionType:S.sessionDraft.sessionType!==null?S.sessionDraft.sessionType:(ex.sessionType||null),
     playerRPE,playerDuration,wellness
   };
-  await persistCat();
+  cd.sessions[S.date]={...(cd.sessions[S.date]||{}),...sessData};
+  setSyncBar('saving');
+  try {
+    await db.ref(planBase()).update(sessData);
+    setSyncBar('ok');
+  } catch(e) {
+    setSyncBar('error', e.code||e.message||'Error');
+  }
 }
 // ── Programs Firebase ─────────────────────────────────────────
 function progRef(pid){ return db.ref(`users/${currentUser.uid}/programs/${pid}`); }
