@@ -2013,23 +2013,28 @@ function renderMyExercises(){
     if(!grouped[cat]) grouped[cat]=[];
     grouped[cat].push({id,...ex});
   });
-  const editFormHtml=editForm?`<div class="q-card" style="margin-bottom:12px;">
-    <div class="q-card__h"><h3>${editForm.id==='__new'?'Nuevo ejercicio':'Editar ejercicio'}</h3></div>
-    <div class="q-card__b" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
-      <div class="form-field"><label>Nombre</label>
-        <input type="text" id="exlib-name" class="q-input" value="${editForm.name||''}" placeholder="Nombre del ejercicio">
+  const editFormHtml=editForm?`<div class="q-modal-overlay" onclick="if(event.target===this){S.exLibEdit=null;render();}">
+    <div class="q-modal" onclick="event.stopPropagation()" style="max-width:420px;width:90%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h3 style="margin:0;font-size:16px;font-weight:700;">${editForm.id==='__new'?'Nuevo ejercicio':'Editar ejercicio'}</h3>
+        <button class="q-modal__close" data-action="cancelexlibedit">✕</button>
       </div>
-      <div class="form-field"><label>Categoría</label>
-        <select id="exlib-cat" class="q-input" style="padding:6px 10px;">
-          ${EX_CATEGORIES.map(c=>`<option value="${c}"${editForm.category===c?' selected':''}>${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-field"><label>Video de YouTube <span style="font-weight:400;color:var(--text-2);">(opcional)</span></label>
-        <input type="url" id="exlib-video" class="q-input" value="${editForm.videoUrl||''}" placeholder="https://youtube.com/watch?v=...">
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="q-btn q-btn--primary" data-action="saveexlibedit">Guardar</button>
-        <button class="q-btn" data-action="cancelexlibedit">Cancelar</button>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="form-field"><label>Nombre</label>
+          <input type="text" id="exlib-name" class="q-input" value="${editForm.name||''}" placeholder="Nombre del ejercicio" autofocus>
+        </div>
+        <div class="form-field"><label>Categoría</label>
+          <select id="exlib-cat" class="q-input" style="padding:6px 10px;">
+            ${EX_CATEGORIES.map(c=>`<option value="${c}"${editForm.category===c?' selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-field"><label>Video de YouTube <span style="font-weight:400;color:var(--text-2);">(opcional)</span></label>
+          <input type="url" id="exlib-video" class="q-input" value="${editForm.videoUrl||''}" placeholder="https://youtube.com/watch?v=...">
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+          <button class="q-btn" data-action="cancelexlibedit">Cancelar</button>
+          <button class="q-btn q-btn--primary" data-action="saveexlibedit">Guardar</button>
+        </div>
       </div>
     </div>
   </div>`:'';
@@ -2059,9 +2064,9 @@ function renderMyExercises(){
       </div>
       <button class="q-btn q-btn--primary" data-action="newexlib">+ Nuevo ejercicio</button>
     </div>
-    ${editFormHtml}
     ${listHtml}
-  </div>`;
+  </div>
+  ${editFormHtml}`;
 }
 
 // ── HOME: Teams list ──────────────────────────────────────────
