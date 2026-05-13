@@ -1314,7 +1314,7 @@ function renderAccessPanel(tid){
     const rows = notifs.slice(0,8).map(n=>{
       const ts = n.timestamp ? new Date(n.timestamp) : null;
       const ago = ts ? timeSince(ts) : '';
-      const roleLabel = n.role==='editor' ? 'Staff' : 'Observador';
+      const roleLabel = n.role==='editor' ? 'Staff' : n.role==='athlete' ? 'Atleta' : 'Observador';
       return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:'+(n.read?'var(--bg2)':'#0c1a2e')+';border-radius:8px;margin-bottom:5px;border:1px solid '+(n.read?'var(--border)':'#1e40af')+';"><span style="font-size:15px;flex-shrink:0;">🎉</span><div style="flex:1;min-width:0;"><div style="font-size:13px;color:var(--text);font-weight:'+(n.read?'400':'600')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(n.displayName||n.email)+'</div><div style="font-size:11px;color:var(--text2);">Aceptó como <strong>'+roleLabel+'</strong></div>'+(ago?'<div style="font-size:10px;color:var(--text3);margin-top:1px;">'+ago+'</div>':'')+'</div></div>';
     }).join('');
     notifsHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Notificaciones'+(unreadCount?' <span style="background:#ef4444;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:4px;">'+unreadCount+' nuevas</span>':'')+'</div>'+(unreadCount?'<button class="sm-btn" data-action="markread" data-tid="'+tid+'" style="font-size:11px;">Marcar leídas</button>':'')+'</div>'+rows+'<div style="border-top:1px solid var(--border);margin:12px 0;"></div>';
@@ -1327,7 +1327,7 @@ function renderAccessPanel(tid){
       const exp = new Date(inv.expiresAt);
       const expired = now > exp;
       const daysLeft = expired ? 0 : Math.ceil((exp-now)/(1000*60*60*24));
-      const roleLabel = inv.role==='editor' ? 'Staff' : 'Observador';
+      const roleLabel = inv.role==='editor' ? 'Staff' : inv.role==='athlete' ? 'Atleta' : 'Observador';
       const invLink = window.location.origin+window.location.pathname+'?invite='+inv.token;
       const permsStr = JSON.stringify(inv.permissions||{}).replace(/'/g,"&#39;");
       return '<div style="background:var(--bg2);border-radius:8px;padding:9px 10px;margin-bottom:6px;border:1px solid '+(expired?'#7f1d1d':'var(--border')+';">'
