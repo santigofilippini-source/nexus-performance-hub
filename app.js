@@ -2643,6 +2643,10 @@ function renderPlan(){
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             Exportar PDF
           </button>
+          <button class="q-plan-btn q-plan-btn--ghost" data-action="copyplantoprog" data-planid="${planId}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copiar a programas
+          </button>
           ${editable?`<button class="q-plan-btn q-plan-btn--assign" data-action="editplanmeta" data-planid="${planId}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Asignar
@@ -5532,6 +5536,18 @@ async function handleAction(e){
     showConfirm('¿Eliminar este programa y todos sus días?', async()=>{
       await deleteProgram(pid);render();
     });
+  }
+  else if(a==='copyplantoprog'){
+    const planId=el.dataset.planid;
+    const plan=S.sessionPlans[planId];
+    if(!plan) return;
+    const newPid='prog_'+Date.now();
+    const progName='Copia de '+(plan.name||'plan');
+    await saveProgram(newPid,{name:progName,createdAt:Date.now()});
+    const did='day_'+Date.now();
+    const blocks=JSON.parse(JSON.stringify(plan.blocks||{}));
+    await saveProgramDay(newPid,did,{name:plan.name||'Rutina',order:0,blocks});
+    showAlert('✓ Copiado a "'+progName+'" en tus programas.');
   }
   else if(a==='duplicateprog'){
     const pid=el.dataset.pid;
