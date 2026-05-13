@@ -1138,12 +1138,15 @@ async function acceptInvitation(){
       [`invitations/${token}/status`]:'accepted',
       [`invitations/${token}/acceptedByUid`]:currentUser.uid,
     });
-    // Step 3: write team membership (needs user membership written in step 1 first)
-    const notifId = 'notif_'+Date.now();
+    // Step 3: write memberIndex + memberPermissions (atomic, no notification — athletes can't write notifications)
     await db.ref().update({
       [`teams/${teamId}/memberIndex/${currentUser.uid}`]:{email:currentUser.email,role,displayName:currentUser.displayName||''},
       [`teams/${teamId}/memberPermissions/${currentUser.uid}`]:memberPermData,
-      [`teams/${teamId}/notifications/${notifId}`]:{
+    });
+    // Step 3b: notify staff — best-effort (athletes are blocked by rules, that's ok)
+    try {
+      const notifId = 'notif_'+Date.now();
+      await db.ref(`teams/${teamId}/notifications/${notifId}`).set({
         type:'invite_accepted',
         uid:currentUser.uid,
         email:currentUser.email||'',
@@ -1151,8 +1154,8 @@ async function acceptInvitation(){
         role,
         timestamp:new Date().toISOString(),
         read:false
-      }
-    });
+      });
+    } catch(_){}
     // Step 4: remove pendingInvite — best-effort, don't fail if denied
     try {
       await db.ref(`teams/${teamId}/pendingInvites/${token}`).remove();
@@ -6333,5 +6336,5 @@ async function saveAthleteCheckin(ctx){
     showAlert('✓ Check-in guardado');
     S.athleteCheckin=null; // re-init from saved on next render
     render();
-  }catch(e){devErr(e);showAlert('Error al guardar check-in. ('+e.message+')');}
+  }catch(e){devErr(e);showAlert('Error al guardar check-in.');}
 }
