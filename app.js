@@ -223,6 +223,14 @@ const DEFAULT_EXERCISES = {
   'def_beststretch':{name:'Rotación de estiramiento (Best Stretch Rotations)',     category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/watch?v=nerm7uqCE5M'},
   'def_staggerrdl': {name:'Calentamiento RDL escalonado (Staggered Stance RDL Warm Up)', category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/watch?v=PaGvnbo1LWU'},
   'def_revlungerot':{name:'Estocada reversa con rotación (Reverse Lunge Rotations)', category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/watch?v=c-s2RHsnUQU'},
+  'def_crosscabletri':{name:'Empuje de tríceps en poleas cruzadas',                 category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=22OVa6lMeQE'},
+  'def_kickbacktri': {name:'Patada de tríceps en polea',                            category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=3LHpomvtp60'},
+  'def_shelc':       {name:'Flexión de piernas elevado (SHELC)',                    category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=7WvKMkFk-4M'},
+  'def_invrow':      {name:'Remo invertido',                                        category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=7lD0se-8HtQ'},
+  'def_seatedcabrow':{name:'Remo en polea baja sentado',                            category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=E4ygp6bITbk'},
+  'def_catcow':      {name:'Postura gato-vaca (Cat-Cow)',                           category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/watch?v=FF11_7XfIPk'},
+  'def_ropetripush': {name:'Empuje de tríceps en polea alta con cuerda (Rope Pushdown)', category:'Tren superior',    videoUrl:'https://www.youtube.com/watch?v=KymuKtiZgSw'},
+  'def_threadneedle':{name:'Enhebrar la aguja (Thread the Needle)',                 category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/watch?v=MfjH6I9vDjQ'},
 };
 
 // ── State ─────────────────────────────────────────────────────
