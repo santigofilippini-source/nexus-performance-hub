@@ -228,6 +228,22 @@ const DEFAULT_EXERCISES = {
   'def_catcow':      {name:'Postura gato-vaca (Cat-Cow)',                           category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/watch?v=FF11_7XfIPk'},
   'def_ropetripush': {name:'Empuje de tríceps en polea alta con cuerda (Rope Pushdown)', category:'Tren superior',    videoUrl:'https://www.youtube.com/watch?v=KymuKtiZgSw'},
   'def_threadneedle':{name:'Enhebrar la aguja (Thread the Needle)',                 category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/watch?v=MfjH6I9vDjQ'},
+  'def_archerpush': {name:'Flexión de arquero (Archer Push Up)',                   category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=8Lp075Q3BGg'},
+  'def_latpull':    {name:'Jalón al pecho (Lat Pull Down)',                        category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=SZuLHOEx4N0'},
+  'def_splitchop':  {name:'Chop en posición de estocada (Split Stance Chop)',      category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=1k-WQRew_Jg'},
+  'def_multiplunge':{name:'Estocada multiplanar (Multiplanar Lunge)',              category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=9g41K93MnVw'},
+  'def_suitcasedl': {name:'Peso muerto tipo maleta (Suitcase Deadlift)',           category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=Kqap3q36t20'},
+  'def_hkneelift':  {name:'Levantamiento en media rodilla (Half Kneeling Lift)',   category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=7l6SkKrd9iE'},
+  'def_pullthrough':{name:'Pull through (Tracción entre piernas)',                 category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=vtdq0rcCLtE'},
+  'def_defrevlunge':{name:'Estocada reversa con déficit (Deficit Reverse Lunge)',  category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=a_xhqPezYg8'},
+  'def_grasshopper':{name:'Flexión de saltamontes (Grasshopper Push Up)',          category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=jXeWbisQXTs'},
+  'def_spidercurl': {name:'Curl spiderman (Spiderman Hammer Curl)',                category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=JsTLU-u2uOY'},
+  'def_plankjump':  {name:'Salto en plancha alterno (Alternating Plank Jump)',     category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=u6mLiasODxg'},
+  'def_rolloutpush':{name:'Flexión con desplazamiento (Rollout Push Up)',          category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=TfsvytZDjf0'},
+  'def_pikepush':   {name:'Flexión en V (Pike Push Up)',                           category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=6NZpP-QU8yE'},
+  'def_inclinepush':{name:'Flexión inclinada (Incline Push Up)',                   category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=84citUerNPs'},
+  'def_landminethr':{name:'Thruster en landmine (Landmine Thruster)',              category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=p_uesP_uCi0'},
+  'def_offsetsq':   {name:'Sentadilla desplazada en landmine (Offset Squat)',      category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=WHcM8T3xfvo'},
 };
 
 // ── State ─────────────────────────────────────────────────────
