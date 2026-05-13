@@ -6345,5 +6345,5 @@ async function saveAthleteCheckin(ctx){
     showAlert('✓ Check-in guardado');
     S.athleteCheckin=null; // re-init from saved on next render
     render();
-  }catch(e){devErr(e);showAlert(`Error: ${e.message} | pid:${pid} | cat:${catId}`);}
+  }catch(e){devErr(e);showAlert('Error al guardar check-in.');}
 }
