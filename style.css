@@ -516,7 +516,10 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .q-roster__head>span:first-child{background:var(--bg-1)}
   .q-sess-grid{grid-template-columns:1fr}
   .q-rpe-grid{flex-wrap:wrap}
-  .q-att-head{flex-wrap:wrap;gap:6px}
+  .q-att-head{flex-direction:column;align-items:center;gap:8px}
+  .q-att-head .q-date{width:100%;justify-content:center}
+  .q-att-head .q-att-toggle{width:100%;margin-left:0!important}
+  .q-att-head .q-att-toggle .b{flex:1;white-space:nowrap}
   .q-btn{height:38px;min-height:38px}
   .q-rpe-btn{width:36px;height:36px}
   .q-ind-rpe .b{width:30px;height:30px}
