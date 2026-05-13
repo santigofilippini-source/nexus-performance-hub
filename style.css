@@ -334,6 +334,9 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
   .nx-cat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
   .nx-new-team-btn{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-sm);font-size:12px;color:var(--fg-3);background:transparent;border:1px dashed var(--line);cursor:pointer;width:100%;text-align:left;font-family:var(--font-ui);margin-top:8px;transition:background .12s,color .12s,border-color .12s;}
   .nx-new-team-btn:hover{background:var(--bg-3);color:var(--fg-1);border-color:var(--line-strong);}
+  /* Sticky headers on desktop — top header is hidden, so anchor to 0 */
+  .sec-header{top:0}
+  .tabs{top:44px}
 }
 @keyframes nx-pulse{0%,100%{opacity:.35}50%{opacity:.8}}
 /* ── Category view ──────────────────────────────────────── */
