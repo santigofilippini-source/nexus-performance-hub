@@ -1220,11 +1220,20 @@ async function loadTeamMembers(tid){
     S.teamNotifs[tid] = notifs
       .map(([id,n])=>({id,...n}))
       .sort((a,b)=>b.timestamp?.localeCompare(a.timestamp||'')||0);
-    // Pending invites: include expired ones so owner can see/resend
+    // Pending invites: cross-check status and auto-clean accepted/revoked entries
     const invs = invSnap.exists() ? Object.entries(invSnap.val()||{}) : [];
-    S.teamInvites[tid] = invs
-      .map(([token,v])=>({token,...v}))
-      .sort((a,b)=>b.createdAt?.localeCompare(a.createdAt||'')||0);
+    if(invs.length){
+      const statusSnaps = await Promise.all(invs.map(([token])=>db.ref(`invitations/${token}/status`).get()));
+      const toDelete = {};
+      const active = [];
+      invs.forEach(([token,v],i)=>{
+        const status = statusSnaps[i].val();
+        if(status==='accepted'||status==='revoked') toDelete[`teams/${tid}/pendingInvites/${token}`]=null;
+        else active.push({token,...v});
+      });
+      if(Object.keys(toDelete).length) db.ref().update(toDelete).catch(()=>{});
+      S.teamInvites[tid]=active.sort((a,b)=>b.createdAt?.localeCompare(a.createdAt||'')||0);
+    } else { S.teamInvites[tid]=[]; }
   } catch(e){ S.teamMembers[tid]=[]; S.teamNotifs[tid]=[]; S.teamInvites[tid]=[]; }
 }
 
