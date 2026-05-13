@@ -2733,6 +2733,7 @@ function renderPlanBlock(bid, block, ctx){
       <td class="q-ex-name" style="white-space:nowrap;">
         ${item.exName||'Ejercicio'}
         ${_hasVideo?`<button class="q-icon-btn" data-action="showvideo" data-exid="${item.exId}" title="Ver video" style="padding:2px 6px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);margin-left:6px;vertical-align:middle;"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>`:''}
+        <button class="q-icon-btn" data-action="saveextolib" data-exid="${item.exId}" data-exname="${(item.exName||'').replace(/"/g,'&quot;')}" title="Guardar en mi biblioteca" style="padding:2px 6px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--text-2);margin-left:4px;vertical-align:middle;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
       </td>
       ${setCells}
       ${editable?`<td class="q-set-cell q-set-actions">
@@ -5712,6 +5713,18 @@ async function handleAction(e){
     if(ctx==='session') await deleteItemFromBlock(planId,bid,iid);
     else await deleteItemFromDay(pid,did,bid,iid);
     render();
+  }
+  else if(a==='saveextolib'){
+    const exId=el.dataset.exid;
+    const fallbackName=el.dataset.exname||'Ejercicio';
+    const exInfo=DEFAULT_EXERCISES[exId]||S.exercises.global[exId]||S.exercises.personal[exId]||{};
+    const name=exInfo.name||fallbackName;
+    const category=exInfo.category||'Otro';
+    const videoUrl=exInfo.videoUrl||'';
+    const alreadySaved=Object.values(S.exercises.personal||{}).some(e=>e.name===name);
+    if(alreadySaved){showAlert('Este ejercicio ya está en tu biblioteca.');return;}
+    await savePersonalExercise(name,category,videoUrl);
+    showAlert('✓ "'+name+'" guardado en tu biblioteca.');
   }
   else if(a==='savenewpersonalex'){
     const name=S.exPickerQuery?.trim();
