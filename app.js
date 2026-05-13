@@ -2250,7 +2250,7 @@ function renderUpgradePanel(tid){
           </div>
         </div>
         <div style="font-size:9px;font-weight:600;color:#f97316;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Precio de lanzamiento</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Hasta 2 equipos · 3 categorías · 20 jugadores · Exportar PDF</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">1 equipo · 3 categorías · 20 jugadores · Exportar PDF</div>
         <button onclick="startCheckout('${tid}','pro')" style="width:100%;padding:9px;border-radius:8px;border:none;background:#f97316;color:#fff;font-weight:600;cursor:pointer;">Suscribirse a Pro</button>
       </div>
       <div style="border:1.5px solid #8b5cf6;border-radius:10px;padding:14px;">
@@ -4723,10 +4723,10 @@ function renderSubscriptionModal(){
   if(!S.subscriptionModal){el.innerHTML='';return;}
   const activeTierKey=S.betaMode?'beta':getEffectiveTier();
   const FEATURES=[
-    {key:'maxTeams',          label:'Equipos',                   free:'1',      pro:'2',        elite:'Ilimitados'},
+    {key:'maxTeams',          label:'Equipos',                   free:'1',      pro:'1',        elite:'Ilimitados'},
     {key:'maxCategoriesPerTeam',label:'Categorías por equipo',   free:'1',      pro:'3',        elite:'Ilimitadas'},
     {key:'maxPlayersPerCategory',label:'Jugadores por categoría',free:'10',     pro:'20',       elite:'Ilimitados'},
-    {key:'maxMembersPerTeam', label:'Miembros del staff',        free:'2',      pro:'5',        elite:'Ilimitados'},
+    {key:'maxMembersPerTeam', label:'Miembros del staff',        free:'1',      pro:'5',        elite:'Ilimitados'},
     {key:'exportPDF',         label:'Exportar PDF',              free:false,    pro:true,       elite:true},
     {key:'exportExcel',       label:'Exportar Excel',            free:false,    pro:true,       elite:true},
     {key:'advancedStats',     label:'Estadísticas avanzadas',    free:false,    pro:true,       elite:true},

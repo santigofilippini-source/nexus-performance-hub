@@ -8,7 +8,7 @@ const TIER_CONFIG = {
     label: 'Free',
     maxTeams: 1,
     maxCategoriesPerTeam: 1,
-    maxMembersPerTeam: 2,
+    maxMembersPerTeam: 1,
     maxPlayersPerCategory: 10,
     features: {
       exportPDF:     false,
@@ -22,7 +22,7 @@ const TIER_CONFIG = {
   pro: {
     label: 'Pro',
     price: { monthly: 9, annual: 79 },
-    maxTeams: 2,
+    maxTeams: 1,
     maxCategoriesPerTeam: 3,
     maxMembersPerTeam: 5,
     maxPlayersPerCategory: 20,
