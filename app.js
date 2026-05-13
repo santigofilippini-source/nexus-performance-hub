@@ -701,6 +701,10 @@ function updateSidebarNav(){
   h+=`<span style="font-size:13px;">📋</span><span class="label" style="margin-left:6px;">Programas</span><span class="n">${progCount||''}</span></div>`;
   h+=`<div class="q-tree__cat${exActive?' active':''}" onclick="openMyExercises()" style="border-radius:8px;">`;
   h+=`<span style="font-size:13px;">🏋️</span><span class="label" style="margin-left:6px;">Mis ejercicios</span><span class="n">${exCount||''}</span></div>`;
+  const qooreExActive=S.view==='qooreexercises';
+  const qooreExCount=Object.keys(DEFAULT_EXERCISES).length+Object.keys(S.exercises.global||{}).length;
+  h+=`<div class="q-tree__cat${qooreExActive?' active':''}" onclick="openQooreExercises()" style="border-radius:8px;">`;
+  h+=`<span style="font-size:13px;">⚡</span><span class="label" style="margin-left:6px;">Ejercicios Qoore</span><span class="n">${qooreExCount||''}</span></div>`;
   // Subscription section
   const tierKey=S.betaMode?'beta':getEffectiveTier();
   const tierLabels={beta:'Beta',free:'Free',pro:'Pro',elite:'Elite'};
@@ -1867,6 +1871,7 @@ function render(){
   else if(S.view==='cat')      body.innerHTML=renderCatHeader()+renderCat();
   else if(S.view==='programs')    body.innerHTML=renderProgramsView();
   else if(S.view==='myexercises') body.innerHTML=renderMyExercises();
+  else if(S.view==='qooreexercises') body.innerHTML=renderQooreExercises();
   updateHeader();
   attachEvents();
   if(S.exPicker) renderExPickerModal();
@@ -2068,6 +2073,48 @@ function renderMyExercises(){
     ${listHtml}
   </div>
   ${editFormHtml}`;
+}
+
+// ── QOORE EXERCISE LIBRARY (read-only, can copy to personal) ──
+function openQooreExercises(){S.view='qooreexercises';render();}
+
+function renderQooreExercises(){
+  const all={...DEFAULT_EXERCISES,...(S.exercises.global||{})};
+  const grouped={};
+  Object.entries(all).forEach(([id,ex])=>{
+    const cat=ex.category||'Otro';
+    if(!grouped[cat]) grouped[cat]=[];
+    grouped[cat].push({id,...ex});
+  });
+  const total=Object.keys(all).length;
+  const cards=Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0])).map(([cat,items])=>`
+    <div class="q-card" style="margin-bottom:10px;">
+      <div class="q-card__h"><h3>${cat} <span style="font-size:12px;font-weight:400;color:var(--text-2);">${items.length} ejercicios</span></h3></div>
+      <div>
+        ${items.map(ex=>{
+          const hasVideo=ex.videoUrl&&ytId(ex.videoUrl);
+          const alreadySaved=Object.values(S.exercises.personal||{}).some(e=>e.name===ex.name);
+          return`<div class="q-ex-lib-row">
+            <span style="font-size:13px;color:var(--text-0);">${ex.name}</span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              ${hasVideo?`<button class="q-icon-btn" data-action="showvideo" data-exid="${ex.id}" title="Ver video" style="font-size:11px;padding:3px 8px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:var(--accent);">▶ Video</button>`:''}
+              <button class="q-icon-btn" data-action="copyqooreex" data-exid="${ex.id}" title="${alreadySaved?'Ya está en tu biblioteca':'Copiar a Mis ejercicios'}" style="font-size:11px;padding:3px 8px;border-radius:var(--r-pill);background:var(--bg-4);border:1px solid var(--line);color:${alreadySaved?'var(--text-3)':'var(--text-1)'};${alreadySaved?'cursor:default;opacity:.5;':''}">
+                ${alreadySaved?'✓ Copiado':'+ Copiar'}
+              </button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+  return`<div class="wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <div style="font-size:18px;font-weight:700;">Ejercicios Qoore</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${total} ejercicios incluidos con la app · solo lectura</div>
+      </div>
+    </div>
+    ${cards}
+  </div>`;
 }
 
 // ── HOME: Teams list ──────────────────────────────────────────
@@ -5712,6 +5759,16 @@ async function handleAction(e){
     const ctx=el.dataset.ctx, bid=el.dataset.bid, iid=el.dataset.iid, planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
     if(ctx==='session') await deleteItemFromBlock(planId,bid,iid);
     else await deleteItemFromDay(pid,did,bid,iid);
+    render();
+  }
+  else if(a==='copyqooreex'){
+    const exId=el.dataset.exid;
+    const exInfo=DEFAULT_EXERCISES[exId]||S.exercises.global[exId]||{};
+    const name=exInfo.name;
+    if(!name)return;
+    const alreadySaved=Object.values(S.exercises.personal||{}).some(e=>e.name===name);
+    if(alreadySaved){showAlert('Este ejercicio ya está en tu biblioteca.');return;}
+    await savePersonalExercise(name,exInfo.category||'Otro',exInfo.videoUrl||'');
     render();
   }
   else if(a==='saveextolib'){
