@@ -263,6 +263,10 @@ function getEffectiveTier(tid=S.teamId){
 function getTierLimits(tid=S.teamId){
   return TIER_CONFIG[getEffectiveTier(tid)]||TIER_CONFIG.free;
 }
+function isAthleteOnly(){
+  const mems=Object.values(S.memberships||{});
+  return mems.length>0 && mems.every(m=>m.role==='athlete');
+}
 function canCreateTeam(){
   if(S.betaMode) return {ok:true};
   const limits=TIER_CONFIG[getEffectiveTier()]||TIER_CONFIG.free;
@@ -1129,14 +1133,16 @@ async function acceptInvitation(){
       : {role, permissions};
     // Step 1: write membership first so teams/ rule passes
     await db.ref(`users/${currentUser.uid}/memberships/${teamId}`).set(membershipData);
-    // Step 2: write to teams/ + mark invite accepted + notification + remove pending
-    const notifId = 'notif_'+Date.now();
+    // Step 2: mark invite accepted (invitations path — no team permission required)
     await db.ref().update({
       [`invitations/${token}/status`]:'accepted',
       [`invitations/${token}/acceptedByUid`]:currentUser.uid,
+    });
+    // Step 3: write team membership (needs user membership written in step 1 first)
+    const notifId = 'notif_'+Date.now();
+    await db.ref().update({
       [`teams/${teamId}/memberIndex/${currentUser.uid}`]:{email:currentUser.email,role,displayName:currentUser.displayName||''},
       [`teams/${teamId}/memberPermissions/${currentUser.uid}`]:memberPermData,
-      [`teams/${teamId}/pendingInvites/${token}`]:null,
       [`teams/${teamId}/notifications/${notifId}`]:{
         type:'invite_accepted',
         uid:currentUser.uid,
@@ -1147,6 +1153,10 @@ async function acceptInvitation(){
         read:false
       }
     });
+    // Step 4: remove pendingInvite — best-effort, don't fail if denied
+    try {
+      await db.ref(`teams/${teamId}/pendingInvites/${token}`).remove();
+    } catch(_){}
     S.memberships[teamId]=membershipData;
     const tSnap = await db.ref(`teams/${teamId}`).get();
     if(tSnap.exists() && tSnap.val()?.name){
@@ -1649,11 +1659,12 @@ async function saveSessionDraft(){
   const ex=cd.sessions[S.date]||{};
   const wellness={...(ex.wellness||{})};
   Object.entries(S.wellnessDraft).forEach(([pid,w])=>{if(w!==null)wellness[pid]=w;});
-  const playerRPE={...(ex.playerRPE||{}),...S.sessionDraft.playerRPE};
-  const playerDuration={...(ex.playerDuration||{}),...S.sessionDraft.playerDuration};
+  const _strip=obj=>Object.fromEntries(Object.entries(obj).filter(([,v])=>v!==undefined));
+  const playerRPE=_strip({...(ex.playerRPE||{}),...S.sessionDraft.playerRPE});
+  const playerDuration=_strip({...(ex.playerDuration||{}),...S.sessionDraft.playerDuration});
   const sessData={
-    duration:S.sessionDraft.duration?parseInt(S.sessionDraft.duration):ex.duration,
-    teamRPE:S.sessionDraft.teamRPE!==null?S.sessionDraft.teamRPE:ex.teamRPE,
+    duration:S.sessionDraft.duration?parseInt(S.sessionDraft.duration):(ex.duration??null),
+    teamRPE:S.sessionDraft.teamRPE!==null?S.sessionDraft.teamRPE:(ex.teamRPE??null),
     sessionType:S.sessionDraft.sessionType!==null?S.sessionDraft.sessionType:(ex.sessionType||null),
     playerRPE,playerDuration,wellness
   };
@@ -2154,7 +2165,7 @@ function renderHome(){
         <div style="font-size:20px;font-weight:600;color:var(--text-0);line-height:1.2;">${_greeting}${_firstName?', '+_firstName:''}</div>
         <div style="font-size:12px;color:var(--text-2);margin-top:3px;">${_dateStr}</div>
       </div>
-      <button class="sm-btn" data-action="newteam">+ Nuevo equipo</button>
+      ${!isAthleteOnly()?`<button class="sm-btn" data-action="newteam">+ Nuevo equipo</button>`:''}
     </div>
     ${S.teamFormMode?renderTeamForm():''}
     ${cards}${empty}
@@ -5167,7 +5178,7 @@ async function handleAction(e){
     S.inviteForm.pid=el.dataset.pid;render();
   }
   // TEAM MANAGEMENT
-  else if(a==='newteam'){S.teamFormMode='new';S.editingTeamId=null;render();}
+  else if(a==='newteam'){if(isAthleteOnly())return;S.teamFormMode='new';S.editingTeamId=null;render();}
   else if(a==='editteam'){S.teamFormMode='edit';S.editingTeamId=S.teamId;render();}
   else if(a==='cancelteamform'){S.teamFormMode=null;S.editingTeamId=null;S.pendingLogo=null;render();}
   else if(a==='savenewteam'){
@@ -6292,6 +6303,7 @@ function initAthleteChart(){
 
 async function saveAthleteCheckin(ctx){
   const{tid,catId,pid}=ctx;
+  if(!catId||!pid){showAlert('Tu cuenta no tiene una categoría o jugador asignado. Pedile al entrenador que te reenvíe la invitación con categoría asignada.');return;}
   const ci=S.athleteCheckin||{};
   const{sleep,fatigue,soreness,stress,mood,rpe,rpeDate}=ci;
   const sessionBase=`teams/${tid}/categories/${catId}/sessions`;
