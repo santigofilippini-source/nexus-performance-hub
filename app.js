@@ -2117,14 +2117,15 @@ function renderProgramsList(){
           <div style="font-weight:600;font-size:15px;color:var(--text);">${tpl.name||'Plantilla'}</div>
           <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${dayCount} ${dayCount===1?'rutina':'rutinas'} · Plantilla</div>
         </div>
-        <button class="q-btn q-btn--primary" style="font-size:12px;padding:6px 12px;" data-action="usetemplate" data-tid="${tid}">Usar</button>
+        <button class="q-btn q-btn--primary" style="font-size:12px;padding:6px 12px;" data-action="usetemplate" data-tid="${tid}">+ Copiar a mis programas</button>
       </div>
       ${dayChips?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">${dayChips}</div>`:''}
     </div>`;
   }).join('');
   const templatesSection=templateCards?`
-    <div style="margin-top:20px;">
-      <div style="font-size:13px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Plantillas</div>
+    <div style="margin-top:24px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Plantillas</div>
+      <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;">Rutinas de ejemplo listas para usar. Copiá la que quieras a tus programas y personalizala como necesites.</div>
       <div style="display:flex;flex-direction:column;gap:10px;">${templateCards}</div>
     </div>`:'';
   return`<div class="wrap">
