@@ -81,13 +81,17 @@ function regionLabel(id){return REGIONS_ALL.find(r=>r.id===id)?.label||id;}
 // ── Exercise / Program constants ──────────────────────────────
 const EX_CATEGORIES = ['Tren inferior','Tren superior','Core','Cardio / Metabólico','Técnico / Táctico','Movilidad / Elongación','Potencia / Pliometría','Otro'];
 const BLOCK_TYPES = [
-  {id:'warmup',  label:'WARM-UP',   color:'#0891b2'},
-  {id:'strength',label:'STRENGTH',  color:'#7c3aed'},
-  {id:'power',   label:'POWER',     color:'#ea580c'},
-  {id:'cardio',  label:'CARDIO',    color:'#16a34a'},
-  {id:'tactical',label:'TACTICAL',  color:'#2563eb'},
-  {id:'cooldown',label:'COOL-DOWN', color:'#475569'},
-  {id:'custom',  label:'BLOQUE',    color:'#d97706'},
+  {id:'warmup',    label:'WARM-UP',    color:'#0891b2'},
+  {id:'strength',  label:'STRENGTH',   color:'#7c3aed'},
+  {id:'power',     label:'POWER',      color:'#ea580c'},
+  {id:'plyo',      label:'PLYO',       color:'#db2777'},
+  {id:'speed',     label:'SPEED',      color:'#dc2626'},
+  {id:'cardio',    label:'CARDIO',     color:'#16a34a'},
+  {id:'mobility',  label:'MOBILITY',   color:'#8b5cf6'},
+  {id:'preventive',label:'PREVENTIVE', color:'#0d9488'},
+  {id:'tactical',  label:'TACTICAL',   color:'#2563eb'},
+  {id:'cooldown',  label:'COOL-DOWN',  color:'#475569'},
+  {id:'custom',    label:'BLOQUE',     color:'#d97706'},
 ];
 function blockTypeInfo(id){return BLOCK_TYPES.find(b=>b.id===id)||BLOCK_TYPES[BLOCK_TYPES.length-1];}
 function formatSetDisplay(s){
