@@ -4798,6 +4798,7 @@ function initCharts(){
     if(!datasets.length)return;
     mkChart('chart-antro',{type:'line',data:{labels,datasets},options:{scales:{y:{position:'left',ticks:{color:'#fb923c',font:{size:10}},grid:{color:'#1e293b22'},title:{display:true,text:'Σ6 mm',color:'#fb923c',font:{size:10}}},y2:{position:'right',ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false},title:{display:true,text:'Z-score',color:'#94a3b8',font:{size:10}}},x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#1e293b'}}}}});
   }
+  if(tab==='entrenamientos') initCoachWeightChart();
   if(tab==='tests'){
     const evals=Object.values(a.jumpTests||{}).sort((x,y)=>(x.date||'').localeCompare(y.date||''));
     if(evals.length<2)return;
@@ -4814,11 +4815,50 @@ function initCharts(){
   }
 }
 
+function initCoachWeightChart(){
+  if(!S.athleteKey||typeof Chart==='undefined') return;
+  const [tid,cid,pid]=S.athleteKey.split('__');
+  const exMap=buildAthleteWeightHistory(tid,cid,pid);
+  const exList=Object.entries(exMap).sort((a,b)=>b[1].dates.length-a[1].dates.length);
+  if(!exList.length) return;
+  const selKey=S.coachWeightEx||exList[0][0];
+  const ex=exMap[selKey];
+  if(!ex||!ex.dates.length) return;
+  mkChart('chart-coach-weight',{
+    type:'line',
+    data:{
+      labels:ex.dates.map(d=>fmtDate(d.date)),
+      datasets:[{
+        label:'Peso máx (kg)',
+        data:ex.dates.map(d=>d.maxW),
+        borderColor:'#FF6A1A',backgroundColor:'#FF6A1A22',
+        borderWidth:2,pointRadius:4,pointBackgroundColor:'#FF6A1A',tension:0.2,fill:true
+      }]
+    },
+    options:{
+      plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'kg',color:'#888'},ticks:{color:'#888',font:{size:10}},grid:{color:'#1e293b22'}},x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#1e293b'}}}
+    }
+  });
+}
+
 function renderAthleteWorkoutHistory(tid,cid,pid){
   const sessions=S.teams[tid]?.categories?.[cid]?.sessions||{};
+  const exMap=buildAthleteWeightHistory(tid,cid,pid);
+  const exList=Object.entries(exMap).sort((a,b)=>b[1].dates.length-a[1].dates.length);
+  if(!S.coachWeightEx||!exMap[S.coachWeightEx]) S.coachWeightEx=exList[0]?.[0]||null;
+  const weightChartSection=exList.length
+    ?`<div class="chart-card" style="margin-bottom:12px;">
+        <div class="chart-title">Evolución de pesos por ejercicio</div>
+        <select class="ap-ex-select" style="margin-bottom:12px;" onchange="S.coachWeightEx=this.value;initCoachWeightChart();">
+          ${exList.map(([key,ex])=>`<option value="${key}"${key===S.coachWeightEx?' selected':''}>${ex.name} (${ex.dates.length} sesión${ex.dates.length!==1?'es':''})</option>`).join('')}
+        </select>
+        <canvas id="chart-coach-weight" height="150"></canvas>
+      </div>`
+    :'';
   const logDates=Object.keys(sessions).filter(d=>sessions[d]?.workoutLog?.[pid]&&Object.keys(sessions[d].workoutLog[pid]).length>0).sort().reverse().slice(0,60);
   if(!logDates.length){
-    return`<div class="q-empty-state" style="padding:40px 20px;"><div style="font-size:32px;margin-bottom:8px;">💪</div><div style="font-weight:600;">Sin registros de entrenamiento</div><div style="font-size:13px;color:var(--text-2);margin-top:4px;">El atleta no ha registrado ninguna sesión todavía.</div></div>`;
+    return`<div>${weightChartSection}<div class="q-empty-state" style="padding:40px 20px;"><div style="font-size:32px;margin-bottom:8px;">💪</div><div style="font-weight:600;">Sin registros de entrenamiento</div><div style="font-size:13px;color:var(--text-2);margin-top:4px;">El atleta no ha registrado ninguna sesión todavía.</div></div></div>`;
   }
   const html=logDates.map(date=>{
     const dayLog=sessions[date].workoutLog[pid];
@@ -4857,7 +4897,7 @@ function renderAthleteWorkoutHistory(tid,cid,pid){
       <div class="q-card__b" style="padding:8px 16px 12px;">${entriesHtml}</div>
     </div>`;
   }).filter(Boolean).join('');
-  return`<div style="padding:10px 0;">${html||'<div class="q-empty-state"><div style="font-weight:600;">Sin datos para mostrar</div></div>'}</div>`;
+  return`<div style="padding:10px 0;">${weightChartSection}${html||'<div class="q-empty-state"><div style="font-weight:600;">Sin datos para mostrar</div></div>'}</div>`;
 }
 
 // ── EXPORTS ───────────────────────────────────────────────────
