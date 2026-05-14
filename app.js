@@ -244,6 +244,17 @@ const DEFAULT_EXERCISES = {
   'def_inclinepush':{name:'Flexión inclinada (Incline Push Up)',                   category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=84citUerNPs'},
   'def_landminethr':{name:'Thruster en landmine (Landmine Thruster)',              category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=p_uesP_uCi0'},
   'def_offsetsq':   {name:'Sentadilla desplazada en landmine (Offset Squat)',      category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=WHcM8T3xfvo'},
+  'def_wallknee':   {name:'Rodilla al pecho con apoyo en pared',                  category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/watch?v=At9lrvZT7Po'},
+  'def_bandlungepr':{name:'Estocada y press con banda',                           category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=N-4nV5Lht68'},
+  'def_lmhacksq':   {name:'Sentadilla hack en landmine',                          category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=6U2b7btD-uM'},
+  'def_lmrainbow':  {name:'Arcoíris en landmine',                                 category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=DZHki7yVkvk'},
+  'def_lmdeadbug':  {name:'Dead bug anclado a landmine',                          category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=YAMZwQor8E8'},
+  'def_lmcurl':     {name:'Curl de bíceps agarre mixto en landmine',              category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=iXezXAa50Ks'},
+  'def_lmbearcrawl':{name:'Caminata de oso en landmine',                          category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=RWxK7BpGLh0'},
+  'def_lm2handrow': {name:'Remo con dos manos en landmine',                       category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=Kvwbx2oJPGo'},
+  'def_lmfloorpr':  {name:'Press de suelo a un brazo en landmine',                category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=G0ghWie674s'},
+  'def_lmsurfsq':   {name:'Sentadilla de surfista desfasada en landmine',         category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=DREWSOsgzcc'},
+  'def_lmzpress':   {name:'Z press a un brazo en landmine',                       category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=0CLEzEaT6sA'},
 };
 
 // ── State ─────────────────────────────────────────────────────
