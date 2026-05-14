@@ -889,7 +889,8 @@ function updateSidebarNav(){
   const tierLabels={beta:'Beta',free:'Free',pro:'Pro',elite:'Elite'};
   const tierLabel=tierLabels[tierKey]||tierKey;
   h+=`<div class="q-tree__section-label" style="margin-top:8px;">CUENTA</div>`;
-  h+=`<div class="q-tree__cat q-sub-entry" onclick="openSubscriptionModal()" style="border-radius:8px;">`;
+  const subActive=S.view==='subscription';
+  h+=`<div class="q-tree__cat q-sub-entry${subActive?' active':''}" onclick="S.view='subscription';S.profileView=false;render();" style="border-radius:8px;">`;
   h+=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
   h+=`<span class="label" style="margin-left:6px;">Suscripción</span><span class="q-tier-pill q-tier-pill--${tierKey}">${tierLabel}</span></div>`;
   nav.innerHTML=h;
@@ -2051,6 +2052,7 @@ function render(){
   else if(S.view==='programs')    body.innerHTML=renderProgramsView();
   else if(S.view==='myexercises') body.innerHTML=renderMyExercises();
   else if(S.view==='qooreexercises') body.innerHTML=renderQooreExercises();
+  else if(S.view==='subscription') body.innerHTML=renderSubscriptionView();
   updateHeader();
   attachEvents();
   if(S.exPicker) renderExPickerModal();
@@ -2476,7 +2478,7 @@ function renderSubscriptionBtn(tid){
   const TIER_LABELS = { free:'Free', pro:'Pro', elite:'Elite' };
   const color = TIER_COLORS[tier] || TIER_COLORS.free;
   const label = TIER_LABELS[tier] || 'Free';
-  const hasSub = !!sub.stripeSubscriptionId;
+  const hasSub = !!sub.lsSubscriptionId;
   const btn = hasSub
     ? `<button onclick="openCustomerPortal('${tid}')" style="font-size:11px;padding:3px 8px;border-radius:8px;border:1px solid ${color};color:${color};background:transparent;cursor:pointer;font-weight:600;">${label}</button>`
     : tier==='free'
@@ -2520,6 +2522,115 @@ function renderUpgradePanel(tid){
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Equipos, categorías y jugadores ilimitados · Todo Pro + branding</div>
         <button onclick="startCheckout('${tid}','elite')" style="width:100%;padding:9px;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;cursor:pointer;">Suscribirse a Elite</button>
       </div>
+    </div>
+  </div>`;
+}
+
+// ── SUBSCRIPTION VIEW ─────────────────────────────────────────
+function renderSubscriptionView(){
+  const TIER_COLORS = { free:'#64748b', pro:'#f97316', elite:'#8b5cf6' };
+  const TIER_LABELS = { free:'Free', pro:'Pro', elite:'Elite' };
+  const STATUS_LABELS = { active:'Activo', past_due:'Pago pendiente', cancelled:'Cancelado', expired:'Vencido', payment_failed:'Pago fallido' };
+  const STATUS_COLORS = { active:'#22c55e', past_due:'#f97316', cancelled:'#94a3b8', expired:'#94a3b8', payment_failed:'#ef4444' };
+
+  const myTeams = Object.entries(S.teams||{}).filter(([tid])=>isOwner(tid));
+
+  const teamCards = myTeams.map(([tid, team])=>{
+    const sub = team.subscription || {};
+    const tier = sub.tier || 'free';
+    const status = sub.status || (tier==='free' ? 'free' : 'active');
+    const color = TIER_COLORS[tier] || TIER_COLORS.free;
+    const tierLabel = TIER_LABELS[tier] || 'Free';
+    const statusLabel = STATUS_LABELS[status] || status;
+    const statusColor = STATUS_COLORS[status] || '#94a3b8';
+    const hasSub = !!sub.lsSubscriptionId;
+
+    let renewalHtml = '';
+    if(sub.currentPeriodEnd){
+      const d = new Date(sub.currentPeriodEnd);
+      const formatted = d.toLocaleDateString('es-UY',{day:'numeric',month:'long',year:'numeric'});
+      const isExpired = d < new Date();
+      renewalHtml = `<div style="font-size:12px;color:var(--text2);margin-top:4px;">${isExpired?'Venció':'Renueva'} el ${formatted}</div>`;
+    }
+
+    let actionHtml = '';
+    if(hasSub && (status==='active'||status==='past_due')){
+      actionHtml = `
+        <button onclick="openCustomerPortal('${tid}')" style="width:100%;margin-top:14px;padding:10px;border-radius:8px;border:1px solid ${color};color:${color};background:transparent;font-weight:600;cursor:pointer;font-size:13px;">Gestionar facturación</button>`;
+    }
+
+    let upgradeHtml = '';
+    if(tier==='free' || !hasSub){
+      upgradeHtml = `
+        <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Actualizar plan</div>
+          <div style="border:1.5px solid #f97316;border-radius:10px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-weight:700;color:#f97316;">Pro</span>
+              <span style="font-size:15px;font-weight:700;">$9<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+            </div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">3 categorías · 20 jugadores · PDF export</div>
+            <button onclick="startCheckout('${tid}','pro')" style="width:100%;padding:8px;border-radius:8px;border:none;background:#f97316;color:#fff;font-weight:600;cursor:pointer;font-size:13px;">Suscribirse a Pro</button>
+          </div>
+          <div style="border:1.5px solid #8b5cf6;border-radius:10px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-weight:700;color:#8b5cf6;">Elite</span>
+              <span style="font-size:15px;font-weight:700;">$25<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+            </div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Todo ilimitado · branding personalizado</div>
+            <button onclick="startCheckout('${tid}','elite')" style="width:100%;padding:8px;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;cursor:pointer;font-size:13px;">Suscribirse a Elite</button>
+          </div>
+        </div>`;
+    } else if(tier==='pro' && hasSub){
+      upgradeHtml = `
+        <div style="margin-top:14px;">
+          <div style="border:1.5px solid #8b5cf6;border-radius:10px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-weight:700;color:#8b5cf6;">Elite</span>
+              <span style="font-size:15px;font-weight:700;">$25<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+            </div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Todo ilimitado · branding personalizado</div>
+            <button onclick="startCheckout('${tid}','elite')" style="width:100%;padding:8px;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;cursor:pointer;font-size:13px;">Mejorar a Elite</button>
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:${team.color||'#f97316'}22;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:${team.color||'#f97316'};">${team.name.split(' ').filter(w=>w).map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px;">${team.name}</div>
+            ${team.sport?`<div style="font-size:12px;color:var(--text2);">${team.sport}</div>`:''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <span style="font-size:13px;font-weight:700;color:${color};background:${color}18;padding:3px 10px;border-radius:20px;">${tierLabel}</span>
+          </div>
+          ${status!=='free'?`<div style="display:flex;align-items:center;gap:5px;"><div style="width:7px;height:7px;border-radius:50%;background:${statusColor};"></div><span style="font-size:12px;color:${statusColor};font-weight:500;">${statusLabel}</span></div>`:''}
+        </div>
+        ${renewalHtml}
+        ${actionHtml}
+        ${upgradeHtml}
+      </div>`;
+  }).join('');
+
+  const emptyState = myTeams.length===0
+    ? `<div style="text-align:center;padding:40px 20px;color:var(--text2);">No tenés equipos como owner.</div>`
+    : '';
+
+  return `<div class="wrap" style="max-width:520px;margin:0 auto;padding:24px 16px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+      <button onclick="S.view='home';render();" style="background:none;border:none;cursor:pointer;color:var(--text2);display:flex;align-items:center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+      </button>
+      <div style="font-size:18px;font-weight:700;">Suscripción</div>
+    </div>
+    ${emptyState}
+    ${teamCards}
+    <div style="text-align:center;margin-top:8px;">
+      <button onclick="openSubscriptionModal()" style="background:none;border:none;cursor:pointer;color:var(--text2);font-size:13px;text-decoration:underline;">Ver comparativa de planes</button>
     </div>
   </div>`;
 }
