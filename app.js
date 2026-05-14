@@ -5694,7 +5694,11 @@ async function handleAction(e){
   }
   else if(a==='apsavelog'){
     const _ctx=getAthleteCtx();
-    if(_ctx) await saveAthleteWorkoutLog(_ctx,el.dataset.date,el.dataset.planid);
+    if(_ctx){
+      await saveAthleteWorkoutLog(_ctx,el.dataset.date,el.dataset.planid);
+      if(el.dataset.later==='1') showAlert('Pesos guardados · Volvé más tarde para registrar el RPE.');
+      else showAlert('¡Rutina completada!');
+    }
   }
   else if(a==='apshowprofileedit'){ openAthleteProfile('edit'); }
   else if(a==='apcancelprofileedit'){ S.pendingAthletePhoto=null; openAthleteProfile('info'); }
@@ -6584,6 +6588,38 @@ function renderAthleteToday(ctx){
   </div>`;
 }
 
+function toggleAthleteSwitch(swKey, planId, date){
+  const lsKey=`ap_sw_${swKey}`;
+  const wasDone=localStorage.getItem(lsKey)==='1';
+  localStorage.setItem(lsKey, wasDone?'0':'1');
+  const exEl=document.querySelector(`[data-swkey="${swKey}"]`);
+  if(exEl) exEl.classList.toggle('ap-exercise--done',!wasDone);
+  const chk=exEl?.querySelector('input[type=checkbox]');
+  if(chk) chk.checked=!wasDone;
+  const ctx=getAthleteCtx();
+  if(!ctx) return;
+  const{tid,catId}=ctx;
+  const plan=S.teams[tid]?.categories?.[catId]?.sessions?.[date]?.plans?.[planId];
+  if(!plan) return;
+  const blocks=Object.entries(plan.blocks||{});
+  const totalEx=blocks.reduce((s,[,b])=>s+Object.keys(b.items||{}).length,0);
+  const doneEx=blocks.reduce((s,[bid,b])=>s+Object.entries(b.items||{}).filter(([iid])=>localStorage.getItem(`ap_sw_${date}_${planId}_${bid}_${iid}`)==='1').length,0);
+  const pct=totalEx>0?Math.round(doneEx/totalEx*100):0;
+  const wrap=document.getElementById(`ap-progress-${planId}`);
+  if(!wrap) return;
+  const info=wrap.querySelector('.ap-progress-info');
+  const fill=wrap.querySelector('.ap-progress-fill');
+  const btn=document.getElementById(`ap-complete-${planId}`);
+  if(info) info.innerHTML=`<span>${doneEx}/${totalEx} ejercicios</span><span class="ap-progress-pct">${pct}%</span>`;
+  if(fill) fill.style.width=pct+'%';
+  if(btn){ btn.disabled=pct<100; btn.textContent=pct<100?`Completar rutina · ${pct}%`:'✓ Completar rutina'; }
+}
+
+function openVideoById(vid){
+  S.videoModal={url:`https://www.youtube.com/watch?v=${vid}`};
+  renderVideoModal();
+}
+
 function renderAthleteRoutines(ctx){
   const{tid,catId,pid}=ctx;
   const sessions=S.teams[tid]?.categories?.[catId]?.sessions||{};
@@ -6620,17 +6656,24 @@ function renderAthleteRoutines(ctx){
     const blocksHtml=blocks.map(([bid,block])=>{
       const bInfo=blockTypeInfo(block.type);
       const collapseKey=`${date}_${bid}`;
-      const isCollapsed=!!S.athleteCollapsed[collapseKey];
+      const isCollapsed=S.athleteCollapsed[collapseKey]!==false;
       const items=Object.entries(block.items||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0));
-      const exHtml=items.map(([,item])=>{
+      const exHtml=items.map(([iid,item])=>{
         const sets=Object.values(item.sets||{}).sort((a,b)=>(a.order||0)-(b.order||0));
         const setStr=formatAthleteSetStr(sets);
         const _vidUrl=(DEFAULT_EXERCISES[item.exId]||S.exercises.personal[item.exId]||S.exercises.global[item.exId])?.videoUrl;
-        const _hasVid=_vidUrl&&ytId(_vidUrl);
-        return`<div class="ap-exercise">
+        const _vid=_vidUrl?ytId(_vidUrl):null;
+        const swKey=`${date}_${planId}_${bid}_${iid}`;
+        const isDone=localStorage.getItem(`ap_sw_${swKey}`)==='1';
+        const thumbHtml=_vid?`<img class="ap-ex-thumb" src="https://img.youtube.com/vi/${_vid}/mqdefault.jpg" onclick="openVideoById('${_vid}')" onerror="this.style.display='none'">`:'';
+        return`<div class="ap-exercise${isDone?' ap-exercise--done':''}" data-swkey="${swKey}">
+          ${thumbHtml}
           <div class="ap-ex-top">
             <span class="ap-exercise-name">${item.exName||'Ejercicio'}</span>
-            ${_hasVid?`<button class="ap-vid-btn" data-action="showvideo" data-exid="${item.exId}">▶ Video</button>`:''}
+            <label class="ap-switch" onclick="toggleAthleteSwitch('${swKey}','${planId}','${date}');event.stopPropagation();">
+              <input type="checkbox" ${isDone?'checked':''} readonly>
+              <span class="ap-switch-track"></span>
+            </label>
           </div>
           ${setStr?`<div class="ap-ex-detail">${setStr}</div>`:''}
         </div>`;
@@ -6645,9 +6688,22 @@ function renderAthleteRoutines(ctx){
         ${isCollapsed?'':exHtml}
       </div>`;
     }).join('');
+    const totalEx=blocks.reduce((s,[,b])=>s+Object.keys(b.items||{}).length,0);
+    const doneEx=blocks.reduce((s,[bid2,b])=>s+Object.entries(b.items||{}).filter(([iid2])=>localStorage.getItem(`ap_sw_${date}_${planId}_${bid2}_${iid2}`)==='1').length,0);
+    const pct=totalEx>0?Math.round(doneEx/totalEx*100):0;
     const loggedBadge=existingLog&&!isLogging?`<span style="font-size:10px;background:#052e16;color:#22c55e;padding:2px 8px;border-radius:20px;font-weight:600;flex-shrink:0;">✓ Reg.</span>`:'';
-    const logBtn=isToday&&!isLogging
-      ?`<div class="ap-plan-log-bar"><button class="${existingLog?'ap-log-edit-btn':'ap-log-start-btn'}" data-action="aplogsession" data-date="${date}" data-planid="${planId}">${existingLog?'✏ Editar registro':'Registrar sesión'}</button></div>`
+    const logBtn=isToday&&!isLogging?existingLog
+      ?`<div class="ap-plan-log-bar"><button class="ap-log-edit-btn" data-action="aplogsession" data-date="${date}" data-planid="${planId}">✏ Editar registro</button></div>`
+      :`<div class="ap-progress-wrap" id="ap-progress-${planId}">
+          <div class="ap-progress-info">
+            <span>${doneEx}/${totalEx} ejercicios</span>
+            <span class="ap-progress-pct">${pct}%</span>
+          </div>
+          <div class="ap-progress-track"><div class="ap-progress-fill" style="width:${pct}%"></div></div>
+          <button class="ap-complete-btn" id="ap-complete-${planId}" ${pct<100?'disabled':''} data-action="aplogsession" data-date="${date}" data-planid="${planId}">
+            ${pct<100?`Completar rutina · ${pct}%`:'✓ Completar rutina'}
+          </button>
+        </div>`
       :'';
     return`<div class="ap-plan-card">
       <div class="ap-plan-head">
@@ -6698,7 +6754,8 @@ function renderAthleteLogForm(blocks,date,planId,existingLog){
   return`${blocksHtml}
   <div class="ap-log-actions">
     <button class="ap-log-cancel-btn" data-action="apcancellog">Cancelar</button>
-    <button class="ap-log-save-btn" data-action="apsavelog" data-date="${date}" data-planid="${planId}">Guardar registro</button>
+    <button class="ap-log-later-btn" data-action="apsavelog" data-date="${date}" data-planid="${planId}" data-later="1">Completar luego</button>
+    <button class="ap-log-save-btn" data-action="apsavelog" data-date="${date}" data-planid="${planId}">Completar ✓</button>
   </div>`;
 }
 
