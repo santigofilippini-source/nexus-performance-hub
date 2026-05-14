@@ -976,6 +976,7 @@ body.is-auth.athlete #mob-tabbar{display:none!important}
 /* Progress */
 .ap-chart-card{margin:10px 16px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);padding:14px 16px}
 .ap-chart-card h3{font-size:13px;font-weight:600;color:var(--text-1);margin:0 0 12px}
+.ap-ex-select{width:100%;background:var(--bg-3);border:1px solid var(--line);border-radius:var(--r-1);color:var(--text-1);font-size:13px;padding:8px 10px;appearance:none;-webkit-appearance:none;font-family:var(--font-ui);cursor:pointer}
 .ap-well-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 16px}
 .ap-well-stat{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-2);padding:10px 8px;text-align:center}
 .ap-well-stat__icon{display:flex;align-items:center;justify-content:center;height:26px}

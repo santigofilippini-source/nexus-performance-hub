@@ -2144,7 +2144,7 @@ function render(){
     document.body.classList.add('athlete');
     body.innerHTML=renderAthletePortal(_athCtx);
     attachEvents();
-    if(S.athletePortalTab==='progress')setTimeout(initAthleteChart,50);
+    if(S.athletePortalTab==='progress')setTimeout(()=>{initAthleteChart();initAthleteWeightChart();},50);
     updateHeader();
     return;
   }
@@ -5654,7 +5654,7 @@ async function handleAction(e){
     S.athletePortalTab=el.dataset.tab;
     if(el.dataset.tab==='today') S.athleteCheckin=null;
     render();
-    if(el.dataset.tab==='progress') setTimeout(initAthleteChart,50);
+    if(el.dataset.tab==='progress') setTimeout(()=>{initAthleteChart();initAthleteWeightChart();},50);
   }
   else if(a==='apwellness'){
     if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null};
@@ -6884,41 +6884,74 @@ function renderAthleteAttendance(ctx){
   return`<div style="padding-top:8px;">${calHtml}${summaryHtml}${attRows?`<div class="ap-att-list">${attRows}</div>`:''}</div>`;
 }
 
+function buildAthleteWeightHistory(tid,catId,pid){
+  const sessions=S.teams[tid]?.categories?.[catId]?.sessions||{};
+  const exMap={};
+  Object.entries(sessions).forEach(([date,sess])=>{
+    const pidLog=sess?.workoutLog?.[pid];
+    if(!pidLog) return;
+    Object.entries(pidLog).forEach(([planId,planLog])=>{
+      Object.entries(planLog).forEach(([bid,blockLog])=>{
+        Object.entries(blockLog).forEach(([iid,setLog])=>{
+          const item=sess?.plans?.[planId]?.blocks?.[bid]?.items?.[iid];
+          if(!item) return;
+          const exKey=item.exId||item.exName;
+          const exName=item.exName||String(exKey);
+          let maxW=null;
+          Object.values(setLog).forEach(entry=>{
+            const w=parseFloat(entry.weight);
+            if(!isNaN(w)&&w>0&&(maxW===null||w>maxW)) maxW=w;
+          });
+          if(maxW===null) return;
+          if(!exMap[exKey]) exMap[exKey]={name:exName,dates:[]};
+          const exist=exMap[exKey].dates.find(d=>d.date===date);
+          if(!exist) exMap[exKey].dates.push({date,maxW});
+          else if(maxW>exist.maxW) exist.maxW=maxW;
+        });
+      });
+    });
+  });
+  Object.values(exMap).forEach(ex=>ex.dates.sort((a,b)=>a.date.localeCompare(b.date)));
+  return exMap;
+}
+
 function renderAthleteProgress(ctx){
   const{tid,catId,pid}=ctx;
   const sessions=S.teams[tid]?.categories?.[catId]?.sessions||{};
-  const data=[];
+  const wellData=[];
   for(let i=29;i>=0;i--){
     const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);
     const date=d.toISOString().split('T')[0];
     const w=sessions[date]?.wellness?.[pid];
-    if(w) data.push({date,wellness:w});
+    if(w) wellData.push({date,wellness:w});
   }
-  if(!data.length){
-    return`<div class="q-empty-state" style="padding:40px 20px;">
-      <div style="font-size:36px;margin-bottom:12px;">📈</div>
-      <div style="font-weight:600;margin-bottom:4px;">Sin datos de wellness</div>
-      <div style="font-size:13px;color:var(--text-2);">Completá el check-in diario para ver tu progreso.</div>
-    </div>`;
-  }
-  const avgStats=W_KEYS.map(k=>{
-    const vals=data.map(d=>d.wellness[k]).filter(v=>v!=null);
-    const avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):null;
-    const color=avg?wellColor(Math.round(parseFloat(avg))):'var(--text-2)';
-    return`<div class="ap-well-stat">
-      <div class="ap-well-stat__icon">${W_SVGS[k]}</div>
-      <div class="ap-well-stat__label">${W_LABELS[k]}</div>
-      <div class="ap-well-stat__val" style="color:${color};">${avg||'—'}</div>
-    </div>`;
-  }).join('');
-  return`<div style="padding-top:8px;">
+  const wellSection=wellData.length?`
     <div style="padding:4px 16px 4px;font-size:12px;color:var(--text-2);">Promedio últimos 30 días</div>
-    <div class="ap-well-stats">${avgStats}</div>
-    <div class="ap-chart-card">
-      <h3>Evolución del wellness</h3>
-      <canvas id="chart-athlete-wellness" height="160"></canvas>
-    </div>
-  </div>`;
+    <div class="ap-well-stats">${W_KEYS.map(k=>{
+      const vals=wellData.map(d=>d.wellness[k]).filter(v=>v!=null);
+      const avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):null;
+      const color=avg?wellColor(Math.round(parseFloat(avg))):'var(--text-2)';
+      return`<div class="ap-well-stat"><div class="ap-well-stat__icon">${W_SVGS[k]}</div><div class="ap-well-stat__label">${W_LABELS[k]}</div><div class="ap-well-stat__val" style="color:${color};">${avg||'—'}</div></div>`;
+    }).join('')}</div>
+    <div class="ap-chart-card"><h3>Evolución del wellness</h3><canvas id="chart-athlete-wellness" height="160"></canvas></div>`
+    :`<div style="padding:16px 16px 0;font-size:12px;color:var(--text-2);text-align:center;">Sin check-ins de wellness aún.</div>`;
+  const exMap=buildAthleteWeightHistory(tid,catId,pid);
+  const exList=Object.entries(exMap).sort((a,b)=>b[1].dates.length-a[1].dates.length);
+  if(!S.athleteProgressEx||!exMap[S.athleteProgressEx]) S.athleteProgressEx=exList[0]?.[0]||null;
+  const selKey=S.athleteProgressEx;
+  const weightSection=exList.length
+    ?`<div class="ap-chart-card" style="margin-top:10px;">
+        <h3>Historial de pesos</h3>
+        <select class="ap-ex-select" onchange="S.athleteProgressEx=this.value;initAthleteWeightChart();">
+          ${exList.map(([key,ex])=>`<option value="${key}"${key===selKey?' selected':''}>${ex.name} (${ex.dates.length} sesión${ex.dates.length!==1?'es':''})</option>`).join('')}
+        </select>
+        <canvas id="chart-athlete-weight" height="160" style="margin-top:14px;"></canvas>
+      </div>`
+    :`<div class="ap-chart-card" style="margin-top:10px;text-align:center;padding:20px 16px;">
+        <div style="font-size:28px;margin-bottom:8px;">🏋️</div>
+        <div style="font-size:13px;color:var(--text-2);">Registrá pesos en tus rutinas para ver el historial aquí.</div>
+      </div>`;
+  return`<div style="padding-top:8px;">${wellSection}${weightSection}</div>`;
 }
 
 function initAthleteChart(){
@@ -6947,7 +6980,35 @@ function initAthleteChart(){
         borderWidth:2,pointRadius:3,pointBackgroundColor:'#FF6A1A',tension:0.3,fill:true
       }]
     },
-    options:{scales:{y:{min:1,max:5}}}
+    options:{plugins:{legend:{display:false}},scales:{y:{min:1,max:5}}}
+  });
+}
+
+function initAthleteWeightChart(){
+  const ctx=getAthleteCtx();
+  if(!ctx||typeof Chart==='undefined') return;
+  const{tid,catId,pid}=ctx;
+  const exMap=buildAthleteWeightHistory(tid,catId,pid);
+  const exList=Object.entries(exMap).sort((a,b)=>b[1].dates.length-a[1].dates.length);
+  if(!exList.length) return;
+  const selKey=S.athleteProgressEx||exList[0][0];
+  const ex=exMap[selKey];
+  if(!ex||!ex.dates.length) return;
+  mkChart('chart-athlete-weight',{
+    type:'line',
+    data:{
+      labels:ex.dates.map(d=>fmtDate(d.date)),
+      datasets:[{
+        label:'Peso máx (kg)',
+        data:ex.dates.map(d=>d.maxW),
+        borderColor:'#FF6A1A',backgroundColor:'#FF6A1A22',
+        borderWidth:2,pointRadius:4,pointBackgroundColor:'#FF6A1A',tension:0.2,fill:true
+      }]
+    },
+    options:{
+      plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:'kg',color:'#888'},ticks:{color:'#888'}}}
+    }
   });
 }
 
