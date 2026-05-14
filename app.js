@@ -2932,8 +2932,11 @@ function renderPlanBlock(bid, block, ctx){
   const editingBlockName=S.planEditBlock&&S.planEditBlock.blockId===bid&&
     ((isSession&&S.planEditBlock.planId===ctx.planId)||(ctx.progId&&S.planEditBlock.progId===ctx.progId));
   const blockHeader=editingBlockName?
-    `<div style="display:flex;gap:8px;flex:1;align-items:center;">
-      <input type="text" id="block-name-input" value="${block.name||''}" class="q-input" style="flex:1;font-size:13px;padding:4px 8px;" placeholder="Nombre del bloque">
+    `<div style="display:flex;flex-wrap:wrap;gap:8px;flex:1;align-items:center;">
+      <select id="block-type-input" class="q-input" style="font-size:12px;padding:4px 6px;width:auto;">
+        ${BLOCK_TYPES.map(t=>`<option value="${t.id}"${(block.type||'custom')===t.id?' selected':''}>${t.label}</option>`).join('')}
+      </select>
+      <input type="text" id="block-name-input" value="${block.name||''}" class="q-input" style="flex:1;min-width:100px;font-size:13px;padding:4px 8px;" placeholder="Nombre del bloque">
       <button class="q-btn q-btn--primary" data-action="saveblockname" data-ctx="${isSession?'session':'prog'}" data-planid="${ctx.planId||''}" data-pid="${ctx.progId||''}" data-did="${ctx.dayId||''}" data-bid="${bid}" style="padding:4px 10px;font-size:12px;">OK</button>
       <button class="q-btn" data-action="cancelblockname" style="padding:4px 8px;font-size:12px;">✕</button>
     </div>`:
@@ -5900,12 +5903,13 @@ async function handleAction(e){
   else if(a==='cancelblockname'){S.planEditBlock=null;render();}
   else if(a==='saveblockname'){
     const name=document.getElementById('block-name-input')?.value.trim()||'Bloque';
+    const type=document.getElementById('block-type-input')?.value||'custom';
     const ctx=el.dataset.ctx, bid=el.dataset.bid, planId=el.dataset.planid, pid=el.dataset.pid, did=el.dataset.did;
     S.planEditBlock=null;
     if(ctx==='session'){
-      await updateBlockInPlan(planId,bid,{name});
+      await updateBlockInPlan(planId,bid,{name,type});
     } else {
-      await saveBlockToDay(pid,did,bid,{name});
+      await saveBlockToDay(pid,did,bid,{name,type});
     }
     render();
   }
