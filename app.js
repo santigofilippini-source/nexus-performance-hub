@@ -6592,9 +6592,9 @@ function toggleAthleteSwitch(swKey, planId, date){
   const lsKey=`ap_sw_${swKey}`;
   const wasDone=localStorage.getItem(lsKey)==='1';
   localStorage.setItem(lsKey, wasDone?'0':'1');
-  const exEl=document.querySelector(`[data-swkey="${swKey}"]`);
-  if(exEl) exEl.classList.toggle('ap-exercise--done',!wasDone);
-  const chk=exEl?.querySelector('input[type=checkbox]');
+  const blockEl=document.querySelector(`[data-swkey="${swKey}"]`);
+  if(blockEl) blockEl.classList.toggle('ap-block--done',!wasDone);
+  const chk=blockEl?.querySelector('input[type=checkbox]');
   if(chk) chk.checked=!wasDone;
   const ctx=getAthleteCtx();
   if(!ctx) return;
@@ -6602,15 +6602,15 @@ function toggleAthleteSwitch(swKey, planId, date){
   const plan=S.teams[tid]?.categories?.[catId]?.sessions?.[date]?.plans?.[planId];
   if(!plan) return;
   const blocks=Object.entries(plan.blocks||{});
-  const totalEx=blocks.reduce((s,[,b])=>s+Object.keys(b.items||{}).length,0);
-  const doneEx=blocks.reduce((s,[bid,b])=>s+Object.entries(b.items||{}).filter(([iid])=>localStorage.getItem(`ap_sw_${date}_${planId}_${bid}_${iid}`)==='1').length,0);
-  const pct=totalEx>0?Math.round(doneEx/totalEx*100):0;
+  const totalBlocks=blocks.length;
+  const doneBlocks=blocks.filter(([bid])=>localStorage.getItem(`ap_sw_${date}_${planId}_${bid}`)==='1').length;
+  const pct=totalBlocks>0?Math.round(doneBlocks/totalBlocks*100):0;
   const wrap=document.getElementById(`ap-progress-${planId}`);
   if(!wrap) return;
   const info=wrap.querySelector('.ap-progress-info');
   const fill=wrap.querySelector('.ap-progress-fill');
   const btn=document.getElementById(`ap-complete-${planId}`);
-  if(info) info.innerHTML=`<span>${doneEx}/${totalEx} ejercicios</span><span class="ap-progress-pct">${pct}%</span>`;
+  if(info) info.innerHTML=`<span>${doneBlocks}/${totalBlocks} bloques</span><span class="ap-progress-pct">${pct}%</span>`;
   if(fill) fill.style.width=pct+'%';
   if(btn){ btn.disabled=pct<100; btn.textContent=pct<100?`Completar rutina · ${pct}%`:'✓ Completar rutina'; }
 }
@@ -6663,40 +6663,43 @@ function renderAthleteRoutines(ctx){
         const setStr=formatAthleteSetStr(sets);
         const _vidUrl=(DEFAULT_EXERCISES[item.exId]||S.exercises.personal[item.exId]||S.exercises.global[item.exId])?.videoUrl;
         const _vid=_vidUrl?ytId(_vidUrl):null;
-        const swKey=`${date}_${planId}_${bid}_${iid}`;
-        const isDone=localStorage.getItem(`ap_sw_${swKey}`)==='1';
         const thumbHtml=_vid?`<img class="ap-ex-thumb" src="https://img.youtube.com/vi/${_vid}/mqdefault.jpg" onclick="openVideoById('${_vid}')" onerror="this.style.display='none'">`:'';
-        return`<div class="ap-exercise${isDone?' ap-exercise--done':''}" data-swkey="${swKey}">
+        return`<div class="ap-exercise">
           ${thumbHtml}
           <div class="ap-ex-top">
             <span class="ap-exercise-name">${item.exName||'Ejercicio'}</span>
-            <label class="ap-switch" onclick="toggleAthleteSwitch('${swKey}','${planId}','${date}');event.stopPropagation();">
-              <input type="checkbox" ${isDone?'checked':''} readonly>
-              <span class="ap-switch-track"></span>
-            </label>
           </div>
           ${setStr?`<div class="ap-ex-detail">${setStr}</div>`:''}
         </div>`;
       }).join('');
+      const swKey=`${date}_${planId}_${bid}`;
+      const isDoneBlock=localStorage.getItem(`ap_sw_${swKey}`)==='1';
       const chevron=`<svg class="ap-block-chevron${isCollapsed?'':' open'}" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
       const countBadge=isCollapsed?`<span class="ap-block-count">${items.length} ejercicio${items.length!==1?'s':''}</span>`:'';
-      return`<div class="ap-block">
+      return`<div class="ap-block${isDoneBlock?' ap-block--done':''}" data-swkey="${swKey}">
         <div class="ap-block-head" data-action="aptoggleblock" data-bkey="${collapseKey}" style="color:${bInfo.color};">
           <span>${bInfo.label}${block.name&&block.name!==bInfo.label?' · '+block.name:''}</span>
-          <div style="display:flex;align-items:center;gap:6px;">${countBadge}${chevron}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label class="ap-switch" onclick="toggleAthleteSwitch('${swKey}','${planId}','${date}');event.stopPropagation();">
+              <input type="checkbox" ${isDoneBlock?'checked':''} readonly>
+              <span class="ap-switch-track"></span>
+            </label>
+            ${countBadge}${chevron}
+          </div>
         </div>
         ${isCollapsed?'':exHtml}
       </div>`;
     }).join('');
-    const totalEx=blocks.reduce((s,[,b])=>s+Object.keys(b.items||{}).length,0);
-    const doneEx=blocks.reduce((s,[bid2,b])=>s+Object.entries(b.items||{}).filter(([iid2])=>localStorage.getItem(`ap_sw_${date}_${planId}_${bid2}_${iid2}`)==='1').length,0);
-    const pct=totalEx>0?Math.round(doneEx/totalEx*100):0;
+    const totalBlocks=blocks.length;
+    const doneBlocks=blocks.filter(([bid2])=>localStorage.getItem(`ap_sw_${date}_${planId}_${bid2}`)==='1').length;
+    const pct=totalBlocks>0?Math.round(doneBlocks/totalBlocks*100):0;
     const loggedBadge=existingLog&&!isLogging?`<span style="font-size:10px;background:#052e16;color:#22c55e;padding:2px 8px;border-radius:20px;font-weight:600;flex-shrink:0;">✓ Reg.</span>`:'';
-    const logBtn=isToday&&!isLogging?existingLog
-      ?`<div class="ap-plan-log-bar"><button class="ap-log-edit-btn" data-action="aplogsession" data-date="${date}" data-planid="${planId}">✏ Editar registro</button></div>`
-      :`<div class="ap-progress-wrap" id="ap-progress-${planId}">
+    const editBtnHtml=existingLog?`<div class="ap-plan-log-bar"><button class="ap-log-edit-btn" data-action="aplogsession" data-date="${date}" data-planid="${planId}">✏ Editar registro</button></div>`:'';
+    const logBtn=isToday&&!isLogging
+      ?`<div class="ap-progress-wrap" id="ap-progress-${planId}">
+          ${editBtnHtml}
           <div class="ap-progress-info">
-            <span>${doneEx}/${totalEx} ejercicios</span>
+            <span>${doneBlocks}/${totalBlocks} bloques</span>
             <span class="ap-progress-pct">${pct}%</span>
           </div>
           <div class="ap-progress-track"><div class="ap-progress-fill" style="width:${pct}%"></div></div>
