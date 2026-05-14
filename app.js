@@ -255,6 +255,17 @@ const DEFAULT_EXERCISES = {
   'def_lmfloorpr':  {name:'Press de suelo a un brazo en landmine',                category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=G0ghWie674s'},
   'def_lmsurfsq':   {name:'Sentadilla de surfista desfasada en landmine',         category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=DREWSOsgzcc'},
   'def_lmzpress':   {name:'Z press a un brazo en landmine',                       category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=0CLEzEaT6sA'},
+  'def_jacknife':   {name:'Jacknife',                                             category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=-jLFJPw0fLE'},
+  'def_tpushup':    {name:'Push up con rotación en T (T-Roll Push Up)',           category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=vuroSsyp1f8'},
+  'def_trxsq':      {name:'Sentadilla profunda en TRX (TRX Deep Squat)',          category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=_P_ei1kOQ7M'},
+  'def_bbrollout':  {name:'Rollout con barra (Barbell Rollout)',                  category:'Core',                   videoUrl:'https://www.youtube.com/shorts/4aQlcypBWEw'},
+  'def_trxpushup':  {name:'Push up en TRX (Suspension Trainer Push Up)',          category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=y62IItfqhGI'},
+  'def_trxpike':    {name:'V invertida en TRX (TRX Assisted Pike)',               category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=FAgkMv5V36c'},
+  'def_trxtri':     {name:'Tríceps en TRX (TRX Triceps Press)',                   category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=9F7bI_VAPeM'},
+  'def_db1legrdl':  {name:'Peso muerto rumano unilateral con mancuerna (DB One-Leg RDL)', category:'Tren inferior', videoUrl:'https://www.youtube.com/watch?v=JNivi_Nnj7E'},
+  'def_1arm1legbp': {name:'Press de banca unilateral y una pierna (DB One-Arm One-Leg Bench Press)', category:'Tren superior', videoUrl:'https://www.youtube.com/watch?v=f1aW-UjdORY'},
+  'def_splitsqjmp': {name:'Salto en sentadilla split reactiva con mancuerna (DB Reactive Split Squat Jump)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=VsihAY8G4Lc'},
+  'def_hkslam':     {name:'Slam en medio arrodillado (MB Half Kneel Around the World Slam)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=Np7qbnay_ng'},
 };
 
 // ── State ─────────────────────────────────────────────────────
