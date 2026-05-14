@@ -271,6 +271,94 @@ const DEFAULT_EXERCISES = {
   'def_sumodl':     {name:'Peso muerto sumo (Sumo Deadlift)',                      category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=_xVffXKR1V0'},
 };
 
+// ── Default program templates (available to all users) ────────
+const DEFAULT_PROGRAMS = {
+  'tpl_recomp3d': {
+    name: 'Recomposición — 3 Días Fuerza',
+    createdAt: 0,
+    days: {
+      'tpl_d1': {
+        name: 'Día 1 — Full Body A',
+        order: 0,
+        blocks: {
+          'tpl_d1_b1': { name:'Calentamiento', type:'warmup', order:0, items:{
+            'tpl_d1_b1_i1': {exId:'def_squatstand', exName:'Sentadilla a extensión',                        order:0, sets:{'0':{type:'reps',reps:'8', weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'8', weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_d1_b1_i2': {exId:'def_revlungerot',exName:'Estocada reversa con rotación',                 order:1, sets:{'0':{type:'reps',reps:'5', weight:'',rir:'',pct:'',notes:'/lado'},'1':{type:'reps',reps:'5', weight:'',rir:'',pct:'',notes:'/lado'}}},
+            'tpl_d1_b1_i3': {exId:'def_dogcobra',   exName:'Perro boca abajo a cobra con rotación',         order:2, sets:{'0':{type:'reps',reps:'5', weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'5', weight:'',rir:'',pct:'',notes:''}}},
+          }},
+          'tpl_d1_b2': { name:'Fuerza', type:'strength', order:1, items:{
+            'tpl_d1_b2_i1': {exId:'def_sq',  exName:'Sentadilla con barra', order:0, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'75',notes:''},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'75',notes:''},'2':{type:'reps',reps:'5',weight:'',rir:'',pct:'78',notes:''},'3':{type:'reps',reps:'5',weight:'',rir:'',pct:'80',notes:''}}},
+            'tpl_d1_b2_i2': {exId:'def_bp',  exName:'Press de banca plano', order:1, sets:{'0':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'3':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_d1_b3': { name:'Hipertrofia', type:'strength', order:2, items:{
+            'tpl_d1_b3_i1': {exId:'def_hipth',  exName:'Hip thrust con barra',         order:0, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_d1_b3_i2': {exId:'def_dbrow',  exName:'Remo con mancuerna (DB Row)',   order:1, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:'/lado'},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:'/lado'},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:'/lado'}}},
+            'tpl_d1_b3_i3': {exId:'def_lunge',  exName:'Estocadas caminando',          order:2, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:'/lado'},'1':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:'/lado'},'2':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:'/lado'}}},
+            'tpl_d1_b3_i4': {exId:'def_dips',   exName:'Fondos en paralelas',          order:3, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_d1_b4': { name:'Finisher', type:'cardio', order:3, items:{
+            'tpl_d1_b4_i1': {exId:'def_kbswing', exName:'Swing con pesa rusa (KB Swing)', order:0, sets:{'0':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_d1_b4_i2': {exId:'def_plank',   exName:'Plancha isométrica',            order:1, sets:{'0':{type:'time',reps:'',time:'35s',weight:'',rir:'',pct:'',notes:''},'1':{type:'time',reps:'',time:'35s',weight:'',rir:'',pct:'',notes:''},'2':{type:'time',reps:'',time:'35s',weight:'',rir:'',pct:'',notes:''}}},
+          }},
+        },
+      },
+      'tpl_d2': {
+        name: 'Día 2 — Full Body B',
+        order: 1,
+        blocks: {
+          'tpl_d2_b1': { name:'Calentamiento', type:'warmup', order:0, items:{
+            'tpl_d2_b1_i1': {exId:'def_mob',        exName:'Movilidad articular guiada',                     order:0, sets:{'0':{type:'time',reps:'',time:'2:00',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_d2_b1_i2': {exId:'def_staggerrdl', exName:'Calentamiento RDL escalonado (Staggered Stance RDL Warm Up)', order:1, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'}}},
+            'tpl_d2_b1_i3': {exId:'def_catcow',     exName:'Postura gato-vaca (Cat-Cow)',                     order:2, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''}}},
+          }},
+          'tpl_d2_b2': { name:'Fuerza', type:'strength', order:1, items:{
+            'tpl_d2_b2_i1': {exId:'def_dead', exName:'Peso muerto convencional', order:0, sets:{'0':{type:'reps',reps:'4',weight:'',rir:'',pct:'80',notes:''},'1':{type:'reps',reps:'4',weight:'',rir:'',pct:'80',notes:''},'2':{type:'reps',reps:'5',weight:'',rir:'',pct:'78',notes:''},'3':{type:'reps',reps:'5',weight:'',rir:'',pct:'78',notes:''}}},
+            'tpl_d2_b2_i2': {exId:'def_ohp',  exName:'Press militar con barra',  order:1, sets:{'0':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'3':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_d2_b3': { name:'Hipertrofia', type:'strength', order:2, items:{
+            'tpl_d2_b3_i1': {exId:'def_latpull',  exName:'Jalón al pecho (Lat Pull Down)',           order:0, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_d2_b3_i2': {exId:'def_rdl',      exName:'Peso muerto rumano',                       order:1, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_d2_b3_i3': {exId:'def_curl',     exName:'Curl de bíceps con mancuerna',             order:2, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_d2_b3_i4': {exId:'def_tri',      exName:'Extensión de tríceps en polea',            order:3, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_d2_b3_i5': {exId:'def_latraise', exName:'Elevaciones laterales (Lateral Raises)',   order:4, sets:{'0':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_d2_b4': { name:'Finisher — AMRAP 10 min', type:'cardio', order:3, items:{
+            'tpl_d2_b4_i1': {exId:'def_dbthr',     exName:'Thruster con mancuernas',          order:0, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'10',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'10',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_d2_b4_i2': {exId:'def_mountclimb',exName:'Escaladores (Mountain Climbers)',   order:1, sets:{'0':{type:'reps',reps:'20',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'20',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'20',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_d2_b4_i3': {exId:'def_kbswing',   exName:'Swing con pesa rusa (KB Swing)',    order:2, sets:{'0':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''}}},
+          }},
+        },
+      },
+      'tpl_d3': {
+        name: 'Día 3 — Full Body C',
+        order: 2,
+        blocks: {
+          'tpl_d3_b1': { name:'Calentamiento', type:'warmup', order:0, items:{
+            'tpl_d3_b1_i1': {exId:'def_foam',        exName:'Foam roller — MMII',                          order:0, sets:{'0':{type:'time',reps:'',time:'3:00',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_d3_b1_i2': {exId:'def_squatstand',  exName:'Sentadilla a extensión',                      order:1, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_d3_b1_i3': {exId:'def_beststretch', exName:'Rotación de estiramiento (Best Stretch Rotations)', order:2, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'}}},
+          }},
+          'tpl_d3_b2': { name:'Fuerza Unilateral', type:'strength', order:1, items:{
+            'tpl_d3_b2_i1': {exId:'def_bblunge', exName:'Estocada con barra (Barbell Lunge)', order:0, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:'/lado'},'1':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:'/lado'},'2':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:'/lado'},'3':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:'/lado'}}},
+            'tpl_d3_b2_i2': {exId:'def_row',    exName:'Remo con barra',                     order:1, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'3':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_d3_b3': { name:'Hipertrofia', type:'strength', order:2, items:{
+            'tpl_d3_b3_i1': {exId:'def_dbbp',        exName:'Press de banca con mancuernas (DB Bench Press)', order:0, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_d3_b3_i2': {exId:'def_seatedcabrow',exName:'Remo en polea baja sentado',                    order:1, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_d3_b3_i3': {exId:'def_facepull',    exName:'Tirón al rostro en polea (Face Pull)',          order:2, sets:{'0':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_d3_b3_i4': {exId:'def_abwheel',     exName:'Rueda abdominal (Ab Wheel)',                    order:3, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_d3_b4': { name:'Finisher — 4 rondas', type:'cardio', order:3, items:{
+            'tpl_d3_b4_i1': {exId:'def_box',    exName:'Box jump',      order:0, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:''},'3':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_d3_b4_i2': {exId:'def_burpee', exName:'Burpee',        order:1, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''},'3':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_d3_b4_i3': {exId:'def_russ',   exName:'Russian twist', order:2, sets:{'0':{type:'reps',reps:'20',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'20',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'20',weight:'',rir:'',pct:'',notes:''},'3':{type:'reps',reps:'20',weight:'',rir:'',pct:'',notes:''}}},
+          }},
+        },
+      },
+    },
+  },
+};
+
 // ── State ─────────────────────────────────────────────────────
 let currentUser = null;
 let S = {
@@ -2014,6 +2102,27 @@ function renderProgramsList(){
       </div>
     </div>
   </div>`:'';
+  const templateCards=Object.entries(DEFAULT_PROGRAMS).map(([tid,tpl])=>{
+    const dayCount=Object.keys(tpl.days||{}).length;
+    const dayChips=Object.values(tpl.days||{}).sort((a,b)=>(a.order||0)-(b.order||0))
+      .map(d=>`<span class="q-day-chip">${d.name||'Día'}</span>`).join('');
+    return `<div class="q-card q-prog-card">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#f97316,#fb923c);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">⚡</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:15px;color:var(--text);">${tpl.name||'Plantilla'}</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${dayCount} ${dayCount===1?'rutina':'rutinas'} · Plantilla</div>
+        </div>
+        <button class="q-btn q-btn--primary" style="font-size:12px;padding:6px 12px;" data-action="usetemplate" data-tid="${tid}">Usar</button>
+      </div>
+      ${dayChips?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">${dayChips}</div>`:''}
+    </div>`;
+  }).join('');
+  const templatesSection=templateCards?`
+    <div style="margin-top:20px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Plantillas</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">${templateCards}</div>
+    </div>`:'';
   return`<div class="wrap">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div>
@@ -2024,6 +2133,7 @@ function renderProgramsList(){
     </div>
     ${formHtml}
     <div style="display:flex;flex-direction:column;gap:10px;">${cards}</div>
+    ${templatesSection}
   </div>`;
 }
 
@@ -5646,6 +5756,18 @@ async function handleAction(e){
     copy.createdAt=Date.now();
     S.programs[newPid]=copy;
     await db.ref(`users/${currentUser.uid}/programs/${newPid}`).update(copy);
+    render();
+  }
+  else if(a==='usetemplate'){
+    const tid=el.dataset.tid;
+    const tpl=DEFAULT_PROGRAMS[tid];
+    if(!tpl)return;
+    const newPid='prog_'+Date.now();
+    const copy=JSON.parse(JSON.stringify(tpl));
+    copy.createdAt=Date.now();
+    S.programs[newPid]=copy;
+    await db.ref(`users/${currentUser.uid}/programs/${newPid}`).update(copy);
+    S.programView={progId:newPid};S.programForm=null;
     render();
   }
   else if(a==='openprog'){S.programView={progId:el.dataset.pid};S.programForm=null;render();}
