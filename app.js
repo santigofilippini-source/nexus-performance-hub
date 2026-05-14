@@ -2531,7 +2531,7 @@ function renderSubscriptionView(){
   const TIER_COLORS = { free:'#64748b', pro:'#f97316', elite:'#8b5cf6' };
   const TIER_LABELS = { free:'Free', pro:'Pro', elite:'Elite' };
   const STATUS_LABELS = { active:'Activo', past_due:'Pago pendiente', cancelled:'Cancelado', expired:'Vencido', payment_failed:'Pago fallido' };
-  const STATUS_COLORS = { active:'#22c55e', past_due:'#f97316', cancelled:'#94a3b8', expired:'#94a3b8', payment_failed:'#ef4444' };
+  const STATUS_COLORS = { active:'#22c55e', past_due:'#f97316', cancelled:'#ef4444', expired:'#94a3b8', payment_failed:'#ef4444' };
 
   const myTeams = Object.entries(S.teams||{}).filter(([tid])=>isOwner(tid));
 
@@ -2544,75 +2544,116 @@ function renderSubscriptionView(){
     const statusLabel = STATUS_LABELS[status] || status;
     const statusColor = STATUS_COLORS[status] || '#94a3b8';
     const hasSub = !!sub.lsSubscriptionId;
+    const initials = team.name.split(' ').filter(w=>w).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const teamColor = team.color || '#f97316';
 
-    let renewalHtml = '';
+    let renewalRow = '';
     if(sub.currentPeriodEnd){
       const d = new Date(sub.currentPeriodEnd);
       const formatted = d.toLocaleDateString('es-UY',{day:'numeric',month:'long',year:'numeric'});
       const isExpired = d < new Date();
-      renewalHtml = `<div style="font-size:12px;color:var(--text2);margin-top:4px;">${isExpired?'Venció':'Renueva'} el ${formatted}</div>`;
+      renewalRow = `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:13px;color:var(--text2);">Próxima renovación</span>
+          <span style="font-size:13px;font-weight:500;color:${isExpired?'#ef4444':'var(--text)'};">${isExpired?'Vencido · ':''}${formatted}</span>
+        </div>`;
     }
 
-    let actionHtml = '';
+    const planRow = `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;color:var(--text2);">Plan actual</span>
+        <span style="font-size:13px;font-weight:700;color:${color};background:${color}18;padding:2px 10px;border-radius:20px;">${tierLabel}</span>
+      </div>`;
+
+    const statusRow = status!=='free' ? `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;color:var(--text2);">Estado</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:7px;height:7px;border-radius:50%;background:${statusColor};"></div>
+          <span style="font-size:13px;font-weight:500;color:${statusColor};">${statusLabel}</span>
+        </div>
+      </div>` : '';
+
+    let billingBtn = '';
     if(hasSub && (status==='active'||status==='past_due')){
-      actionHtml = `
-        <button onclick="openCustomerPortal('${tid}')" style="width:100%;margin-top:14px;padding:10px;border-radius:8px;border:1px solid ${color};color:${color};background:transparent;font-weight:600;cursor:pointer;font-size:13px;">Gestionar facturación</button>`;
+      billingBtn = `
+        <button onclick="openCustomerPortal('${tid}')" style="width:100%;margin-top:14px;padding:11px;border-radius:10px;border:1.5px solid ${color};color:${color};background:transparent;font-weight:600;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;gap:7px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+          Gestionar facturación
+        </button>`;
     }
 
-    let upgradeHtml = '';
+    let upgradeSection = '';
     if(tier==='free' || !hasSub){
-      upgradeHtml = `
-        <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;">
-          <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Actualizar plan</div>
-          <div style="border:1.5px solid #f97316;border-radius:10px;padding:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <span style="font-weight:700;color:#f97316;">Pro</span>
-              <span style="font-size:15px;font-weight:700;">$9<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+      upgradeSection = `
+        <div style="margin-top:20px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px;">Actualizar plan</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="border:1.5px solid #f97316;border-radius:12px;padding:16px;background:#f9731608;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <div>
+                  <div style="font-weight:700;color:#f97316;font-size:15px;">Pro</div>
+                  <div style="font-size:11px;color:#f97316;opacity:.7;margin-top:1px;">Precio de lanzamiento</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:11px;color:var(--text2);text-decoration:line-through;">$15/mes</div>
+                  <div style="font-size:18px;font-weight:800;color:#f97316;">$9<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></div>
+                </div>
+              </div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">3 categorías · 20 jugadores · PDF export · Portal atleta</div>
+              <button onclick="startCheckout('${tid}','pro')" style="width:100%;padding:10px;border-radius:8px;border:none;background:#f97316;color:#fff;font-weight:700;cursor:pointer;font-size:13px;">Suscribirse a Pro →</button>
             </div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">3 categorías · 20 jugadores · PDF export</div>
-            <button onclick="startCheckout('${tid}','pro')" style="width:100%;padding:8px;border-radius:8px;border:none;background:#f97316;color:#fff;font-weight:600;cursor:pointer;font-size:13px;">Suscribirse a Pro</button>
-          </div>
-          <div style="border:1.5px solid #8b5cf6;border-radius:10px;padding:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <span style="font-weight:700;color:#8b5cf6;">Elite</span>
-              <span style="font-size:15px;font-weight:700;">$25<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+            <div style="border:1.5px solid #8b5cf6;border-radius:12px;padding:16px;background:#8b5cf608;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <div>
+                  <div style="font-weight:700;color:#8b5cf6;font-size:15px;">Elite</div>
+                  <div style="font-size:11px;color:#8b5cf6;opacity:.7;margin-top:1px;">Precio de lanzamiento</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:11px;color:var(--text2);text-decoration:line-through;">$39/mes</div>
+                  <div style="font-size:18px;font-weight:800;color:#8b5cf6;">$25<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></div>
+                </div>
+              </div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Todo ilimitado · branding personalizado · soporte prioritario</div>
+              <button onclick="startCheckout('${tid}','elite')" style="width:100%;padding:10px;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:700;cursor:pointer;font-size:13px;">Suscribirse a Elite →</button>
             </div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Todo ilimitado · branding personalizado</div>
-            <button onclick="startCheckout('${tid}','elite')" style="width:100%;padding:8px;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;cursor:pointer;font-size:13px;">Suscribirse a Elite</button>
           </div>
         </div>`;
     } else if(tier==='pro' && hasSub){
-      upgradeHtml = `
-        <div style="margin-top:14px;">
-          <div style="border:1.5px solid #8b5cf6;border-radius:10px;padding:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <span style="font-weight:700;color:#8b5cf6;">Elite</span>
-              <span style="font-size:15px;font-weight:700;">$25<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></span>
+      upgradeSection = `
+        <div style="margin-top:20px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px;">Mejorar plan</div>
+          <div style="border:1.5px solid #8b5cf6;border-radius:12px;padding:16px;background:#8b5cf608;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+              <div>
+                <div style="font-weight:700;color:#8b5cf6;font-size:15px;">Elite</div>
+                <div style="font-size:11px;color:#8b5cf6;opacity:.7;margin-top:1px;">Precio de lanzamiento</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px;color:var(--text2);text-decoration:line-through;">$39/mes</div>
+                <div style="font-size:18px;font-weight:800;color:#8b5cf6;">$25<span style="font-size:12px;font-weight:400;color:var(--text2);">/mes</span></div>
+              </div>
             </div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Todo ilimitado · branding personalizado</div>
-            <button onclick="startCheckout('${tid}','elite')" style="width:100%;padding:8px;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:600;cursor:pointer;font-size:13px;">Mejorar a Elite</button>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Todo ilimitado · branding personalizado · soporte prioritario</div>
+            <button onclick="startCheckout('${tid}','elite')" style="width:100%;padding:10px;border-radius:8px;border:none;background:#8b5cf6;color:#fff;font-weight:700;cursor:pointer;font-size:13px;">Mejorar a Elite →</button>
           </div>
         </div>`;
     }
 
     return `
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-          <div style="width:36px;height:36px;border-radius:10px;background:${team.color||'#f97316'}22;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:${team.color||'#f97316'};">${team.name.split(' ').filter(w=>w).map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:${teamColor}22;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:${teamColor};">${initials}</div>
           <div>
-            <div style="font-weight:600;font-size:14px;">${team.name}</div>
+            <div style="font-weight:700;font-size:15px;">${team.name}</div>
             ${team.sport?`<div style="font-size:12px;color:var(--text2);">${team.sport}</div>`:''}
           </div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <span style="font-size:13px;font-weight:700;color:${color};background:${color}18;padding:3px 10px;border-radius:20px;">${tierLabel}</span>
-          </div>
-          ${status!=='free'?`<div style="display:flex;align-items:center;gap:5px;"><div style="width:7px;height:7px;border-radius:50%;background:${statusColor};"></div><span style="font-size:12px;color:${statusColor};font-weight:500;">${statusLabel}</span></div>`:''}
+        <div style="background:var(--bg);border-radius:10px;padding:0 12px;">
+          ${planRow}${statusRow}${renewalRow}
         </div>
-        ${renewalHtml}
-        ${actionHtml}
-        ${upgradeHtml}
+        ${billingBtn}
+        ${upgradeSection}
       </div>`;
   }).join('');
 
@@ -2629,9 +2670,7 @@ function renderSubscriptionView(){
     </div>
     ${emptyState}
     ${teamCards}
-    <div style="text-align:center;margin-top:8px;">
-      <button onclick="openSubscriptionModal()" style="background:none;border:none;cursor:pointer;color:var(--text2);font-size:13px;text-decoration:underline;">Ver comparativa de planes</button>
-    </div>
+    <button onclick="openSubscriptionModal()" style="width:100%;margin-top:4px;padding:11px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;">Ver comparativa de planes</button>
   </div>`;
 }
 
