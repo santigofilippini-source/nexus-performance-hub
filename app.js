@@ -6680,8 +6680,8 @@ function renderAthleteRoutines(ctx){
         <div class="ap-block-head" data-action="aptoggleblock" data-bkey="${collapseKey}" style="color:${bInfo.color};">
           <span>${bInfo.label}${block.name&&block.name!==bInfo.label?' · '+block.name:''}</span>
           <div style="display:flex;align-items:center;gap:8px;">
-            <label class="ap-switch" onclick="toggleAthleteSwitch('${swKey}','${planId}','${date}');event.stopPropagation();">
-              <input type="checkbox" ${isDoneBlock?'checked':''} readonly>
+            <label class="ap-switch" onclick="event.preventDefault();event.stopPropagation();toggleAthleteSwitch('${swKey}','${planId}','${date}');">
+              <input type="checkbox" ${isDoneBlock?'checked':''}>
               <span class="ap-switch-track"></span>
             </label>
             ${countBadge}${chevron}
