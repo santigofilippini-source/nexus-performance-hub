@@ -361,6 +361,112 @@ const DEFAULT_PROGRAMS = {
       },
     },
   },
+  'tpl_bball4d': {
+    name: 'Hipertrofia Básquet — 4 Días',
+    createdAt: 0,
+    days: {
+      'tpl_bb_d1': {
+        name: 'Día 1 — Tren Inferior A (Quad)',
+        order: 0,
+        blocks: {
+          'tpl_bb_d1_b1': { name:'Calentamiento', type:'warmup', order:0, items:{
+            'tpl_bb_d1_b1_i1': {exId:'def_squatstand',  exName:'Sentadilla a extensión',                       order:0, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d1_b1_i2': {exId:'def_revlungerot', exName:'Estocada reversa con rotación',                order:1, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'}}},
+            'tpl_bb_d1_b1_i3': {exId:'def_staggerrdl',  exName:'Calentamiento RDL escalonado (Staggered Stance RDL Warm Up)', order:2, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'}}},
+          }},
+          'tpl_bb_d1_b2': { name:'Fuerza', type:'strength', order:1, items:{
+            'tpl_bb_d1_b2_i1': {exId:'def_sq',    exName:'Sentadilla con barra', order:0, sets:{'0':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'3':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_bb_d1_b2_i2': {exId:'def_hipth', exName:'Hip thrust con barra', order:1, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'3':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_bb_d1_b3': { name:'Hipertrofia', type:'strength', order:2, items:{
+            'tpl_bb_d1_b3_i1': {exId:'def_lunge',  exName:'Estocadas caminando',                order:0, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:'/lado'},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:'/lado'},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:'/lado'}}},
+            'tpl_bb_d1_b3_i2': {exId:'def_stepup', exName:'Step-up en caja',                   order:1, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:'/lado'},'1':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:'/lado'},'2':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:'/lado'}}},
+            'tpl_bb_d1_b3_i3': {exId:'def_goblet', exName:'Sentadilla goblet con mancuerna (Goblet Squat)', order:2, sets:{'0':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_bb_d1_b4': { name:'Prevención + Core', type:'preventive', order:3, items:{
+            'tpl_bb_d1_b4_i1': {exId:'def_nordicdrop', exName:'Caída nórdica (Nordic Drops)', order:0, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'6',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d1_b4_i2': {exId:'def_plank',      exName:'Plancha isométrica',           order:1, sets:{'0':{type:'time',reps:'',time:'40s',weight:'',rir:'',pct:'',notes:''},'1':{type:'time',reps:'',time:'40s',weight:'',rir:'',pct:'',notes:''},'2':{type:'time',reps:'',time:'40s',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d1_b4_i3': {exId:'def_abwheel',    exName:'Rueda abdominal (Ab Wheel)',   order:2, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''}}},
+          }},
+        },
+      },
+      'tpl_bb_d2': {
+        name: 'Día 2 — Tren Superior A (Horizontal)',
+        order: 1,
+        blocks: {
+          'tpl_bb_d2_b1': { name:'Calentamiento', type:'warmup', order:0, items:{
+            'tpl_bb_d2_b1_i1': {exId:'def_dogcobra',    exName:'Perro boca abajo a cobra con rotación', order:0, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d2_b1_i2': {exId:'def_threadneedle',exName:'Enhebrar la aguja (Thread the Needle)', order:1, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'}}},
+          }},
+          'tpl_bb_d2_b2': { name:'Fuerza', type:'strength', order:1, items:{
+            'tpl_bb_d2_b2_i1': {exId:'def_bp',  exName:'Press de banca plano', order:0, sets:{'0':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'3':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_bb_d2_b2_i2': {exId:'def_row', exName:'Remo con barra',       order:1, sets:{'0':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'3':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_bb_d2_b3': { name:'Hipertrofia', type:'strength', order:2, items:{
+            'tpl_bb_d2_b3_i1': {exId:'def_dbbp',        exName:'Press de banca con mancuernas (DB Bench Press)', order:0, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_bb_d2_b3_i2': {exId:'def_dbrow',       exName:'Remo con mancuerna (DB Row)',                    order:1, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:'/lado'},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:'/lado'},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:'/lado'}}},
+            'tpl_bb_d2_b3_i3': {exId:'def_dips',        exName:'Fondos en paralelas',                            order:2, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_bb_d2_b3_i4': {exId:'def_seatedcabrow',exName:'Remo en polea baja sentado',                     order:3, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_bb_d2_b4': { name:'Accesorios', type:'preventive', order:3, items:{
+            'tpl_bb_d2_b4_i1': {exId:'def_facepull',  exName:'Tirón al rostro en polea (Face Pull)', order:0, sets:{'0':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d2_b4_i2': {exId:'def_latraise',  exName:'Elevaciones laterales (Lateral Raises)', order:1, sets:{'0':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d2_b4_i3': {exId:'def_curl',      exName:'Curl de bíceps con mancuerna',           order:2, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'',pct:'',notes:''}}},
+          }},
+        },
+      },
+      'tpl_bb_d3': {
+        name: 'Día 3 — Tren Inferior B (Posterior)',
+        order: 2,
+        blocks: {
+          'tpl_bb_d3_b1': { name:'Calentamiento', type:'warmup', order:0, items:{
+            'tpl_bb_d3_b1_i1': {exId:'def_foam',        exName:'Foam roller — MMII',                          order:0, sets:{'0':{type:'time',reps:'',time:'3:00',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d3_b1_i2': {exId:'def_catcow',      exName:'Postura gato-vaca (Cat-Cow)',                  order:1, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'8',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d3_b1_i3': {exId:'def_beststretch', exName:'Rotación de estiramiento (Best Stretch Rotations)', order:2, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'}}},
+          }},
+          'tpl_bb_d3_b2': { name:'Fuerza', type:'strength', order:1, items:{
+            'tpl_bb_d3_b2_i1': {exId:'def_dead', exName:'Peso muerto convencional', order:0, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'5',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'3':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_bb_d3_b2_i2': {exId:'def_rdl',  exName:'Peso muerto rumano',       order:1, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_bb_d3_b3': { name:'Hipertrofia Unilateral', type:'strength', order:2, items:{
+            'tpl_bb_d3_b3_i1': {exId:'def_bblunge',   exName:'Estocada con barra (Barbell Lunge)',                    order:0, sets:{'0':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:'/lado'},'1':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:'/lado'},'2':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:'/lado'},'3':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:'/lado'}}},
+            'tpl_bb_d3_b3_i2': {exId:'def_db1legrdl', exName:'Peso muerto rumano unilateral con mancuerna (DB One-Leg RDL)', order:1, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:'/lado'},'1':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:'/lado'},'2':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:'/lado'}}},
+            'tpl_bb_d3_b3_i3': {exId:'def_pullthrough',exName:'Pull through (Tracción entre piernas)',                 order:2, sets:{'0':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'15',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_bb_d3_b4': { name:'Prevención + Core', type:'preventive', order:3, items:{
+            'tpl_bb_d3_b4_i1': {exId:'def_nordic',    exName:'Nordic curl',                              order:0, sets:{'0':{type:'reps',reps:'6',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'6',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'6',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d3_b4_i2': {exId:'def_splitchop', exName:'Chop en posición de estocada (Split Stance Chop)', order:1, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'',pct:'',notes:'/lado'},'1':{type:'reps',reps:'10',weight:'',rir:'',pct:'',notes:'/lado'},'2':{type:'reps',reps:'10',weight:'',rir:'',pct:'',notes:'/lado'}}},
+            'tpl_bb_d3_b4_i3': {exId:'def_russ',      exName:'Russian twist',                            order:2, sets:{'0':{type:'reps',reps:'20',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'20',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'20',weight:'',rir:'',pct:'',notes:''}}},
+          }},
+        },
+      },
+      'tpl_bb_d4': {
+        name: 'Día 4 — Tren Superior B (Vertical)',
+        order: 3,
+        blocks: {
+          'tpl_bb_d4_b1': { name:'Calentamiento', type:'warmup', order:0, items:{
+            'tpl_bb_d4_b1_i1': {exId:'def_mob',         exName:'Movilidad articular guiada',              order:0, sets:{'0':{type:'time',reps:'',time:'2:00',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d4_b1_i2': {exId:'def_threadneedle',exName:'Enhebrar la aguja (Thread the Needle)',   order:1, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'},'1':{type:'reps',reps:'5',weight:'',rir:'',pct:'',notes:'/lado'}}},
+          }},
+          'tpl_bb_d4_b2': { name:'Fuerza', type:'strength', order:1, items:{
+            'tpl_bb_d4_b2_i1': {exId:'def_pull', exName:'Dominadas / Pull-up',      order:0, sets:{'0':{type:'reps',reps:'5',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'3':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_bb_d4_b2_i2': {exId:'def_ohp',  exName:'Press militar con barra', order:1, sets:{'0':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'6',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''},'3':{type:'reps',reps:'8',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_bb_d4_b3': { name:'Hipertrofia', type:'strength', order:2, items:{
+            'tpl_bb_d4_b3_i1': {exId:'def_latpull',   exName:'Jalón al pecho (Lat Pull Down)',                        order:0, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_bb_d4_b3_i2': {exId:'def_dbohp',    exName:'Press militar con mancuernas (DB Military Press)',       order:1, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'10',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_bb_d4_b3_i3': {exId:'def_dbbentrow',exName:'Remo con mancuernas inclinado (Dual DB Bent Over Row)',  order:2, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+            'tpl_bb_d4_b3_i4': {exId:'def_arnold',   exName:'Press Arnold sentado con mancuerna (Arnold Press)',      order:3, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'2',pct:'',notes:''}}},
+          }},
+          'tpl_bb_d4_b4': { name:'Accesorios', type:'preventive', order:3, items:{
+            'tpl_bb_d4_b4_i1': {exId:'def_facepull', exName:'Tirón al rostro en polea (Face Pull)', order:0, sets:{'0':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'15',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d4_b4_i2': {exId:'def_zottman',  exName:'Curl Zottman (Zottman Curl)',           order:1, sets:{'0':{type:'reps',reps:'10',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'10',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'10',weight:'',rir:'',pct:'',notes:''}}},
+            'tpl_bb_d4_b4_i3': {exId:'def_tri',      exName:'Extensión de tríceps en polea',         order:2, sets:{'0':{type:'reps',reps:'12',weight:'',rir:'',pct:'',notes:''},'1':{type:'reps',reps:'12',weight:'',rir:'',pct:'',notes:''},'2':{type:'reps',reps:'12',weight:'',rir:'',pct:'',notes:''}}},
+          }},
+        },
+      },
+    },
+  },
 };
 
 // ── State ─────────────────────────────────────────────────────
