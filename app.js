@@ -266,6 +266,9 @@ const DEFAULT_EXERCISES = {
   'def_1arm1legbp': {name:'Press de banca unilateral y una pierna (DB One-Arm One-Leg Bench Press)', category:'Tren superior', videoUrl:'https://www.youtube.com/watch?v=f1aW-UjdORY'},
   'def_splitsqjmp': {name:'Salto en sentadilla split reactiva con mancuerna (DB Reactive Split Squat Jump)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=VsihAY8G4Lc'},
   'def_hkslam':     {name:'Slam en medio arrodillado (MB Half Kneel Around the World Slam)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=Np7qbnay_ng'},
+  'def_fsqbox':     {name:'Sentadilla frontal al cajón (Front Squat To Low Box)',  category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=B8qk-y0DMGU'},
+  'def_floorpress': {name:'Press de banca en suelo (Floor Press)',                 category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=fNxz1vjSAdM'},
+  'def_sumodl':     {name:'Peso muerto sumo (Sumo Deadlift)',                      category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=_xVffXKR1V0'},
 };
 
 // ── State ─────────────────────────────────────────────────────
