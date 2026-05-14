@@ -6884,6 +6884,118 @@ function renderAthleteAttendance(ctx){
   return`<div style="padding-top:8px;">${calHtml}${summaryHtml}${attRows?`<div class="ap-att-list">${attRows}</div>`:''}</div>`;
 }
 
+function renderAthleteProgressReport(ctx){
+  const{tid,catId,pid}=ctx;
+  const cat=S.teams[tid]?.categories?.[catId]||{};
+  const cd={players:Object.values(cat.players||{}),attendance:cat.attendance||{},sessions:cat.sessions||{}};
+  const player=cd.players.find(p=>p.id===pid)||{id:pid,name:''};
+  const selM=calcMetrics(cd,pid);
+  const stats=getStats([player],cd.attendance);
+  const selStat=stats[0]||{pct:null,P:0,A:0};
+  const acZ=acwrZone(selM.acwr);
+  // KPI row
+  const _kpi=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line);border-top:1px solid var(--line);margin-bottom:10px;">
+    <div class="q-stat" style="border-radius:0;border:0;padding:10px 8px;"><div class="q-stat__row"><span class="q-stat__label" style="font-size:9px;">Asistencia</span></div><div class="q-stat__val" style="font-size:17px;color:${selStat.pct!=null?(selStat.pct>=85?'var(--ok)':selStat.pct>=70?'var(--warn)':'var(--bad)'):'var(--text-0)'};">${selStat.pct!=null?selStat.pct+'%':'—'}</div><div class="q-stat__sub" style="font-size:10px;"><span>${selStat.P??0}P · ${selStat.A??0}A</span></div></div>
+    <div class="q-stat" style="border-radius:0;border:0;padding:10px 8px;"><div class="q-stat__row"><span class="q-stat__label" style="font-size:9px;">Carga 7D</span></div><div class="q-stat__val" style="font-size:17px;">${selM.ac}<span class="u" style="font-size:10px;">UA</span></div><div class="q-stat__sub" style="font-size:10px;"><span>crónica: ${selM.cc}</span></div></div>
+    <div class="q-stat" style="border-radius:0;border:0;padding:10px 8px;"><div class="q-stat__row"><span class="q-stat__label" style="font-size:9px;">ACWR</span></div><div class="q-stat__val" style="font-size:17px;color:${acZ.fg};">${selM.acwr!==null?selM.acwr:'—'}</div><div class="q-stat__sub" style="font-size:10px;"><span style="color:${acZ.fg};">${acZ.label}</span></div></div>
+    <div class="q-stat" style="border-radius:0;border:0;padding:10px 8px;"><div class="q-stat__row"><span class="q-stat__label" style="font-size:9px;">Wellness</span></div><div class="q-stat__val" style="font-size:17px;color:${wellZone(selM.wellAvg).fg};">${selM.wellAvg!==null?selM.wellAvg:'—'}<span class="u" style="font-size:10px;">/5</span></div><div class="q-stat__sub" style="font-size:10px;"><span>7 días</span></div></div>
+  </div>`;
+  // 7-day load sparkline
+  const _l7=selM.l7;const _maxL=Math.max(..._l7,1);
+  const _sparkDays=Array.from({length:7},(_,i)=>{const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-6+i);return d.toISOString().split('T')[0];});
+  const _DAY=['D','L','M','X','J','V','S'];
+  const _spark=`<div class="ap-chart-card" style="margin-bottom:10px;">
+    <h3 style="margin-bottom:10px;">Carga últimos 7 días</h3>
+    <div style="display:flex;gap:3px;align-items:flex-end;height:56px;">
+      ${_l7.map((v,i)=>{const h=_maxL>0?Math.max(Math.round(v/_maxL*44),v>0?3:0):0;const col=v?sparkColor(v,_maxL):'var(--bg-3)';const dow=new Date(_sparkDays[i]+'T12:00:00').getDay();return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="font-size:8px;color:var(--text-3);">${v||''}</div><div style="width:100%;background:${col};border-radius:3px 3px 0 0;height:${h}px;"></div><div style="font-size:8px;color:var(--text-3);">${_DAY[dow]}</div></div>`;}).join('')}
+    </div>
+  </div>`;
+  // 30-day attendance strip
+  const _att30=Array.from({length:30},(_,i)=>{const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-29+i);return d.toISOString().split('T')[0];});
+  const _strip=`<div class="ap-chart-card" style="margin-bottom:10px;">
+    <h3 style="margin-bottom:10px;">Asistencia últimos 30 días</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;">
+      ${_att30.map(ds=>{const s=cd.attendance[ds]?.[pid];const col=!s?'var(--bg-3)':(s==='P'||s==='T')?'var(--ok)':s==='L'||s==='J'?'var(--warn)':'var(--bad)';return`<div title="${ds}: ${s||'—'}" style="width:13px;height:13px;border-radius:2px;background:${col};flex-shrink:0;"></div>`;}).join('')}
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
+      ${[['var(--ok)','Presente'],['var(--bad)','Ausente'],['var(--warn)','Licencia'],['var(--bg-3)','Sin registro']].map(([c,l])=>`<span style="display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--text-3);"><span style="width:8px;height:8px;border-radius:1.5px;background:${c};display:inline-block;flex-shrink:0;"></span>${l}</span>`).join('')}
+    </div>
+  </div>`;
+  // Body composition
+  const selAth=getAthlete(athleteKey(tid,catId,pid));
+  const _morphKeys=Object.keys(selAth?.morphology||{}).sort().reverse();
+  const _anthrKeys=Object.keys(selAth?.anthropometry||{}).sort().reverse();
+  const _lm=_morphKeys[0]?selAth.morphology[_morphKeys[0]]:null;
+  const _la=_anthrKeys[0]?selAth.anthropometry[_anthrKeys[0]]:null;
+  const _pAdip=_la?.masaAdip&&_lm?.weight?(_la.masaAdip/_lm.weight*100).toFixed(1):null;
+  const _pMusc=_la?.masaMusc&&_lm?.weight?(_la.masaMusc/_lm.weight*100).toFixed(1):null;
+  const _bodyDate=_la?.date||_lm?.date;
+  const _bodyStats=[
+    _lm?.weight!=null?{l:'Peso',v:_lm.weight,u:'kg'}:null,
+    _lm?.height!=null?{l:'Talla',v:_lm.height,u:'cm'}:null,
+    _la?.masaAdip!=null?{l:'M. Adiposa',v:_la.masaAdip,u:'kg'}:null,
+    _pAdip!=null?{l:'% Adiposa',v:_pAdip,u:'%'}:null,
+    _la?.masaMusc!=null?{l:'M. Muscular',v:_la.masaMusc,u:'kg'}:null,
+    _pMusc!=null?{l:'% Muscular',v:_pMusc,u:'%'}:null,
+    _la?.sumSkinfolds!=null?{l:'Σ Pliegues',v:_la.sumSkinfolds,u:'mm'}:null,
+  ].filter(Boolean);
+  const _body=_bodyStats.length?`<div class="ap-chart-card" style="margin-bottom:10px;">
+    <h3>Composición corporal${_bodyDate?` <span style="font-weight:400;font-size:11px;color:var(--text-3);">· ${fmtDate(_bodyDate)}</span>`:''}</h3>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">${_bodyStats.map(s=>`<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-0);">${s.v}<span style="font-size:9px;font-weight:400;color:var(--text-2);margin-left:1px;">${s.u}</span></div><div style="font-size:9.5px;color:var(--text-3);margin-top:2px;white-space:nowrap;">${s.l}</div></div>`).join('')}</div>
+  </div>`:'';
+  // Jumps
+  const _jumpKeys=Object.keys(selAth?.jumpTests||{}).sort().reverse();
+  const _lj=_jumpKeys[0]?selAth.jumpTests[_jumpKeys[0]]:null;
+  const _rsi=_lj?.djHeight&&_lj?.djTc?Math.round((_lj.djHeight/100)/(_lj.djTc/1000)*100)/100:null;
+  const _jumpStats=[
+    _lj?.sj!=null?{l:'SJ',v:_lj.sj,u:'cm',c:'var(--text-0)'}:null,
+    _lj?.cmj!=null?{l:'CMJ',v:_lj.cmj,u:'cm',c:'var(--accent)'}:null,
+    _lj?.abk!=null?{l:'ABK',v:_lj.abk,u:'cm',c:'var(--text-0)'}:null,
+    _rsi!=null?{l:'RSI',v:_rsi,u:'',c:_rsi>=2?'var(--ok)':_rsi>=1.5?'var(--warn)':'var(--bad)'}:null,
+  ].filter(Boolean);
+  const _jumps=_jumpStats.length?`<div class="ap-chart-card" style="margin-bottom:10px;">
+    <h3>Saltos${_lj?.date?` <span style="font-weight:400;font-size:11px;color:var(--text-3);">· ${fmtDate(_lj.date)}</span>`:''}</h3>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">${_jumpStats.map(s=>`<div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:15px;font-weight:600;color:${s.c};">${s.v}${s.u?`<span style="font-size:10px;font-weight:400;color:var(--text-2);margin-left:2px;">${s.u}</span>`:''}</div><div style="font-size:9.5px;color:var(--text-3);margin-top:2px;">${s.l}</div></div>`).join('')}</div>
+  </div>`:'';
+  // FMS
+  const _fmsKeys=Object.keys(selAth?.fmsTests||{}).sort().reverse();
+  const _lfms=_fmsKeys[0]?selAth.fmsTests[_fmsKeys[0]]:null;
+  const _fmsMinBi=(l,r)=>l!=null&&r!=null?Math.min(l,r):l!=null?l:r!=null?r:null;
+  const _fmsScores=_lfms?[_lfms.deepSquat,_fmsMinBi(_lfms.hurdleL,_lfms.hurdleR),_fmsMinBi(_lfms.lungeL,_lfms.lungeR),_fmsMinBi(_lfms.shoulderL,_lfms.shoulderR),_fmsMinBi(_lfms.aslrL,_lfms.aslrR),_lfms.trunkStab,_fmsMinBi(_lfms.rotaryL,_lfms.rotaryR)].filter(v=>v!=null):[];
+  const _fmsTotal=_fmsScores.length?_fmsScores.reduce((a,b)=>a+b,0):null;
+  const _fms=_fmsTotal!=null?`<div class="ap-chart-card" style="margin-bottom:10px;">
+    <h3>FMS${_lfms?.date?` <span style="font-weight:400;font-size:11px;color:var(--text-3);">· ${fmtDate(_lfms.date)}</span>`:''}</h3>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:${_fmsTotal>=14?'var(--ok)':_fmsTotal>=10?'var(--warn)':'var(--bad)'};">${_fmsTotal}</div><div style="font-size:9.5px;color:var(--text-3);">/ ${_fmsScores.length*3} pts</div></div>
+      <div style="flex:1;height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${Math.round(_fmsTotal/(_fmsScores.length*3)*100)}%;background:${_fmsTotal>=14?'var(--ok)':_fmsTotal>=10?'var(--warn)':'var(--bad)'};border-radius:3px;"></div></div>
+      <span style="font-size:11px;color:${_fmsTotal>=14?'var(--ok)':_fmsTotal>=10?'var(--warn)':'var(--bad)'};font-weight:600;">${_fmsTotal>=14?'Óptimo':_fmsTotal>=10?'Aceptable':'Revisar'}</span>
+    </div>
+  </div>`:'';
+  // Injuries
+  const injKey=athleteKey(tid,catId,pid);
+  let _injuries='';
+  if(S.medInjuries[injKey]===undefined){
+    loadPlayerInjuries(injKey);
+    _injuries=`<div class="ap-chart-card" style="margin-bottom:10px;"><h3>Lesiones</h3><div style="font-size:11px;color:var(--text-3);">Cargando…</div></div>`;
+  } else {
+    const sixMonthsAgo=new Date(TODAY+'T12:00:00');sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
+    const cutoff=sixMonthsAgo.toISOString().split('T')[0];
+    const playerInjs=Object.values(S.medInjuries[injKey]||{}).filter(inj=>inj.status==='activa'||inj.status==='en_rehab'||(inj.date&&inj.date>=cutoff)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    if(playerInjs.length){
+      const injRows=playerInjs.map(inj=>{
+        const sc=injSevColor(inj.severity||1);
+        const stCl=inj.status==='activa'?'var(--bad)':inj.status==='en_rehab'?'var(--warn)':'var(--ok)';
+        const stLbl=inj.status==='activa'?'Activa':inj.status==='en_rehab'?'En rehab':'Recuperada';
+        const typeStr=inj.type?` · <span style="font-weight:400;color:var(--text-2);">${inj.type}</span>`:'';
+        const dateStr=inj.date?`<span style="font-size:10px;color:var(--text-3);">${fmtDate(inj.date)}</span>`:'';
+        return`<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:var(--bg-3);border-radius:var(--r-2);border-left:3px solid ${sc};"><div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;color:var(--text-0);">${regionLabel(inj.region||'')}${typeStr}</div><div style="display:flex;align-items:center;gap:8px;margin-top:3px;"><span style="font-size:10px;color:${stCl};font-weight:600;">${stLbl}</span>${dateStr}</div></div><span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:var(--r-pill);background:${sc}20;color:${sc};flex-shrink:0;">N${inj.severity||1}</span></div>`;
+      }).join('');
+      _injuries=`<div class="ap-chart-card" style="margin-bottom:10px;"><h3>Lesiones activas / recientes</h3><div style="display:flex;flex-direction:column;gap:6px;">${injRows}</div></div>`;
+    }
+  }
+  return _kpi+_spark+_strip+_body+_jumps+_fms+_injuries;
+}
+
 function buildAthleteWeightHistory(tid,catId,pid){
   const sessions=S.teams[tid]?.categories?.[catId]?.sessions||{};
   const exMap={};
@@ -6951,7 +7063,8 @@ function renderAthleteProgress(ctx){
         <div style="font-size:28px;margin-bottom:8px;">🏋️</div>
         <div style="font-size:13px;color:var(--text-2);">Registrá pesos en tus rutinas para ver el historial aquí.</div>
       </div>`;
-  return`<div style="padding-top:8px;">${wellSection}${weightSection}</div>`;
+  const reportSection=renderAthleteProgressReport(ctx);
+  return`<div style="padding-top:8px;">${reportSection}${wellSection}${weightSection}</div>`;
 }
 
 function initAthleteChart(){
