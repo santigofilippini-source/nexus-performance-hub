@@ -1824,7 +1824,7 @@ function wellZone(v){return v===null?{fg:'#64748b'}:v>=4?{fg:'#86efac'}:v>=3?{fg
 function sparkColor(v,max){if(!v)return'var(--bg2)';const r=max>0?v/max:0;return r<0.4?'#22c55e':r<0.7?'#f59e0b':'#ef4444';}
 function sparkColorByType(v,max,type){if(!v)return type==='libre'?'#1e293b':'var(--bg2)';if(type==='partido')return'#6366f1';if(type==='recuperacion')return'#0891b2';if(type==='libre')return'#334155';return sparkColor(v,max);}
 function sessionTypesWindowRange(cd,from,to){const result=[];const start=new Date(from+'T12:00:00'),end=new Date(to+'T12:00:00');for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1))result.push(cd.sessions?.[d.toISOString().split('T')[0]]?.sessionType||null);return result;}
-function deltaHtml(curr,prev){if(prev==null||curr==null)return'';const d=curr-prev;if(Math.abs(d)<0.01)return'';const cls=d>0?'delta-up':'delta-dn';return`<div class="eval-delta ${cls}">${d>0?'+':''}${d.toFixed(1)}</div>`;}
+function deltaHtml(curr,prev,lowerIsBetter=false){if(prev==null||curr==null)return'';const d=curr-prev;if(Math.abs(d)<0.01)return'';const good=lowerIsBetter?d<0:d>0;return`<div class="eval-delta ${good?'delta-up':'delta-dn'}">${d>0?'+':''}${d.toFixed(1)}</div>`;}
 function checkIcon(ok){return ok?`<span style="color:#86efac;font-weight:700;">✓</span>`:`<span style="color:#fca5a5;font-weight:700;">✗</span>`;}
 function rsiZone(rsi){if(!rsi)return{bg:'#1e293b',fg:'#64748b',label:'—'};if(rsi<1.5)return{bg:'#2d0a0a',fg:'#fca5a5',label:'Bajo'};if(rsi<2.0)return{bg:'#1c1400',fg:'#fcd34d',label:'Promedio'};if(rsi<2.5)return{bg:'#052e16',fg:'#86efac',label:'Bueno'};return{bg:'#0c1a2e',fg:'#60a5fa',label:'Excelente'};}
 
@@ -4536,7 +4536,7 @@ function renderAthleteMorfo(a){
 function renderAthleteAntro(a,catId,teamId){
   const cid=catId||S.cat, tid=teamId||S.teamId;
   const th=getThresholds(cid,tid);
-  const evals=Object.entries(a.anthropometry||{}).sort((x,y)=>y[0].localeCompare(x[0]));
+  const evals=Object.entries(a.anthropometry||{}).sort((x,y)=>(y[1].date||'').localeCompare(x[1].date||''));
   const editAntro=S.editingEvalId&&S.athleteForm==='antro'?(a.anthropometry||{})[S.editingEvalId]:null;
   const _sf=(k)=>editAntro?.skinfolds?.[k]!=null?editAntro.skinfolds[k]:'';
   const _pe=(k)=>editAntro?.perimeters?.[k]!=null?editAntro.perimeters[k]:'';
@@ -4598,6 +4598,8 @@ function renderAthleteAntro(a,catId,teamId){
     const prevVals=prev?.skinfolds?[prev.skinfolds.triceps,prev.skinfolds.subscapular,prev.skinfolds.supraspinal,prev.skinfolds.abdominal,prev.skinfolds.thigh,prev.skinfolds.calf].filter(v=>v!=null):[];
     const prevS6=prev?.skinfoldSum!=null?prev.skinfoldSum:(prevVals.length>0?prevVals.reduce((a,b)=>a+b,0):null);
     const madip=ev.masaAdip??null,mmusc=ev.masaMusc??null,mosea=ev.masaOsea??null;
+    const prevMadip=prev?.masaAdip??null,prevMmusc=prev?.masaMusc??null,prevMosea=prev?.masaOsea??null;
+    const prevImo=prev?.imoManual!=null?prev.imoManual:(prevMmusc&&prevMosea?Math.round(prevMmusc/prevMosea*100)/100:null);
     const zadip=ev.zAdip??null,zmusc=ev.zMusc??null;
     const morphoEvals=Object.values(a.morphology||{}).sort((x,y)=>(y.date||'').localeCompare(x.date||''));
     const lastWeight=morphoEvals[0]?.weight||null;
@@ -4618,13 +4620,13 @@ function renderAthleteAntro(a,catId,teamId){
         <button class="sm-btn" style="margin-left:auto;margin-right:4px;" data-action="editevalantro" data-evid="${id}">Editar</button><button class="eval-del" data-action="delevalantro" data-evid="${id}">Eliminar</button>
       </div>
       ${suma6!==null?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-        <div><span style="font-size:12px;color:var(--text2);">Σ6 pliegues</span><span style="font-size:22px;font-weight:700;color:${suma6<th.s6p?'#86efac':'#fca5a5'};margin-left:6px;">${suma6}</span><span style="font-size:12px;color:var(--text3);"> mm</span>${deltaHtml(suma6,prevS6)}<span style="margin-left:4px;">${checkIcon(suma6<th.s6p)}</span></div>
+        <div><span style="font-size:12px;color:var(--text2);">Σ6 pliegues</span><span style="font-size:22px;font-weight:700;color:${suma6<th.s6p?'#86efac':'#fca5a5'};margin-left:6px;">${suma6}</span><span style="font-size:12px;color:var(--text3);"> mm</span>${deltaHtml(suma6,prevS6,true)}<span style="margin-left:4px;">${checkIcon(suma6<th.s6p)}</span></div>
       </div>`:''}
       ${hasFraction?`<div style="background:var(--bg2);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
         <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Fraccionamiento D. Kerr</div>
         <div class="eval-grid-4">
-          ${madip!==null?`<div class="eval-cell"><div class="eval-cell-label">M. Adiposa</div><div class="eval-cell-val">${madip}<span style="font-size:10px;color:var(--text3);">kg</span></div>${pAdip?`<div class="eval-delta" style="color:var(--text3);">${pAdip}%</div>`:''}</div>`:''}
-          ${mmusc!==null?`<div class="eval-cell"><div class="eval-cell-label">M. Muscular</div><div class="eval-cell-val">${mmusc}<span style="font-size:10px;color:var(--text3);">kg</span></div>${pMusc?`<div class="eval-delta" style="color:var(--text3);">${pMusc}%</div>`:''}</div>`:''}
+          ${madip!==null?`<div class="eval-cell"><div class="eval-cell-label">M. Adiposa</div><div class="eval-cell-val">${madip}<span style="font-size:10px;color:var(--text3);">kg</span></div>${pAdip?`<div class="eval-delta" style="color:var(--text3);">${pAdip}%</div>`:''}${deltaHtml(madip,prevMadip,true)}</div>`:''}
+          ${mmusc!==null?`<div class="eval-cell"><div class="eval-cell-label">M. Muscular</div><div class="eval-cell-val">${mmusc}<span style="font-size:10px;color:var(--text3);">kg</span></div>${pMusc?`<div class="eval-delta" style="color:var(--text3);">${pMusc}%</div>`:''}${deltaHtml(mmusc,prevMmusc,false)}</div>`:''}
           ${zadip!==null?`<div class="eval-cell" style="${zadip<th.zadip?'background:#052e16;':'background:#2d0a0a;'}"><div class="eval-cell-label" style="color:var(--text3);">Z adiposa</div><div class="eval-cell-val" style="color:${zadip<th.zadip?'#86efac':'#fca5a5'};">${zadip>0?'+':''}${zadip}</div><div class="eval-delta">${checkIcon(zadip<th.zadip)}</div></div>`:''}
           ${zmusc!==null?`<div class="eval-cell" style="${zmusc>th.zmuscle?'background:#052e16;':'background:#1c1400;'}"><div class="eval-cell-label" style="color:var(--text3);">Z muscular</div><div class="eval-cell-val" style="color:${zmusc>th.zmuscle?'#86efac':'#fcd34d'};">${zmusc>0?'+':''}${zmusc}</div><div class="eval-delta">${checkIcon(zmusc>th.zmuscle)}</div></div>`:''}
         </div>
@@ -4635,7 +4637,7 @@ function renderAthleteAntro(a,catId,teamId){
             <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:${pc?.bg||'var(--bg3)'};color:${pc?.fg||'var(--text2)'};">${pc?.label||'—'}</span>
           </div>
         </div>${pc?.sub?`<div style="font-size:11px;color:var(--text3);margin-top:3px;text-align:right;">${pc.sub}</div>`:''}`:''}
-        ${imo?`<div style="display:flex;align-items:center;gap:6px;margin-top:6px;"><span style="font-size:12px;color:var(--text2);">IMO:</span><span style="font-size:14px;font-weight:700;color:${parseFloat(imo)>th.imo?'#86efac':'#fcd34d'};">${imo}</span>${checkIcon(parseFloat(imo)>th.imo)}<span style="font-size:11px;color:var(--text3);">Umbral: >${th.imo}</span></div>`:''}
+        ${imo?`<div style="display:flex;align-items:center;gap:6px;margin-top:6px;"><span style="font-size:12px;color:var(--text2);">IMO:</span><span style="font-size:14px;font-weight:700;color:${parseFloat(imo)>th.imo?'#86efac':'#fcd34d'};">${imo}</span>${checkIcon(parseFloat(imo)>th.imo)}${deltaHtml(parseFloat(imo),prevImo?parseFloat(prevImo):null,false)}<span style="font-size:11px;color:var(--text3);">Umbral: >${th.imo}</span></div>`:''}
         <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
           <div style="display:flex;flex-wrap:wrap;gap:5px;">
             <span style="font-size:11px;padding:2px 8px;border-radius:12px;background:${s6pOk?'#052e16':'#2d0a0a'};color:${s6pOk?'#86efac':'#fca5a5'};">Σ6P <${th.s6p}mm ${checkIcon(s6pOk)}</span>
