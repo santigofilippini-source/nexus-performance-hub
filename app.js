@@ -843,13 +843,11 @@ async function loadAll() {
       } catch(e) { /* ignore */ }
     }));
 
-    // 5. Load user profile + onboarding status
-    const [pSnap, obdSnap] = await Promise.all([
-      db.ref(`users/${currentUser.uid}/profile`).get(),
-      db.ref(`users/${currentUser.uid}/onboardingDone`).get()
-    ]);
+    // 5. Load user profile
+    const pSnap = await db.ref(`users/${currentUser.uid}/profile`).get();
     S.userProfile = pSnap.exists() ? (pSnap.val()||{}) : {};
-    S.onboardingDone = obdSnap.exists() ? !!obdSnap.val() : false;
+    // Onboarding flag via localStorage (uid-scoped, no Firebase rules needed)
+    S.onboardingDone = localStorage.getItem(`ap_obd_${currentUser.uid}`) === '1';
     if(!S.onboardingDone && S.onboardingStep===null) S.onboardingStep=0;
 
     // 6. Load personal programs and exercise library (in parallel)
@@ -2180,7 +2178,7 @@ function render(){
       if(!_ol){
         _ol=document.createElement('div');_ol.id='ap-onboarding-overlay';document.body.appendChild(_ol);
         // Marcar como visto apenas aparece: evita re-mostrarlo si cierra el browser sin completarlo
-        db.ref(`users/${currentUser.uid}/onboardingDone`).set(true).catch(()=>{});
+        localStorage.setItem(`ap_obd_${currentUser.uid}`,'1');
       }
       _ol.innerHTML=renderOnboardingOverlay(S.onboardingStep);
     }
@@ -6608,15 +6606,16 @@ function _updateObd(){
 function nextOnboarding(){ if(S.onboardingStep<_OBD_STEPS.length-1){S.onboardingStep++;_updateObd();} }
 function prevOnboarding(){ if(S.onboardingStep>0){S.onboardingStep--;_updateObd();} }
 function skipOnboarding(){ completeOnboarding(); }
-async function completeOnboarding(){
+function completeOnboarding(){
   S.onboardingDone=true; S.onboardingStep=null;
+  localStorage.setItem(`ap_obd_${currentUser.uid}`,'1');
   const ol=document.getElementById('ap-onboarding-overlay');
   if(ol) ol.remove();
 }
-async function replayOnboarding(){
+function replayOnboarding(){
   document.getElementById('ap-profile-modal')?.remove();
   S.onboardingDone=false; S.onboardingStep=0;
-  await db.ref(`users/${currentUser.uid}/onboardingDone`).set(false);
+  localStorage.removeItem(`ap_obd_${currentUser.uid}`);
   let ol=document.getElementById('ap-onboarding-overlay');
   if(!ol){ol=document.createElement('div');ol.id='ap-onboarding-overlay';document.body.appendChild(ol);}
   ol.innerHTML=renderOnboardingOverlay(0);
