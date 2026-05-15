@@ -6022,7 +6022,7 @@ async function handleAction(e){
     const ev={date:document.getElementById('af-date')?.value||TODAY,
       skinfolds:{triceps:g('af-tri'),subscapular:g('af-sub'),supraspinal:g('af-sup'),abdominal:g('af-abd'),thigh:g('af-thigh'),calf:g('af-calf')},
       perimeters:{armR:g('af-pArmR'),armF:g('af-pArmF'),forearm:g('af-pFore'),chest:g('af-pChest'),waist:g('af-pWaist'),hips:g('af-pHips'),thighU:g('af-pThighU'),thighM:g('af-pThighM'),calf:g('af-pCalf')},
-      diameters:{biacr:g('af-dBiacr'),chestT:g('af-dChest'),biili:g('af-dBiili'),humer:g('af-dHum'),femor:g('af-dFem')},
+      diameters:{biacr:g('af-dBiacr'),chest:g('af-dChest'),biili:g('af-dBiili'),hum:g('af-dHum'),fem:g('af-dFem')},
       masaAdip:g('af-madipkg'),masaMusc:g('af-mmuskg'),masaOsea:g('af-moseakg'),zAdip:g('af-zadip'),zMusc:g('af-zmusc'),skinfoldSum:g('af-skinfoldSum'),imoManual:g('af-imoManual')};
     ['skinfolds','perimeters','diameters'].forEach(sec=>{Object.keys(ev[sec]).forEach(k=>{if(ev[sec][k]===null)delete ev[sec][k];});});
     ['masaAdip','masaMusc','masaOsea','zAdip','zMusc','skinfoldSum','imoManual'].forEach(k=>{if(ev[k]===null)delete ev[k];});
