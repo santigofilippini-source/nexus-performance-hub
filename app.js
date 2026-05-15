@@ -2144,7 +2144,7 @@ function handleMobTab(tab){
   if(tab==='home'){S.view='home';S.teamId=null;S.teamFormMode=null;S.catFormMode=null;S.profileView=false;render();return;}
   if(tab==='bib'){S.view='biblioteca';S.programView=null;S.profileView=false;render();return;}
   if(tab==='cta'){S.profileView=true;render();return;}
-  const catTab={ses:'session',met:'metrics'}[tab];
+  const catTab={ses:'session'}[tab];
   if(!catTab)return;
   const tid=S.lastCatTid||S.teamId;
   const cid=S.lastCatCid||S.cat;
@@ -2162,10 +2162,9 @@ function updateMobTabBar(){
     home:!isCat&&!isLib&&!isCta&&S.view!=='search'&&S.view!=='athlete',
     bib:isLib,
     ses:isCat&&S.tab==='session',
-    met:isCat&&(S.tab==='metrics'||S.tab==='reports'),
     cta:isCta,
   };
-  ['home','bib','ses','met','cta'].forEach(function(k){
+  ['home','bib','ses','cta'].forEach(function(k){
     var el=document.getElementById('mobt-'+k);
     if(el)el.classList.toggle('active',!!active[k]);
   });
