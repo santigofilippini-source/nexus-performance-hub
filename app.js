@@ -2645,13 +2645,13 @@ function renderTeamForm(){
       </div>
     </div>
     <div class="form-grid-2">
-      <div class="form-field" style="grid-column:1/-1;"><label>Nombre del equipo</label><input type="text" id="tf-name" value="${isEdit?t.name:''}" placeholder="Ej: Club Atlético X"></div>
+      <div class="form-field" style="grid-column:1/-1;"><label>Nombre del equipo${isEdit&&!isOwner(tid)?' <span style="font-size:10px;color:var(--text-3);font-weight:400;">(solo el dueño puede cambiarlo)</span>':''}</label><input type="text" id="tf-name" value="${isEdit?t.name:''}" placeholder="Ej: Club Atlético X"${isEdit&&!isOwner(tid)?' readonly style="opacity:.55;cursor:not-allowed;"':''}></div>
       <div class="form-field" style="grid-column:1/-1;"><label>Deporte</label>
         <select id="tf-sport">${SPORTS.map(s=>`<option value="${s}"${(isEdit?t.sport:'')==s?' selected':''}>${s}</option>`).join('')}</select>
       </div>
     </div>
     <div class="form-row">
-      ${isEdit?`<button class="sm-btn" style="color:#fca5a5;border-color:#991b1b;" data-action="deleteteam" data-tid="${tid}">Eliminar</button>`:''}
+      ${isEdit&&isOwner(tid)?`<button class="sm-btn" style="color:#fca5a5;border-color:#991b1b;" data-action="deleteteam" data-tid="${tid}">Eliminar</button>`:''}
       <button class="save-btn" style="flex:1;" data-action="${isEdit?'saveeditteam':'savenewteam'}">${isEdit?'Guardar':'Crear equipo'}</button>
     </div>
   </div>`;
@@ -2880,17 +2880,14 @@ function renderTeamView(){
       </div>
     </div>
     <div class="sec-actions">
-      ${isOwner()?`<button class="sec-action-btn" data-action="toggleaccess" data-tid="${S.teamId}" title="Miembros del equipo">
+      ${(isOwner()||myRole()==='editor')?`<button class="sec-action-btn" data-action="toggleaccess" data-tid="${S.teamId}" title="Miembros del equipo">
         ${_svgH('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>')}
         ${unread?`<span class="sec-action-notif">${unread}</span>`:''}
       </button>`:''}
-      ${!isOwner()&&myRole()==='editor'?`<button class="sec-action-btn${S.athleteInvitePanel?' active':''}" data-action="toggleathletesinvite" title="Invitar atleta">
-        ${_svgH('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>')}
-      </button>`:''}
-      ${isOwner()?`<button class="sec-action-btn" data-action="editteam" title="Editar equipo">
+      ${(isOwner()||myRole()==='editor')?`<button class="sec-action-btn" data-action="editteam" title="Editar equipo">
         ${_svgH('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>')}
       </button>`:''}
-      ${isOwner()?renderSubscriptionBtn(S.teamId):''}
+      ${(isOwner()||myRole()==='editor')?renderSubscriptionBtn(S.teamId):''}
     </div>
   </div>`;
 
@@ -2932,9 +2929,8 @@ function renderTeamView(){
   const empty=!cats.length?`<div class="empty-state">Sin categorías.<br>Creá la primera para empezar a registrar.</div>`:'';
 
   return header+`<div class="wrap">
-    ${S.accessPanel&&isOwner()?renderAccessPanel(S.teamId):''}
-    ${S.athleteInvitePanel&&!isOwner()&&myRole()==='editor'?renderAthleteInvitePanel(S.teamId):''}
-    ${isOwner()?renderUpgradePanel(S.teamId):''}
+    ${S.accessPanel&&(isOwner()||myRole()==='editor')?renderAccessPanel(S.teamId):''}
+    ${(isOwner()||myRole()==='editor')?renderUpgradePanel(S.teamId):''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div style="font-size:13px;font-weight:600;color:var(--text2);">CATEGORÍAS</div>
       ${(isOwner()||myRole()==='editor')?`<button class="add-btn" data-action="newcat">+ Nueva categoría</button>`:''}
@@ -2956,7 +2952,7 @@ function renderCatForm(){
     <div class="form-field" style="margin-bottom:8px;"><label>Nombre</label><input type="text" id="cf-name" value="${isEdit?(c.name||''):''}" placeholder="Ej: U16A, Sub-20, Primera División"></div>
     <div style="font-size:11px;color:var(--text3);margin-top:4px;">💡 Si el nombre contiene U14, U16 o U18, los umbrales antropométricos se detectan automáticamente como Menores.</div>
     <div class="form-row">
-      ${isEdit&&isOwner()?`<button class="sm-btn" style="color:#fca5a5;border-color:#991b1b;" data-action="deletecat" data-cid="${cid}">Eliminar categoría</button>`:''}
+      ${isEdit&&(isOwner()||myRole()==='editor')?`<button class="sm-btn" style="color:#fca5a5;border-color:#991b1b;" data-action="deletecat" data-cid="${cid}">Eliminar categoría</button>`:''}
       <button class="save-btn" style="flex:1;background:#059669;" data-action="${isEdit?'saveeditcat':'savenewcat'}">${isEdit?'Guardar':'Crear categoría'}</button>
     </div>
   </div>`;
@@ -2985,7 +2981,7 @@ function renderCatHeader(){
         <p>${c.players.length} jugadores en plantel</p>
       </div>
       <div class="q-section-h__r">
-        ${isOwner()?`<button class="sec-action-btn" data-action="editcurrentcat" title="Editar categoría">${svg16('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>')}</button>`:''}
+        ${(isOwner()||myRole()==='editor')?`<button class="sec-action-btn" data-action="editcurrentcat" title="Editar categoría">${svg16('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>')}</button>`:''}
         ${canEdit()&&S.tab==='attend'?`<button class="q-btn q-btn--primary q-btn--sm" data-action="save">Guardar asistencia</button>`:''}
       </div>
     </div>
@@ -5943,7 +5939,7 @@ async function handleAction(e){
   }
   else if(a==='deletecat'){
     const tid=S.teamId;const cid=el.dataset.cid;
-    if(!isOwner(tid)){showAlert('Solo el dueño puede eliminar categorías.');return;}
+    if(!isOwner(tid)&&myRole(tid)!=='editor'){showAlert('No tenés permiso para eliminar categorías.');return;}
     const catName=S.teams[tid]?.categories?.[cid]?.name||'esta categoría';
     showConfirm(`¿Eliminar "${catName}"? Se perderán todos sus datos (asistencia, sesiones, atletas).`, async()=>{
       const prefix=`${tid}__${cid}__`;
