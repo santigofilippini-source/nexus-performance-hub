@@ -2887,7 +2887,7 @@ function renderTeamView(){
       ${(isOwner()||myRole()==='editor')?`<button class="sec-action-btn" data-action="editteam" title="Editar equipo">
         ${_svgH('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>')}
       </button>`:''}
-      ${(isOwner()||myRole()==='editor')?renderSubscriptionBtn(S.teamId):''}
+      ${isOwner()?renderSubscriptionBtn(S.teamId):''}
     </div>
   </div>`;
 
@@ -2930,7 +2930,7 @@ function renderTeamView(){
 
   return header+`<div class="wrap">
     ${S.accessPanel&&(isOwner()||myRole()==='editor')?renderAccessPanel(S.teamId):''}
-    ${(isOwner()||myRole()==='editor')?renderUpgradePanel(S.teamId):''}
+    ${isOwner()?renderUpgradePanel(S.teamId):''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div style="font-size:13px;font-weight:600;color:var(--text2);">CATEGORÍAS</div>
       ${(isOwner()||myRole()==='editor')?`<button class="add-btn" data-action="newcat">+ Nueva categoría</button>`:''}
