@@ -655,7 +655,7 @@ async function doLogin() {
   if(!email||!pass){err.textContent='Ingresá email y contraseña.';return;}
   btn.disabled=true; btn.textContent='Ingresando...'; err.textContent='';
   try {
-    await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
     await auth.signInWithEmailAndPassword(email,pass);
     _loginFails=0;
   } catch(e) {
