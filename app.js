@@ -1195,6 +1195,15 @@ function renderProfileView() {
       </div>
       <div class="form-row"><button class="save-btn" style="width:100%;" data-action="saveprofile">Guardar perfil</button></div>
     </div>
+    <div class="form-card" style="margin-top:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">Suscripción</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:2px;">Plan y facturación por equipo</div>
+        </div>
+        <button class="sm-btn" style="flex-shrink:0;" onclick="S.profileView=false;S.view='subscription';render();">Ver detalles →</button>
+      </div>
+    </div>
     <div style="margin-top:8px;text-align:center;">
       <button class="sm-btn" style="color:#fca5a5;border-color:#991b1b;" onclick="doLogout()">Cerrar sesión</button>
     </div>
@@ -2132,28 +2141,31 @@ async function addPlayer(){
 }
 
 function handleMobTab(tab){
-  if(tab==='home'){S.view='home';S.teamId=null;S.teamFormMode=null;S.catFormMode=null;render();return;}
-  const catTab={att:'attend',ses:'session',met:'metrics',more:'roster'}[tab];
+  if(tab==='home'){S.view='home';S.teamId=null;S.teamFormMode=null;S.catFormMode=null;S.profileView=false;render();return;}
+  if(tab==='bib'){S.view='biblioteca';S.programView=null;S.profileView=false;render();return;}
+  if(tab==='cta'){S.profileView=true;render();return;}
+  const catTab={ses:'session',met:'metrics'}[tab];
   if(!catTab)return;
   const tid=S.lastCatTid||S.teamId;
   const cid=S.lastCatCid||S.cat;
   if(tid&&cid){
-    S.teamId=tid;S.cat=cid;S.view='cat';S.tab=catTab;
-    if(catTab==='attend')loadSession();
+    S.teamId=tid;S.cat=cid;S.view='cat';S.tab=catTab;S.profileView=false;
     if(catTab==='session'){loadSessionDraft();S.sessionPlans={};loadSessionPlans().then(()=>render());return;}
     render();
   }else{S.view='home';render();}
 }
 function updateMobTabBar(){
   const isCat=S.view==='cat';
+  const isLib=['biblioteca','programs','myexercises','qooreexercises'].includes(S.view);
+  const isCta=!!(S.profileView||S.view==='subscription');
   const active={
-    home:!isCat&&S.view!=='search'&&S.view!=='athlete',
-    att:isCat&&S.tab==='attend',
+    home:!isCat&&!isLib&&!isCta&&S.view!=='search'&&S.view!=='athlete',
+    bib:isLib,
     ses:isCat&&S.tab==='session',
     met:isCat&&(S.tab==='metrics'||S.tab==='reports'),
-    more:isCat&&S.tab==='roster',
+    cta:isCta,
   };
-  ['home','att','ses','met','more'].forEach(function(k){
+  ['home','bib','ses','met','cta'].forEach(function(k){
     var el=document.getElementById('mobt-'+k);
     if(el)el.classList.toggle('active',!!active[k]);
   });
@@ -2192,6 +2204,7 @@ function render(){
   if(S.view==='home')      body.innerHTML=renderHome();
   else if(S.view==='team')     body.innerHTML=renderTeamView();
   else if(S.view==='cat')      body.innerHTML=renderCatHeader()+renderCat();
+  else if(S.view==='biblioteca')  body.innerHTML=renderBibliotecaHub();
   else if(S.view==='programs')    body.innerHTML=renderProgramsView();
   else if(S.view==='myexercises') body.innerHTML=renderMyExercises();
   else if(S.view==='qooreexercises') body.innerHTML=renderQooreExercises();
@@ -2203,6 +2216,29 @@ function render(){
   if(S.upgradeModal) renderUpgradeModal();
   if(S.subscriptionModal) renderSubscriptionModal();
   if(S.upgradeSuccess){ showAlert(`✓ ¡Bienvenido a ${S.upgradeSuccess==='elite'?'Elite':'Pro'}! Tu plan ya está activo.`); S.upgradeSuccess=null; }
+}
+
+// ── BIBLIOTECA HUB (mobile entry point) ──────────────────────
+function renderBibliotecaHub(){
+  const progCount=Object.keys(S.programs||{}).length;
+  const myExCount=Object.keys(S.exercises?.personal||{}).length;
+  const qExCount=Object.keys(S.exercises?.qoore||{}).length;
+  const svg=(d)=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+  const card=(icon,title,sub,action)=>`
+    <div onclick="${action}" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bg-card);border-radius:14px;border:1px solid var(--line);cursor:pointer;margin-bottom:10px;">
+      <div style="width:42px;height:42px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${icon}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:14px;color:var(--text);">${title}</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${sub}</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </div>`;
+  return `<div class="wrap" style="padding-top:20px;">
+    <h2 style="font-size:17px;font-weight:700;margin-bottom:16px;color:var(--text);">Biblioteca</h2>
+    ${card(svg('M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z'),'Programas',`${progCount} programa${progCount!==1?'s':''}`,"S.view='programs';S.programView=null;render();")}
+    ${card(svg('M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z'),'Mis ejercicios',`${myExCount} ejercicio${myExCount!==1?'s':''}`,"S.view='myexercises';render();")}
+    ${card(svg('M13 2L3 14h9l-1 8 10-12h-9l1-8z'),'Ejercicios Qoore',`${qExCount} disponibles`,"S.view='qooreexercises';render();")}
+  </div>`;
 }
 
 // ── PROGRAMS VIEW ────────────────────────────────────────────
