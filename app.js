@@ -4502,7 +4502,7 @@ function renderAthletePerfil(a,tid,cid,pid){
 }
 
 function renderAthleteMorfo(a){
-  const evals=Object.entries(a.morphology||{}).sort((x,y)=>y[0].localeCompare(x[0]));
+  const evals=Object.entries(a.morphology||{}).sort((x,y)=>(y[1].date||'').localeCompare(x[1].date||''));
   const editEv=S.editingEvalId?(a.morphology||{})[S.editingEvalId]:null;
   const _mV=(k)=>editEv?.[k]!=null?editEv[k]:'';
   const formHtml=S.athleteForm==='morfo'?`<div class="form-card">
@@ -4658,7 +4658,7 @@ function renderAthleteAntro(a,catId,teamId){
 function renderAthleteTests(a){
   const sv=(d,s=13,sw=1.6)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="${d}"/></svg>`;
   // ── Jump data ──
-  const evals=Object.entries(a.jumpTests||{}).sort((x,y)=>y[0].localeCompare(x[0]));
+  const evals=Object.entries(a.jumpTests||{}).sort((x,y)=>(y[1].date||'').localeCompare(x[1].date||''));
   const editJump=S.editingEvalId&&S.athleteForm==='tests'?(a.jumpTests||{})[S.editingEvalId]:null;
   const _jV=(k)=>editJump?.[k]!=null?editJump[k]:'';
   const formHtml=S.athleteForm==='tests'?`<div class="form-card">
@@ -4715,7 +4715,7 @@ function renderAthleteTests(a){
   }).join('');
   const chartHtml=evals.length>=2?`<div class="q-card" style="margin-bottom:12px;"><div class="q-card__h"><h3>Evolución de saltos</h3><div class="chart-legend"><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#60a5fa;"></span>SJ</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--accent);"></span>CMJ</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#f59e0b;"></span>ABK</span><span class="chart-legend-item"><span class="chart-legend-dot" style="background:#f472b6;"></span>RSI</span></div></div><div class="q-card__b"><canvas id="chart-tests" height="150"></canvas></div></div>`:'';
   // ── FMS ──
-  const fmsEvals=Object.entries(a.fmsTests||{}).sort((x,y)=>y[0].localeCompare(x[0]));
+  const fmsEvals=Object.entries(a.fmsTests||{}).sort((x,y)=>(y[1].date||'').localeCompare(x[1].date||''));
   const minBi=(l,r)=>(l!=null&&r!=null)?Math.min(l,r):l!=null?l:r!=null?r:null;
   const fmsInfo=(ev)=>{const s=[ev.deepSquat,minBi(ev.hurdleL,ev.hurdleR),minBi(ev.lungeL,ev.lungeR),minBi(ev.shoulderL,ev.shoulderR),minBi(ev.aslrL,ev.aslrR),ev.trunkStab,minBi(ev.rotaryL,ev.rotaryR)];const valid=s.filter(v=>v!=null);return{sum:valid.reduce((a,b)=>a+b,0),completed:valid.length};};
   const editFms=S.editingEvalId&&S.athleteForm==='fms'?(a.fmsTests||{})[S.editingEvalId]:null;
