@@ -6627,7 +6627,7 @@ function renderAthleteToday(ctx){
   const rpeSavedBadge=lastSessRPE!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
 
   const pushBanner=typeof Notification!=='undefined'&&Notification.permission==='default'&&!VAPID_PUBLIC_KEY.startsWith('PASTE')
-    ?`<div class="ap-push-banner"><span style="font-size:18px;">🔔</span><span>Activá las notificaciones para no perderte nada</span><button class="ap-push-btn" onclick="requestPushPermission()">Activar</button></div>`:'';
+    ?`<div class="ap-push-banner"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>Activá las notificaciones para no perderte nada</span><button class="ap-push-btn" onclick="requestPushPermission()">Activar</button></div>`:'';
   return`<div style="padding-top:4px;">
     ${pushBanner}
     <div style="padding:10px 16px 2px;font-size:12px;color:var(--text-2);">${dateStr}</div>
