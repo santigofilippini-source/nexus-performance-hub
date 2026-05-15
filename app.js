@@ -2177,7 +2177,11 @@ function render(){
     if(S.athletePortalTab==='progress')setTimeout(()=>{initAthleteChart();initAthleteWeightChart();},50);
     if(!S.onboardingDone && S.onboardingStep!==null){
       let _ol=document.getElementById('ap-onboarding-overlay');
-      if(!_ol){_ol=document.createElement('div');_ol.id='ap-onboarding-overlay';document.body.appendChild(_ol);}
+      if(!_ol){
+        _ol=document.createElement('div');_ol.id='ap-onboarding-overlay';document.body.appendChild(_ol);
+        // Marcar como visto apenas aparece: evita re-mostrarlo si cierra el browser sin completarlo
+        db.ref(`users/${currentUser.uid}/onboardingDone`).set(true).catch(()=>{});
+      }
       _ol.innerHTML=renderOnboardingOverlay(S.onboardingStep);
     }
     updateHeader();
@@ -6515,6 +6519,7 @@ function openAthleteProfile(mode='toggle'){
       <div class="ap-pm-cat"${infoRows?' style="margin-bottom:12px;"':''}>${catName}</div>
       ${infoRows?`<div class="ap-pm-info-rows">${infoRows}</div>`:''}
       <button class="ap-pm-edit-btn" data-action="apshowprofileedit">Editar mis datos</button>
+      <button class="ap-pm-tutorial-btn" onclick="replayOnboarding()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg> Ver tutorial</button>
       <button class="ap-pm-logout" onclick="doLogout()">Cerrar sesión</button>`;
   }
   const el=document.createElement('div');
@@ -6607,7 +6612,14 @@ async function completeOnboarding(){
   S.onboardingDone=true; S.onboardingStep=null;
   const ol=document.getElementById('ap-onboarding-overlay');
   if(ol) ol.remove();
-  await db.ref(`users/${currentUser.uid}/onboardingDone`).set(true);
+}
+async function replayOnboarding(){
+  document.getElementById('ap-profile-modal')?.remove();
+  S.onboardingDone=false; S.onboardingStep=0;
+  await db.ref(`users/${currentUser.uid}/onboardingDone`).set(false);
+  let ol=document.getElementById('ap-onboarding-overlay');
+  if(!ol){ol=document.createElement('div');ol.id='ap-onboarding-overlay';document.body.appendChild(ol);}
+  ol.innerHTML=renderOnboardingOverlay(0);
 }
 
 // ── ATHLETE PORTAL ────────────────────────────────────────────
