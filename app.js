@@ -556,6 +556,8 @@ let S = {
   athleteCalOffset:0,      // months from current (0=now, -1=last month…)
   athleteLogMode:null,        // null | { date, planId }
   athleteRoutineDayOffset:0,  // offset de días desde TODAY en tab Rutinas
+  onboardingStep:null,        // null | 0-4 — current onboarding slide
+  onboardingDone:false,       // true once athlete completes/skips onboarding
 };
 
 // ── Admin ──────────────────────────────────────────────────────
@@ -841,9 +843,14 @@ async function loadAll() {
       } catch(e) { /* ignore */ }
     }));
 
-    // 5. Load user profile
-    const pSnap = await db.ref(`users/${currentUser.uid}/profile`).get();
+    // 5. Load user profile + onboarding status
+    const [pSnap, obdSnap] = await Promise.all([
+      db.ref(`users/${currentUser.uid}/profile`).get(),
+      db.ref(`users/${currentUser.uid}/onboardingDone`).get()
+    ]);
     S.userProfile = pSnap.exists() ? (pSnap.val()||{}) : {};
+    S.onboardingDone = obdSnap.exists() ? !!obdSnap.val() : false;
+    if(!S.onboardingDone && S.onboardingStep===null) S.onboardingStep=0;
 
     // 6. Load personal programs and exercise library (in parallel)
     const [progSnap, exPersonalSnap, exGlobalSnap] = await Promise.all([
@@ -2168,6 +2175,11 @@ function render(){
     body.innerHTML=renderAthletePortal(_athCtx);
     attachEvents();
     if(S.athletePortalTab==='progress')setTimeout(()=>{initAthleteChart();initAthleteWeightChart();},50);
+    if(!S.onboardingDone && S.onboardingStep!==null){
+      let _ol=document.getElementById('ap-onboarding-overlay');
+      if(!_ol){_ol=document.createElement('div');_ol.id='ap-onboarding-overlay';document.body.appendChild(_ol);}
+      _ol.innerHTML=renderOnboardingOverlay(S.onboardingStep);
+    }
     updateHeader();
     return;
   }
@@ -6535,6 +6547,67 @@ async function saveAthletePersonal(ctx){
   await db.ref(`teams/${tid}/athletes/${key}/personal`).update(personal);
   showToast('Datos guardados');
   openAthleteProfile('info');
+}
+
+// ── Onboarding overlay ────────────────────────────────────────
+const _OBD_STEPS=[
+  {
+    svg:`<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+    title:'¡Bienvenido a Qoore!',
+    body:'Tu entrenador te conectó a esta plataforma. Desde acá vas a poder ver tus rutinas, registrar sesiones y seguir tu progreso en tiempo real.'
+  },
+  {
+    svg:`<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`,
+    title:'Tu día de hoy',
+    body:'En <b>Hoy</b> completás el check-in diario de bienestar antes de entrenar. También aparece un resumen de tu rutina del día.'
+  },
+  {
+    svg:`<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="10" width="4" height="4" rx="1.5"/><rect x="18" y="10" width="4" height="4" rx="1.5"/><rect x="5.5" y="8" width="2.5" height="8" rx="1"/><rect x="16" y="8" width="2.5" height="8" rx="1"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+    title:'Tus rutinas',
+    body:'En <b>Rutinas</b> están los ejercicios de la sesión. Marcá cada bloque como completo y registrá el peso que levantás.'
+  },
+  {
+    svg:`<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>`,
+    title:'Asistencia',
+    body:'En <b>Asistencia</b> podés ver tu historial mes a mes. Se registra automáticamente al completar una rutina.'
+  },
+  {
+    svg:`<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l4-5 4 3 4-6 4-2"/><path d="M15 7h4v4"/></svg>`,
+    title:'Tu progreso',
+    body:'En <b>Progreso</b> encontrás tus métricas de carga, bienestar y evaluaciones. Tu coach carga los datos desde su panel.'
+  }
+];
+function renderOnboardingOverlay(step){
+  const s=_OBD_STEPS[step]||_OBD_STEPS[0];
+  const dots=_OBD_STEPS.map((_,i)=>`<span class="ap-obd-dot${i===step?' on':''}"></span>`).join('');
+  const isFirst=step===0, isLast=step===_OBD_STEPS.length-1;
+  return `<div class="ap-obd-card">
+    <button class="ap-obd-skip" onclick="skipOnboarding()">Saltar</button>
+    <div class="ap-obd-icon">${s.svg}</div>
+    <div class="ap-obd-title">${s.title}</div>
+    <div class="ap-obd-body">${s.body}</div>
+    <div class="ap-obd-dots">${dots}</div>
+    <div class="ap-obd-actions">
+      ${!isFirst?`<button class="ap-obd-back" onclick="prevOnboarding()">Atrás</button>`:'<span></span>'}
+      ${isLast
+        ?`<button class="ap-obd-next" onclick="completeOnboarding()">¡Empezar!</button>`
+        :`<button class="ap-obd-next" onclick="nextOnboarding()">Siguiente →</button>`
+      }
+    </div>
+  </div>`;
+}
+function _updateObd(){
+  const ol=document.getElementById('ap-onboarding-overlay');
+  if(ol) ol.innerHTML=renderOnboardingOverlay(S.onboardingStep);
+}
+function nextOnboarding(){ if(S.onboardingStep<_OBD_STEPS.length-1){S.onboardingStep++;_updateObd();} }
+function prevOnboarding(){ if(S.onboardingStep>0){S.onboardingStep--;_updateObd();} }
+function skipOnboarding(){ completeOnboarding(); }
+async function completeOnboarding(){
+  S.onboardingDone=true; S.onboardingStep=null;
+  const ol=document.getElementById('ap-onboarding-overlay');
+  if(ol) ol.remove();
+  await db.ref(`users/${currentUser.uid}/onboardingDone`).set(true);
 }
 
 // ── ATHLETE PORTAL ────────────────────────────────────────────
