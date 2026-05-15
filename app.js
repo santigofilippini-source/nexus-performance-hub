@@ -4460,7 +4460,10 @@ function renderAthleteView(){
   const athPhoto=a.personal?.photoUrl;
   return`<div class="ath-header">
     <button class="back-btn" data-action="backfromathlete">← Volver</button>
-    <div class="ath-avatar" style="background:${athPhoto?'transparent':color};${athPhoto?'overflow:hidden;padding:0;':''}">${athPhoto?`<img src="${athPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`:initials}</div>
+    <div class="pf-avatar-wrap">
+      <div class="ath-avatar" style="background:${athPhoto?'transparent':color};${athPhoto?'overflow:hidden;padding:0;':''}">${athPhoto?`<img src="${athPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`:initials}</div>
+      ${canEdit(tid)?`<label class="pf-avatar-cam" title="Cambiar foto">📷<input type="file" accept="image/*" style="display:none;" onchange="handleStaffAthletePhotoUpload(this,'${tid}','${cid}','${pid}')"></label>`:''}
+    </div>
     <div class="ath-name-block">
       <div class="ath-fullname">${player.name}</div>
       <div class="ath-sub">${teamName} · ${catName}${age?' · '+age+' años':''}</div>
@@ -5537,6 +5540,16 @@ function _compressPhoto(input,size,quality,onDone){
 }
 function handleAthletePhotoUpload(input){
   _compressPhoto(input,120,0.72,data=>{S.pendingAthletePhoto=data;openAthleteProfile('edit');});
+}
+function handleStaffAthletePhotoUpload(input,tid,cid,pid){
+  _compressPhoto(input,120,0.72,async data=>{
+    const key=`${tid}__${cid}__${pid}`;
+    const existing=getAthlete(key).personal||{};
+    getAthlete(key).personal={...existing,photoUrl:data};
+    await db.ref(`teams/${tid}/athletes/${key}/personal`).update({photoUrl:data});
+    showToast('Foto actualizada');
+    render();
+  });
 }
 function handleProfilePhotoUpload(input){
   _compressPhoto(input,120,0.72,data=>{S.pendingProfilePhoto=data;render();});
