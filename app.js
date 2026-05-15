@@ -19,7 +19,7 @@ const devWarn = IS_DEV ? console.warn.bind(console) : ()=>{};
 const devErr = IS_DEV ? console.error.bind(console) : ()=>{};
 
 // ── Push notifications ────────────────────────────────────────
-const VAPID_PUBLIC_KEY = 'PASTE_YOUR_VAPID_PUBLIC_KEY_HERE';
+const VAPID_PUBLIC_KEY = 'BH5UZind97cFafjtLu_ChzGNAFX-CSmZjRv8w3-pKxuxb8x0lNBzSzVEJ4BirshlDpL3oMkb3fvIPbRbmo4RHZA';
 function _b64ToUint8(b){const p='='.repeat((4-b.length%4)%4);const s=(b+p).replace(/-/g,'+').replace(/_/g,'/');const r=atob(s);return Uint8Array.from([...r].map(c=>c.charCodeAt(0)));}
 async function requestPushPermission(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window)||VAPID_PUBLIC_KEY.startsWith('PASTE')) return;
