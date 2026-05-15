@@ -33,6 +33,15 @@ async function requestPushPermission(){
     await db.ref('users/'+auth.currentUser?.uid+'/pushSub').set(sub.toJSON());
   }catch(e){devErr('Push permission:',e);}
 }
+async function disablePushNotification(){
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.getSubscription();
+    if(sub) await sub.unsubscribe();
+    await db.ref('users/'+auth.currentUser?.uid+'/pushSub').remove();
+  }catch(e){devErr('Push unsubscribe:',e);}
+  openAthleteProfile('edit');
+}
 async function sendPushNotif(payload){
   try{
     const token=await auth.currentUser?.getIdToken();
@@ -6530,6 +6539,20 @@ function openAthleteProfile(mode='toggle'){
     const editAvatar=editPhoto
       ?`<img src="${editPhoto}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">`
       :initials;
+    const _bellSvg=(color)=>`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`;
+    const _bellOffSvg=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M2 2l20 20M10.05 4.49A6 6 0 0 1 18 8c0 2.7.75 4.61 1.56 6M6.08 6.08A5.97 5.97 0 0 0 6 8c0 7-3 9-3 9h11M13.73 21a2 2 0 0 1-3.46 0"/></svg>`;
+    const _pushSupported=typeof Notification!=='undefined'&&'PushManager' in window&&!VAPID_PUBLIC_KEY.startsWith('PASTE');
+    let notifRow='';
+    if(_pushSupported){
+      const perm=Notification.permission;
+      if(perm==='granted'){
+        notifRow=`<div class="ap-pm-notif-row">${_bellSvg('var(--accent)')}<div class="ap-pm-notif-info"><div>Notificaciones</div><div style="color:var(--ok,#22c55e);">Activadas</div></div><button class="ap-pm-notif-off" onclick="disablePushNotification()">Desactivar</button></div>`;
+      }else if(perm==='default'){
+        notifRow=`<div class="ap-pm-notif-row">${_bellSvg('var(--text-3)')}<div class="ap-pm-notif-info"><div>Notificaciones</div><div>Sin activar</div></div><button class="ap-pm-notif-on" onclick="requestPushPermission().then(()=>openAthleteProfile('edit'))">Activar</button></div>`;
+      }else{
+        notifRow=`<div class="ap-pm-notif-row">${_bellOffSvg}<div class="ap-pm-notif-info"><div>Notificaciones</div><div style="color:var(--warn,#f59e0b);">Bloqueadas · Permitilas desde Configuración del navegador</div></div></div>`;
+      }
+    }
     cardBody=`
       <div class="ap-pm-avatar-wrap">
         <div class="ap-pm-avatar" style="${editPhoto?'background:transparent;padding:0;overflow:hidden;':''}">${editAvatar}</div>
@@ -6546,6 +6569,7 @@ function openAthleteProfile(mode='toggle'){
         <label class="ap-pm-form-label">Mutualista<input type="text" id="apf-mutualista" value="${p.mutualista||''}" placeholder="ASSE, Médica Uruguaya..."></label>
         <label class="ap-pm-form-label">Notas<input type="text" id="apf-notes" value="${p.notes||''}" placeholder="Observaciones..."></label>
       </div>
+      ${notifRow}
       <div class="ap-pm-form-btns">
         <button class="ap-pm-save" data-action="apsaveprofileedit">Guardar datos</button>
         <button class="ap-pm-cancel" data-action="apcancelprofileedit">Cancelar</button>
