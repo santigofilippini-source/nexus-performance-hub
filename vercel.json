@@ -1,5 +1,9 @@
 {
   "outputDirectory": ".",
   "framework": null,
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "crons": [
+    {"path": "/api/cron-checkin-reminder", "schedule": "0 11 * * *"},
+    {"path": "/api/cron-rutina-reminder",  "schedule": "0 12 * * *"}
+  ]
 }

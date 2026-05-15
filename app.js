@@ -18,6 +18,29 @@ const devLog = IS_DEV ? console.log.bind(console) : ()=>{};
 const devWarn = IS_DEV ? console.warn.bind(console) : ()=>{};
 const devErr = IS_DEV ? console.error.bind(console) : ()=>{};
 
+// ── Push notifications ────────────────────────────────────────
+const VAPID_PUBLIC_KEY = 'PASTE_YOUR_VAPID_PUBLIC_KEY_HERE';
+function _b64ToUint8(b){const p='='.repeat((4-b.length%4)%4);const s=(b+p).replace(/-/g,'+').replace(/_/g,'/');const r=atob(s);return Uint8Array.from([...r].map(c=>c.charCodeAt(0)));}
+async function requestPushPermission(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||VAPID_PUBLIC_KEY.startsWith('PASTE')) return;
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    const existing=await reg.pushManager.getSubscription();
+    if(existing){await db.ref('users/'+auth.currentUser?.uid+'/pushSub').set(existing.toJSON());return;}
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted') return;
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64ToUint8(VAPID_PUBLIC_KEY)});
+    await db.ref('users/'+auth.currentUser?.uid+'/pushSub').set(sub.toJSON());
+  }catch(e){devErr('Push permission:',e);}
+}
+async function sendPushNotif(payload){
+  try{
+    const token=await auth.currentUser?.getIdToken();
+    if(!token||VAPID_PUBLIC_KEY.startsWith('PASTE')) return;
+    fetch('/api/send-push',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)}).catch(()=>{});
+  }catch(e){devErr('sendPush:',e);}
+}
+
 // ── Constants ─────────────────────────────────────────────────
 const TODAY = new Date().toISOString().split('T')[0];
 const ALERT_N = 3;
@@ -5916,7 +5939,9 @@ async function handleAction(e){
     const g=k=>{const v=parseFloat(document.getElementById(k)?.value);return isNaN(v)?null:v;};
     const ev={date:document.getElementById('af-date')?.value||TODAY,weight:g('af-weight'),height:g('af-height'),sittingH:g('af-sittingH'),wingspan:g('af-wingspan'),reach:g('af-reach')};
     Object.keys(ev).forEach(k=>{if(ev[k]===null)delete ev[k];});
-    ath.morphology[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);render();
+    ath.morphology[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);
+    {const[_t,_c,_p]=S.athleteKey.split('__');sendPushNotif({pid:_p,tid:_t,catId:_c,title:'Nueva evaluación disponible',body:'Tu coach cargó nuevos datos de morfología. Revisalos en Progreso.',url:'/'});}
+    render();
   }
   else if(a==='saveantroform'){
     const ath=getAthlete(S.athleteKey);const id=S.editingEvalId||Date.now().toString();S.editingEvalId=null;
@@ -5928,14 +5953,18 @@ async function handleAction(e){
       masaAdip:g('af-madipkg'),masaMusc:g('af-mmuskg'),masaOsea:g('af-moseakg'),zAdip:g('af-zadip'),zMusc:g('af-zmusc'),skinfoldSum:g('af-skinfoldSum'),imoManual:g('af-imoManual')};
     ['skinfolds','perimeters','diameters'].forEach(sec=>{Object.keys(ev[sec]).forEach(k=>{if(ev[sec][k]===null)delete ev[sec][k];});});
     ['masaAdip','masaMusc','masaOsea','zAdip','zMusc','skinfoldSum','imoManual'].forEach(k=>{if(ev[k]===null)delete ev[k];});
-    ath.anthropometry[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);render();
+    ath.anthropometry[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);
+    {const[_t,_c,_p]=S.athleteKey.split('__');sendPushNotif({pid:_p,tid:_t,catId:_c,title:'Nueva evaluación disponible',body:'Tu coach cargó nuevos datos de antropometría. Revisalos en Progreso.',url:'/'});}
+    render();
   }
   else if(a==='savetestsform'){
     const ath=getAthlete(S.athleteKey);const id=S.editingEvalId||Date.now().toString();S.editingEvalId=null;
     const g=k=>{const v=parseFloat(document.getElementById(k)?.value);return isNaN(v)?null:v;};
     const ev={date:document.getElementById('af-date')?.value||TODAY,sj:g('af-sj'),cmj:g('af-cmj'),abk:g('af-abk'),abkRight:g('af-abkr'),abkLeft:g('af-abkl'),djHeight:g('af-djh'),djTc:g('af-djtc'),notes:document.getElementById('af-notes')?.value||''};
     Object.keys(ev).forEach(k=>{if(ev[k]===null||ev[k]==='')delete ev[k];});
-    ath.jumpTests[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);render();
+    ath.jumpTests[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);
+    {const[_t,_c,_p]=S.athleteKey.split('__');sendPushNotif({pid:_p,tid:_t,catId:_c,title:'Nueva evaluación disponible',body:'Tu coach cargó resultados de tests de salto. Revisalos en Progreso.',url:'/'});}
+    render();
   }
   else if(a==='delevalmorpho'){const evid=el.dataset.evid;showConfirm('¿Eliminar esta evaluación?',async()=>{const ath=getAthlete(S.athleteKey);delete ath.morphology[evid];await saveAthlete(S.athleteKey);render();});}
   else if(a==='delevalantro'){const evid=el.dataset.evid;showConfirm('¿Eliminar esta evaluación?',async()=>{const ath=getAthlete(S.athleteKey);delete ath.anthropometry[evid];await saveAthlete(S.athleteKey);render();});}
@@ -5945,7 +5974,9 @@ async function handleAction(e){
     const gi=k=>{const v=parseInt(document.getElementById(k)?.value);return isNaN(v)?null:v;};
     const ev={date:document.getElementById('fms-date')?.value||TODAY,deepSquat:gi('fms-ds'),hurdleL:gi('fms-hsl'),hurdleR:gi('fms-hsr'),lungeL:gi('fms-lul'),lungeR:gi('fms-lur'),shoulderL:gi('fms-sml'),shoulderR:gi('fms-smr'),aslrL:gi('fms-asl'),aslrR:gi('fms-asr'),trunkStab:gi('fms-ts'),rotaryL:gi('fms-rsl'),rotaryR:gi('fms-rsr'),notes:document.getElementById('fms-notes')?.value||''};
     Object.keys(ev).forEach(k=>{if(ev[k]===null||ev[k]==='')delete ev[k];});
-    ath.fmsTests[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);render();
+    ath.fmsTests[id]=ev;S.athleteForm=null;await saveAthlete(S.athleteKey);
+    {const[_t,_c,_p]=S.athleteKey.split('__');sendPushNotif({pid:_p,tid:_t,catId:_c,title:'Nueva evaluación disponible',body:'Tu coach cargó resultados de FMS. Revisalos en Progreso.',url:'/'});}
+    render();
   }
   else if(a==='delevalfms'){const evid=el.dataset.evid;showConfirm('¿Eliminar esta evaluación?',async()=>{const ath=getAthlete(S.athleteKey);delete ath.fmsTests[evid];await saveAthlete(S.athleteKey);render();});}
   else if(a==='editevalmorfo'){S.athleteForm='morfo';S.editingEvalId=el.dataset.evid;render();}
@@ -6595,7 +6626,10 @@ function renderAthleteToday(ctx){
   const rpeDescription=rpeVal!=null?`<div style="text-align:center;font-size:12px;color:${RPE_BG[rpeVal]};margin-top:6px;font-weight:600;">${RPE_LABELS[rpeVal]}</div>`:'';
   const rpeSavedBadge=lastSessRPE!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
 
+  const pushBanner=typeof Notification!=='undefined'&&Notification.permission==='default'&&!VAPID_PUBLIC_KEY.startsWith('PASTE')
+    ?`<div class="ap-push-banner"><span style="font-size:18px;">🔔</span><span>Activá las notificaciones para no perderte nada</span><button class="ap-push-btn" onclick="requestPushPermission()">Activar</button></div>`:'';
   return`<div style="padding-top:4px;">
+    ${pushBanner}
     <div style="padding:10px 16px 2px;font-size:12px;color:var(--text-2);">${dateStr}</div>
     ${routineBanner}
     <div class="ap-well-card">
@@ -6839,6 +6873,10 @@ async function saveAthleteWorkoutLog(ctx,date,planId){
     if(!catData.sessions[date].workoutLog) catData.sessions[date].workoutLog={};
     if(!catData.sessions[date].workoutLog[pid]) catData.sessions[date].workoutLog[pid]={};
     catData.sessions[date].workoutLog[pid][planId]=logCache;
+    const _pName=S.teams[tid]?.categories?.[catId]?.sessions?.[date]?.plans?.[planId]?.name||'una rutina';
+    const _pls=Object.values(S.teams[tid]?.categories?.[catId]?.players||{});
+    const _pName2=_pls.find(p=>p.id===pid)?.name||'Un atleta';
+    sendPushNotif({tid,notifyStaff:true,title:'Registro de entrenamiento',body:`${_pName2} completó ${_pName}.`,url:'/'});
     showAlert('✓ Registro guardado');
     S.athleteLogMode=null;
     render();
