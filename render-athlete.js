@@ -157,6 +157,16 @@ function renderAthleteToday(ctx){
   const rpeDescription=rpeVal!=null?`<div style="text-align:center;font-size:12px;color:${RPE_BG[rpeVal]};margin-top:6px;font-weight:600;">${RPE_LABELS[rpeVal]}</div>`:'';
   const rpeSavedBadge=lastSessRPE!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
 
+  // Duration last session
+  const lastSessDuration=lastDate?(S.teams[tid]?.categories?.[catId]?.sessions?.[lastDate]?.playerDuration?.[pid]??null):null;
+  const DUR_PRESETS=[30,45,60,75,90,120];
+  const durBtns=DUR_PRESETS.map(m=>{
+    const sel=ci.sessionDuration===m;
+    return`<button class="ap-rpe-btn${sel?' sel':''}" ${sel?`style="background:var(--accent)22;color:var(--accent);border-color:var(--accent);"`:''} data-action="apduration" data-min="${m}">${m}'</button>`;
+  }).join('');
+  const durLabel=ci.sessionDuration!=null?`<div style="text-align:center;font-size:12px;color:var(--accent);margin-top:6px;font-weight:600;">${ci.sessionDuration} minutos</div>`:'';
+  const durSavedBadge=lastSessDuration!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
+
   const pushBanner=typeof Notification!=='undefined'&&Notification.permission==='default'&&!VAPID_PUBLIC_KEY.startsWith('PASTE')
     ?`<div class="ap-push-banner"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>Activá las notificaciones para no perderte nada</span><button class="ap-push-btn" onclick="requestPushPermission()">Activar</button></div>`:'';
   return`<div style="padding-top:4px;">
@@ -184,6 +194,20 @@ function renderAthleteToday(ctx){
       <div class="ap-well-card__b">
         ${lastDate
           ?`<div class="ap-rpe-grid">${rpeBtns}</div>${rpeDescription}`
+          :`<div style="font-size:13px;color:var(--text-2);padding:4px 0;">No hay sesiones anteriores registradas.</div>`}
+      </div>
+    </div>
+    <div class="ap-well-card">
+      <div class="ap-well-card__h">
+        <h3>${lastDate===TODAY?'Duración — Sesión de hoy':'Duración — Última sesión'}</h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${lastDate&&lastDate!==TODAY?`<span style="font-size:11px;color:var(--text-2);">${fmtDate(lastDate)}</span>`:''}
+          ${durSavedBadge}
+        </div>
+      </div>
+      <div class="ap-well-card__b">
+        ${lastDate
+          ?`<div class="ap-rpe-grid">${durBtns}</div>${durLabel}`
           :`<div style="font-size:13px;color:var(--text-2);padding:4px 0;">No hay sesiones anteriores registradas.</div>`}
       </div>
     </div>
@@ -738,7 +762,7 @@ async function saveAthleteCheckin(ctx){
   const{tid,catId,pid}=ctx;
   if(!catId||!pid){showAlert('Tu cuenta no tiene una categoría o jugador asignado. Pedile al entrenador que te reenvíe la invitación con categoría asignada.');return;}
   const ci=S.athleteCheckin||{};
-  const{sleep,fatigue,soreness,stress,mood,rpe,rpeDate}=ci;
+  const{sleep,fatigue,soreness,stress,mood,rpe,rpeDate,sessionDuration}=ci;
   const sessionBase=`teams/${tid}/categories/${catId}/sessions`;
   const updates={};
   if(W_KEYS.every(k=>ci[k]!=null)){
@@ -746,6 +770,9 @@ async function saveAthleteCheckin(ctx){
   }
   if(rpe!=null&&rpeDate){
     updates[`${sessionBase}/${rpeDate}/playerRPE/${pid}`]=rpe;
+  }
+  if(sessionDuration!=null&&rpeDate){
+    updates[`${sessionBase}/${rpeDate}/playerDuration/${pid}`]=sessionDuration;
   }
   if(!Object.keys(updates).length){showAlert('Completá el wellness o el RPE para guardar.');return;}
   try{
@@ -762,6 +789,11 @@ async function saveAthleteCheckin(ctx){
       if(!catData.sessions[rpeDate]) catData.sessions[rpeDate]={};
       if(!catData.sessions[rpeDate].playerRPE) catData.sessions[rpeDate].playerRPE={};
       catData.sessions[rpeDate].playerRPE[pid]=rpe;
+    }
+    if(sessionDuration!=null&&rpeDate){
+      if(!catData.sessions[rpeDate]) catData.sessions[rpeDate]={};
+      if(!catData.sessions[rpeDate].playerDuration) catData.sessions[rpeDate].playerDuration={};
+      catData.sessions[rpeDate].playerDuration[pid]=sessionDuration;
     }
     showAlert('✓ Check-in guardado');
     S.athleteCheckin=null; // re-init from saved on next render

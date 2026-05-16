@@ -983,11 +983,13 @@ function initAthleteCheckin(ctx){
   const sess=S.teams[tid]?.categories?.[catId]?.sessions?.[TODAY]||{};
   const w=sess.wellness?.[pid]||{};
   const lastDate=getAthleteLastSessionDate(ctx);
-  const lastRPE=lastDate?(S.teams[tid]?.categories?.[catId]?.sessions?.[lastDate]?.playerRPE?.[pid]??null):null;
+  const lastSess=lastDate?S.teams[tid]?.categories?.[catId]?.sessions?.[lastDate]:null;
+  const lastRPE=lastSess?.playerRPE?.[pid]??null;
+  const lastDur=lastSess?.playerDuration?.[pid]??null;
   S.athleteCheckin={
     sleep:w.sleep??null,fatigue:w.fatigue??null,soreness:w.soreness??null,
     stress:w.stress??null,mood:w.mood??null,
-    rpe:lastRPE,rpeDate:lastDate||TODAY
+    rpe:lastRPE,rpeDate:lastDate||TODAY,sessionDuration:lastDur
   };
 }
 
@@ -4309,14 +4311,20 @@ async function handleAction(e){
     if(el.dataset.tab==='progress') setTimeout(()=>{initAthleteChart();initAthleteWeightChart();},50);
   }
   else if(a==='apwellness'){
-    if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null};
+    if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null,sessionDuration:null};
     S.athleteCheckin[el.dataset.key]=parseInt(el.dataset.val);
     render();
   }
   else if(a==='aprpe'){
-    if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null};
+    if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null,sessionDuration:null};
     S.athleteCheckin.rpe=parseInt(el.dataset.rpe);
     S.athleteCheckin.rpeDate=el.dataset.date;
+    render();
+  }
+  else if(a==='apduration'){
+    if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null,sessionDuration:null};
+    const _min=parseInt(el.dataset.min);
+    S.athleteCheckin.sessionDuration=S.athleteCheckin.sessionDuration===_min?null:_min;
     render();
   }
   else if(a==='savetodaycheckin'){
