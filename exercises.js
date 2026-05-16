@@ -34,7 +34,7 @@ function formatAthleteSetStr(sets){
 // ── Default exercise library (always visible in Global tab) ───
 const DEFAULT_EXERCISES = {
   // ── Tren inferior ──────────────────────────────────────────────
-  'def_sq':      {name:'Sentadilla con barra',            category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=drjvE4KNRME'},
+  'def_sq':      {name:'Sentadilla con barra',            category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=QmZAiBqPvZw'},
   'def_fsq':     {name:'Sentadilla frontal',              category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=_mFuKrZ-wZw'},
   'def_airsq':   {name:'Sentadilla al aire',              category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=rMvwVtlqjTE'},
   'def_rdl':     {name:'Peso muerto rumano',              category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=fOEgeUvZjV0'},
