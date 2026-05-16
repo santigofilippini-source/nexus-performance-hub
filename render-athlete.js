@@ -157,15 +157,10 @@ function renderAthleteToday(ctx){
   const rpeDescription=rpeVal!=null?`<div style="text-align:center;font-size:12px;color:${RPE_BG[rpeVal]};margin-top:6px;font-weight:600;">${RPE_LABELS[rpeVal]}</div>`:'';
   const rpeSavedBadge=lastSessRPE!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
 
-  // Duration last session
+  // Duration last session — free numeric input
   const lastSessDuration=lastDate?(S.teams[tid]?.categories?.[catId]?.sessions?.[lastDate]?.playerDuration?.[pid]??null):null;
-  const DUR_PRESETS=[30,45,60,75,90,120];
-  const durBtns=DUR_PRESETS.map(m=>{
-    const sel=ci.sessionDuration===m;
-    return`<button class="ap-rpe-btn${sel?' sel':''}" ${sel?`style="background:var(--accent)22;color:var(--accent);border-color:var(--accent);"`:''} data-action="apduration" data-min="${m}">${m}'</button>`;
-  }).join('');
-  const durLabel=ci.sessionDuration!=null?`<div style="text-align:center;font-size:12px;color:var(--accent);margin-top:6px;font-weight:600;">${ci.sessionDuration} minutos</div>`:'';
   const durSavedBadge=lastSessDuration!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
+  const durInputVal=ci.sessionDuration!=null?ci.sessionDuration:'';
 
   const pushBanner=typeof Notification!=='undefined'&&Notification.permission==='default'&&!VAPID_PUBLIC_KEY.startsWith('PASTE')
     ?`<div class="ap-push-banner"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>Activá las notificaciones para no perderte nada</span><button class="ap-push-btn" onclick="requestPushPermission()">Activar</button></div>`:'';
@@ -207,7 +202,12 @@ function renderAthleteToday(ctx){
       </div>
       <div class="ap-well-card__b">
         ${lastDate
-          ?`<div class="ap-rpe-grid">${durBtns}</div>${durLabel}`
+          ?`<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px 4px;">
+              <input type="number" min="1" max="480" placeholder="ej. 73" value="${durInputVal}"
+                oninput="setAthleteDuration(this.value)"
+                style="width:96px;height:48px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg-3);color:var(--text-1);font-size:24px;font-weight:700;text-align:center;padding:0 8px;">
+              <span style="font-size:15px;color:var(--text-2);font-weight:600;">min</span>
+            </div>`
           :`<div style="font-size:13px;color:var(--text-2);padding:4px 0;">No hay sesiones anteriores registradas.</div>`}
       </div>
     </div>

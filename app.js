@@ -993,6 +993,12 @@ function initAthleteCheckin(ctx){
   };
 }
 
+function setAthleteDuration(val){
+  if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null,sessionDuration:null};
+  const n=parseInt(val);
+  S.athleteCheckin.sessionDuration=(isNaN(n)||n<1)?null:n;
+}
+
 // ── Invitation system ─────────────────────────────────────────
 function genToken(){
   const arr = new Uint8Array(32);
@@ -4319,12 +4325,6 @@ async function handleAction(e){
     if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null,sessionDuration:null};
     S.athleteCheckin.rpe=parseInt(el.dataset.rpe);
     S.athleteCheckin.rpeDate=el.dataset.date;
-    render();
-  }
-  else if(a==='apduration'){
-    if(!S.athleteCheckin) S.athleteCheckin={sleep:null,fatigue:null,soreness:null,stress:null,mood:null,rpe:null,rpeDate:null,sessionDuration:null};
-    const _min=parseInt(el.dataset.min);
-    S.athleteCheckin.sessionDuration=S.athleteCheckin.sessionDuration===_min?null:_min;
     render();
   }
   else if(a==='savetodaycheckin'){
