@@ -346,6 +346,15 @@ const DEFAULT_EXERCISES = {
   'def_latlowr':    {name:'Saltos pogo laterales bajos derecha (Lateral Low Pogo R)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=kz1kgCKq2BU'},
   'def_lathighr':   {name:'Saltos pogo laterales altos derecha (Lateral High Pogo R)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=fardIahYr9c'},
   'def_lathighl':   {name:'Saltos pogo laterales altos izquierda (Lateral High Pogo L)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=n0_4L_tBzK4'},
+  'def_sledmarchfx':{name:'Marcha con trineo - brazos flexionados (Sled March Arms Flexed)', category:'Velocidad / Agilidad', videoUrl:'https://www.youtube.com/watch?v=VBg7iQKIFko'},
+  'def_sledmarchex':{name:'Marcha con trineo - brazos extendidos (Sled March Arms Extended)', category:'Velocidad / Agilidad', videoUrl:'https://www.youtube.com/watch?v=LOH1Y2QSLho'},
+  'def_wallmarch':  {name:'Drill de pared - marcha (Wall Drill Marching)',        category:'Velocidad / Agilidad',   videoUrl:'https://www.youtube.com/watch?v=-9YdQjn5loE'},
+  'def_wallsingle': {name:'Drill de pared - simples (Wall Drill Singles)',        category:'Velocidad / Agilidad',   videoUrl:'https://www.youtube.com/watch?v=p9RAqt1z4zk'},
+  'def_walldouble': {name:'Drill de pared - dobles (Wall Drill Doubles)',         category:'Velocidad / Agilidad',   videoUrl:'https://www.youtube.com/watch?v=8axJuCDqQYQ'},
+  'def_walltriple': {name:'Drill de pared - triples (Wall Drill Triples)',        category:'Velocidad / Agilidad',   videoUrl:'https://www.youtube.com/watch?v=DetGzg4IylA'},
+  'def_walllunge':  {name:'Drill de pared - estocada a empuje de rodilla (Wall Drill Lunge to Knee Drive)', category:'Velocidad / Agilidad', videoUrl:'https://www.youtube.com/watch?v=tKY4iPr6tcE'},
+  'def_sledpushex': {name:'Empuje de trineo - brazos extendidos (Sled Push Arms Extended)', category:'Velocidad / Agilidad', videoUrl:'https://www.youtube.com/watch?v=g3Pw_v0N730'},
+  'def_sledpushfx': {name:'Empuje de trineo - brazos flexionados (Sled Push Arms Flexed)', category:'Velocidad / Agilidad', videoUrl:'https://www.youtube.com/watch?v=54c39qsRTvo'},
 };
 
 // ── Default program templates (available to all users) ────────
