@@ -355,6 +355,18 @@ const DEFAULT_EXERCISES = {
   'def_walllunge':  {name:'Drill de pared - estocada a empuje de rodilla (Wall Drill Lunge to Knee Drive)', category:'Velocidad / Agilidad', videoUrl:'https://www.youtube.com/watch?v=tKY4iPr6tcE'},
   'def_sledpushex': {name:'Empuje de trineo - brazos extendidos (Sled Push Arms Extended)', category:'Velocidad / Agilidad', videoUrl:'https://www.youtube.com/watch?v=g3Pw_v0N730'},
   'def_sledpushfx': {name:'Empuje de trineo - brazos flexionados (Sled Push Arms Flexed)', category:'Velocidad / Agilidad', videoUrl:'https://www.youtube.com/watch?v=54c39qsRTvo'},
+  'def_slsnapdown': {name:'Snap down a una pierna (SL Snap Down)',                category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=21efCYs5n4g'},
+  'def_snapdownvj': {name:'Snap down a salto vertical con pausa (Snap Down to VJ w Pause)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=32rohMJ9_XE'},
+  'def_sllathopm':  {name:'Saltos laterales a una pierna - misma (SL Lateral Hops Same Leg)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=ZPhxKdLoweU'},
+  'def_slhopfwd':   {name:'Saltos extensivos adelante a una pierna (SL FWD Extensive Hops)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=EM2m1TEfJkI'},
+  'def_slhoprev':   {name:'Saltos extensivos atrás a una pierna (SL REV Extensive Hops)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=An6cWJ-p0Ns'},
+  'def_storkwalk':  {name:'Caminata de cigüeña adelante con pausa (FWD Stork Walks w Pause)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=22VtGZkfwPY'},
+  'def_slrothop':   {name:'Saltos en el lugar con rotación a una pierna (SL Rotational In-Place Quarter Hops)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=mVxiEIMayek'},
+  'def_sljumpdbl':  {name:'Salto a una pierna con aterrizaje bipodal (SL Jump to DBL Leg Landing)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=HzkbrBLtUJw'},
+  'def_hkbroadjmp': {name:'Salto largo desde media rodilla a aterrizaje bipodal (HK Broad Jump to DBL Landing)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=0Xo0bnnXLAI'},
+  'def_broadreset': {name:'Salto largo con reinicio (Broad Jump w Reset)',        category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=mcDoCgxDsvg'},
+  'def_triplebrjmp':{name:'Triple salto largo continuo (Triple Broad Jump)',      category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=kkQ0qohNt9s'},
+  'def_linboundpau':{name:'Saltos alternos lineales con pausa (Linear Bounds w Pause)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=WUZ96zDSfUg'},
 };
 
 // ── Default program templates (available to all users) ────────
