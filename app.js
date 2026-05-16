@@ -972,11 +972,10 @@ function getAthleteCtx(){
   return{tid,catId:mem.catId,pid:mem.pid};
 }
 function getAthleteLastSessionDate(ctx){
-  const{tid,catId,pid}=ctx;
-  const att=S.teams[tid]?.categories?.[catId]?.attendance||{};
-  const dates=Object.keys(att).filter(d=>d<=TODAY).sort().reverse();
-  for(const d of dates){const s=att[d]?.[pid];if(s==='P'||s==='T')return d;}
-  return null;
+  const{tid,catId}=ctx;
+  const sessions=S.teams[tid]?.categories?.[catId]?.sessions||{};
+  const dates=Object.keys(sessions).filter(d=>d<=TODAY&&sessions[d]?.duration).sort().reverse();
+  return dates[0]||null;
 }
 function initAthleteCheckin(ctx){
   if(S.athleteCheckin!==null)return;
