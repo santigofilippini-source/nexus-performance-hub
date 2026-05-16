@@ -112,6 +112,7 @@ const DEFAULT_EXERCISES = {
   'def_abwheel':   {name:'Rueda abdominal (Ab Wheel)',                category:'Core',                   videoUrl:'https://www.youtube.com/shorts/kbXRnap6mV0'},
   'def_mountclimb':{name:'Escaladores (Mountain Climbers)',           category:'Core',                   videoUrl:'https://www.youtube.com/watch?v=kLh-uczlPLg'},
   'def_jumprope':  {name:'Salto a la comba (Jump Rope)',              category:'Cardio / Metabólico',    videoUrl:'https://www.youtube.com/shorts/jqtzzVesUOo'},
+  'def_spinning':  {name:'Spinning',                                  category:'Cardio / Metabólico',    videoUrl:'https://www.youtube.com/shorts/zKPFQUGd3LA'},
   'def_dbrdl':     {name:'Peso muerto rumano con mancuerna (DB RDL)',            category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=xzwZejo2zo8'},
   'def_dblunge':   {name:'Estocada con mancuerna (DB Lunge)',                    category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=lf4gJgKyLpI'},
   'def_goblet':    {name:'Sentadilla goblet con mancuerna (Goblet Squat)',        category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=QHKe84ZSTrg'},
