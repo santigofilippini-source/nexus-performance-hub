@@ -42,7 +42,7 @@ const DEFAULT_EXERCISES = {
   'def_lunge':   {name:'Estocadas caminando',             category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=DlhojghkaQ0'},
   'def_stepup':  {name:'Step-up en caja',                 category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=5qjqDHOUh-A'},
   'def_nordic':  {name:'Nordic curl',                     category:'Tren inferior'},
-  'def_hipth':   {name:'Hip thrust con barra',            category:'Tren inferior'},
+  'def_hipth':   {name:'Hip thrust con barra',            category:'Tren inferior',          videoUrl:'https://www.youtube.com/watch?v=aweBS7K71l8'},
   // ── Tren superior ─────────────────────────────────────────────
   'def_bp':      {name:'Press de banca plano',            category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=SCVCLChPQFY'},
   'def_ohp':     {name:'Press militar con barra',         category:'Tren superior',          videoUrl:'https://www.youtube.com/watch?v=5yWaNOvgFCM'},
