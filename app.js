@@ -367,6 +367,16 @@ const DEFAULT_EXERCISES = {
   'def_broadreset': {name:'Salto largo con reinicio (Broad Jump w Reset)',        category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=mcDoCgxDsvg'},
   'def_triplebrjmp':{name:'Triple salto largo continuo (Triple Broad Jump)',      category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=kkQ0qohNt9s'},
   'def_linboundpau':{name:'Saltos alternos lineales con pausa (Linear Bounds w Pause)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=WUZ96zDSfUg'},
+  'def_linbound':   {name:'Saltos alternos lineales (Linear Bounds)',              category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=nGhyUeS7Dic'},
+  'def_latboundpau':{name:'Saltos alternos laterales con pausa (Lateral Bounds w Pause)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=7M5qnuBuVB4'},
+  'def_latboundqr': {name:'Saltos alternos laterales con respuesta rápida (Lateral Bounds w Quick Response)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=BP2p0gqmfew'},
+  'def_latboundapu':{name:'Saltos alternos laterales ascendentes con pausa (Lateral Bounds Ascending w Pause)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=iSGQqwexA9s'},
+  'def_latboundaqr':{name:'Saltos alternos laterales ascendentes con respuesta rápida (Lateral Bounds Ascending QR)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=zo0E2X9Pvts'},
+  'def_45boundpau': {name:'Saltos alternos 45° con pausa (45-Degree Bounds w Pause)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=vBCYRcdSlYQ'},
+  'def_45boundqr':  {name:'Saltos alternos 45° con respuesta rápida (45-Degree Bounds w Quick Response)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=xQURj8XBA2M'},
+  'def_combobndbi': {name:'Combo saltos alternos lineales a aterrizaje bipodal (Combo Linear Bound to Bilateral Landing)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=rSDob8ibBX4'},
+  'def_combobndrot':{name:'Combo saltos alternos lineales a rotacionales (Combo Linear to Rotational)', category:'Potencia / Pliometría', videoUrl:'https://www.youtube.com/watch?v=9Roz8FnWoNs'},
+  'def_snapdownfnd':{name:'Snap downs bipedales basales (Foundation Snap Downs)', category:'Potencia / Pliometría',  videoUrl:'https://www.youtube.com/watch?v=ryezhSIWHBw'},
 };
 
 // ── Default program templates (available to all users) ────────
