@@ -3902,7 +3902,7 @@ function renderSubscriptionModal(){
   const tiers=[
     {key:'free',  label:'Free',  price:'Gratis', origPrice:null,  sub:''},
     {key:'pro',   label:'Pro',   price:'$9',     origPrice:'$15', sub:'/mes'},
-    {key:'elite', label:'Elite', price:'$25',    origPrice:'$39', sub:'/mes'},
+    {key:'elite', label:'Elite', price:'$25',    origPrice:'$35', sub:'/mes'},
   ];
   const betaBanner = S.betaMode
     ? `<div class="q-sub-beta-banner">Beta abierta — acceso Elite para todos, sin costo.</div>`

@@ -21,7 +21,7 @@ const TIER_CONFIG = {
   },
   pro: {
     label: 'Pro',
-    price: { monthly: 9, annual: 79 },
+    price: { monthly: 15, launch: 9, annual: 119 },
     maxTeams: 1,
     maxCategoriesPerTeam: 3,
     maxMembersPerTeam: 5,
@@ -37,11 +37,11 @@ const TIER_CONFIG = {
   },
   elite: {
     label: 'Elite',
-    price: { monthly: 25, annual: 199 },
-    maxTeams: Infinity,
-    maxCategoriesPerTeam: Infinity,
-    maxMembersPerTeam: Infinity,
-    maxPlayersPerCategory: Infinity,
+    price: { monthly: 35, launch: 25, annual: 279 },
+    maxTeams: 1,
+    maxCategoriesPerTeam: 20,
+    maxMembersPerTeam: 50,
+    maxPlayersPerCategory: 20,
     features: {
       exportPDF:     true,
       exportExcel:   true,
