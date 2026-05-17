@@ -328,6 +328,18 @@ const DEFAULT_EXERCISES = {
   'def_trxyrow':        {name:'Remo en Y en TRX (TRX Y\'s)',                                           category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/A_lXN_9yQjc'},
   'def_trxwrow':        {name:'Remo en W en TRX (TRX W\'s)',                                           category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/vs4IzE5ie_U'},
   'def_trxsarow':       {name:'Remo a un Brazo en TRX (TRX SA Row)',                                   category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/aoPR_O7ivRs'},
+  // ── Press / Push-Up variantes / Core crawl ────────────────────
+  'def_sainclinedbbp':  {name:'Press de Banca Inclinado a un Brazo con Mancuerna (SA Incline DB Bench Press)', category:'Tren superior',  videoUrl:'https://www.youtube.com/shorts/J9oi1O7w3CA'},
+  'def_altlockincdbp':  {name:'Press de Banca Inclinado Bloqueo Alterno con Mancuernas (Alt. Lockout Incline DB)', category:'Tren superior', videoUrl:'https://www.youtube.com/shorts/0_cxD4EGtow'},
+  'def_sadbfloorpress': {name:'Press de Banca Plano a un Brazo con Mancuerna (SA DB Bench Press)',            category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/Cs2uNF-jW5s'},
+  'def_altlockdbp':     {name:'Press de Banca Plano Bloqueo Alterno con Mancuernas (Alt. Lockout DB Bench)',  category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/69M_A29QMe4'},
+  'def_feetelevpush':   {name:'Push Ups con Pies Elevados (Feet-Elevated Push-Ups)',                          category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/fTy5dlnIu-o'},
+  'def_handelevpush':   {name:'Push Up con Manos Elevadas (Hand-Elevated Push-Up)',                           category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/gzatmf3OUvU'},
+  'def_bearcrawlshouldertap':{name:'Tap de Hombros en Bear Crawl (Crawling Position Shoulder Taps)',         category:'Core',                   videoUrl:'https://www.youtube.com/shorts/15-xlfNEAwY'},
+  'def_pushupshouldertap':   {name:'Tap de Hombros en Push Up (Push-Up Position Shoulder Taps)',             category:'Core',                   videoUrl:'https://www.youtube.com/shorts/jrXfvy1b1QU'},
+  'def_bearcrawlkbdrag':     {name:'Arrastres KB en Bear Crawl (Crawling Position KB Pull Throughs)',        category:'Core',                   videoUrl:'https://www.youtube.com/shorts/79fGG5HDlfo'},
+  'def_pushupdrag':          {name:'Arrastres KB en Push Up (Push-Up Position KB Pull Throughs)',            category:'Core',                   videoUrl:'https://www.youtube.com/shorts/BhxK9Y78yPk'},
+  'def_kbhalo':         {name:'Halos con Pesa Rusa (KB Halos)',                                               category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/eA4vICB3tqo'},
 };
 
 // ── Default program templates (available to all users) ────────
