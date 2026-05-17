@@ -98,7 +98,7 @@ let S = {
   loadFilter:'7d', loadFrom:'', loadTo:'',
   athletes:{}, athleteKey:null, athleteTab:'perfil', athleteForm:null, editingEvalId:null,
   prevView:'home', prevTeamId:null, prevCat:null,
-  lastCatTid:null, lastCatCid:null, statsPeriod:7, calOffset:0,
+  lastCatTid:null, lastCatCid:null, statsPeriod:7, calOffset:0, calWeekOffset:0,
   searchQuery:'',
   // Team/category forms
   medInjuries:{}, medFilter:'activa', medRegion:'', injForm:null,
@@ -2385,7 +2385,8 @@ function renderCategoryCalendar(){
     <div><div class="q-cal__tot-l">${t.label}</div><div class="q-cal__tot-v">${totals[t.key]}<span class="q-cal__tot-u">/ mes</span></div></div>
   </div>`).join('');
 
-  return`<div class="q-cal-wrap">
+  // ── Desktop HTML ──────────────────────────────────────────────
+  const desktopHtml=`<div class="q-cal-desktop">
     <div class="q-cal__bar">
       <div class="q-cal__mnav">
         <button class="q-cal__navbtn" data-action="calcalnav" data-dir="-1">${_svg('m15 6-6 6 6 6',14)}</button>
@@ -2408,6 +2409,96 @@ function renderCategoryCalendar(){
     <div class="q-cal__tots">${totalsHtml}</div>
     <div class="q-cal__foot">Click en cualquier día abre la tab Sesión de esa fecha</div>
   </div>`;
+
+  // ── Mobile view ───────────────────────────────────────────────
+  const DOW_LETTERS=['L','M','X','J','V','S','D'];
+  const DOW_LABELS=['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+  const wOff=S.calWeekOffset||0;
+  const todayD=new Date(TODAY+'T12:00:00');
+  const daysToMon=(todayD.getDay()+6)%7;
+  const weekMon=new Date(todayD);weekMon.setDate(weekMon.getDate()-daysToMon+wOff*7);
+  const weekDays=Array.from({length:7},(_,i)=>{const d=new Date(weekMon);d.setDate(d.getDate()+i);return d;});
+  const fmtDs=d=>d.toISOString().split('T')[0];
+  const calcAttDs=dateStr=>{const att=cd.attendance?.[dateStr]||{};const tot=cd.players.length;if(!tot)return null;return Math.round(Object.values(att).filter(s=>s==='P'||s==='T').length/tot*100);};
+  const calcLoadDs=dateStr=>{const sess=cd.sessions?.[dateStr];if(!sess)return null;const att=cd.attendance?.[dateStr]||{};const bDur=parseInt(sess.duration)||0;let sum=0,cnt=0;cd.players.forEach(p=>{if(att[p.id]==='P'||att[p.id]==='T'){const rpe=sess.playerRPE?.[p.id]??sess.teamRPE;const dur=sess.playerDuration?.[p.id]??bDur;if(rpe!=null&&dur){sum+=rpe*dur;cnt++;}}});return cnt>0?Math.round(sum/cnt):null;};
+
+  // Week nav label
+  const mMon=weekMon.getMonth(),mMonY=weekMon.getFullYear();
+  const mMonEnd=weekDays[6].getMonth();
+  const mName=MONTH_NAMES[mMon]+(mMonEnd!==mMon?` / ${MONTH_NAMES[mMonEnd]}`:'');
+  const semLbl=`Semana del ${weekMon.getDate()} · ${mName.split(' ')[0].slice(0,3).toUpperCase()} ${mMonY}`;
+
+  // Strip
+  const stripHtml=weekDays.map((d,i)=>{
+    const dateStr=fmtDs(d);const isToday=dateStr===TODAY;
+    const sess=cd.sessions?.[dateStr];const stCfg=sess?.sessionType?TYPE_CFG[sess.sessionType]:null;
+    return`<div class="q-mcal__sday" data-action="calday" data-date="${dateStr}">
+      <span class="q-mcal__sdow">${DOW_LETTERS[i]}</span>
+      <span class="q-mcal__snum${isToday?' today':''}">${d.getDate()}</span>
+      <span class="q-mcal__sdot" style="background:${stCfg?`var(--cal-${stCfg.cls})`:'transparent'}"></span>
+    </div>`;
+  }).join('');
+
+  // Mini month (uses same month as weekMon)
+  const miniDIM=new Date(mMonY,mMon+1,0).getDate();
+  const miniF=(new Date(mMonY,mMon,1).getDay()+6)%7;
+  const miniPrev=new Date(mMonY,mMon,0).getDate();
+  const miniCells=[];
+  for(let i=0;i<miniF;i++)miniCells.push({day:miniPrev-miniF+1+i,out:true});
+  for(let d=1;d<=miniDIM;d++)miniCells.push({day:d,out:false});
+  while(miniCells.length%7)miniCells.push({day:miniCells.length-miniF-miniDIM+1,out:true});
+  const weekDsSet=new Set(weekDays.filter(d=>d.getMonth()===mMon).map(fmtDs));
+  const miniHtml=miniCells.map(({day,out})=>{
+    const dateStr=out?null:`${mMonY}-${String(mMon+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const sess=dateStr?cd.sessions?.[dateStr]:null;const stCfg=sess?.sessionType?TYPE_CFG[sess.sessionType]:null;
+    const isToday=dateStr===TODAY;const isCurWeek=dateStr&&weekDsSet.has(dateStr);
+    const cls=['q-mcal__mc',out?'out':'',isToday?'today':'',isCurWeek?'cw':''].filter(Boolean).join(' ');
+    return`<div class="${cls}"${dateStr?` data-action="calday" data-date="${dateStr}"`:''}>
+      <span>${day}</span><span class="q-mcal__mpip" style="background:${stCfg?`var(--cal-${stCfg.cls})`:'transparent'}"></span>
+    </div>`;
+  }).join('');
+
+  // Cards
+  const cardsHtml=weekDays.map((d,i)=>{
+    const dateStr=fmtDs(d);const isToday=dateStr===TODAY;const isPast=dateStr<TODAY;
+    const sess=cd.sessions?.[dateStr];const stCfg=sess?.sessionType?TYPE_CFG[sess.sessionType]:null;
+    const planName=sess?.plans?Object.values(sess.plans)[0]?.name||'':'';
+    const att=isPast&&sess?calcAttDs(dateStr):null;const load=isPast&&sess?calcLoadDs(dateStr):null;
+    const lbl=`${d.getDate()} ${DOW_LABELS[i]}${isToday?' · HOY':''}`;
+    if(!stCfg)return`<div class="q-mcal__card q-mcal__card--empty" data-action="calday" data-date="${dateStr}">
+      <div class="q-mcal__clbl">${lbl}</div>
+      <div class="q-mcal__cempty">Descanso · sin sesión planificada</div>
+    </div>`;
+    const pill=`<span class="q-cal__pill q-cal__pill--${stCfg.cls}">${stCfg.label}</span>`;
+    const met=(att!==null||load!==null)?`<div class="q-mcal__cmet">
+      ${att!==null?`<span>${_svg('M16 19a4 4 0 0 0-8 0M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z')} ${att}%</span>`:''}
+      ${load!==null?`<span class="load">${_svgf('M13 2 4 14h6l-1 8 10-12h-7l1-8Z')} ${load} UA</span>`:''}
+    </div>`:'';
+    return`<div class="q-mcal__card q-mcal__card--${stCfg.cls}${isToday?' today':''}" data-action="calday" data-date="${dateStr}">
+      <div class="q-mcal__ch"><div class="q-mcal__clbl">${lbl}</div>${pill}</div>
+      ${planName?`<div class="q-mcal__cplan">${planName}</div>`:''}
+      ${met}
+    </div>`;
+  }).join('');
+
+  const mobileHtml=`<div class="q-cal-mobile">
+    <div class="q-mcal__topbar">
+      <button class="q-cal__navbtn" data-action="calweeknav" data-dir="-1">${_svg('m15 6-6 6 6 6',14)}</button>
+      <div class="q-mcal__toplbl">
+        <span class="q-mcal__topmonth">${mName.toUpperCase()} ${mMonY}</span>
+        <span class="q-mcal__topsub">${semLbl}</span>
+      </div>
+      <button class="q-cal__navbtn" data-action="calweeknav" data-dir="1">${_svg('m9 6 6 6-6 6',14)}</button>
+    </div>
+    <div class="q-mcal__strip">${stripHtml}</div>
+    <div class="q-mcal__mini">
+      <div class="q-mcal__miniwdays">${DOW_LETTERS.map(l=>`<div>${l}</div>`).join('')}</div>
+      <div class="q-mcal__minigrid">${miniHtml}</div>
+    </div>
+    <div class="q-mcal__cards">${cardsHtml}</div>
+  </div>`;
+
+  return`<div class="q-cal-wrap">${desktopHtml}${mobileHtml}</div>`;
 }
 
 function renderCatHeader(){
@@ -4286,7 +4377,8 @@ async function handleAction(e){
   }
   else if(a==='tab'){S.tab=el.dataset.tab;if(S.tab==='attend')loadSession();if(S.tab==='session'){loadSessionDraft();S.sessionPlans={};loadSessionPlans().then(()=>render());return;}if(S.tab==='medico'){S.medInjuries={};S.medRegion='';loadMedical();return;}render();}
   else if(a==='calcalnav'){S.calOffset=(S.calOffset||0)+parseInt(el.dataset.dir);render();}
-  else if(a==='calcalhoy'){S.calOffset=0;render();}
+  else if(a==='calcalhoy'){S.calOffset=0;S.calWeekOffset=0;render();}
+  else if(a==='calweeknav'){S.calWeekOffset=(S.calWeekOffset||0)+parseInt(el.dataset.dir);render();}
   else if(a==='calday'){
     S.date=el.dataset.date;
     S.tab='session';

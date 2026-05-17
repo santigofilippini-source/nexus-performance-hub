@@ -1118,17 +1118,49 @@ body.is-auth.athlete #mob-tabbar{display:none!important}
 .q-cal__tot-v{font-size:20px;font-weight:700;color:var(--text-0);font-family:var(--font-mono);line-height:1.1}
 .q-cal__tot-u{font-size:11px;font-weight:400;color:var(--text-2);margin-left:3px}
 .q-cal__foot{font-size:11px;color:var(--text-2);margin-top:12px;padding-bottom:4px}
-/* Mobile calendar */
+/* Desktop/Mobile toggle */
+.q-cal-desktop{display:block}
+.q-cal-mobile{display:none}
 @media(max-width:680px){
-  .q-cal__bar{gap:8px;padding:10px 0 10px}
-  .q-cal__legend{display:none}
-  .q-cal__mlbl{min-width:120px}
-  .q-cal__cell{min-height:56px;padding:5px 4px 4px}
-  .q-cal__plan{display:none}
-  .q-cal__metrics{gap:4px}
-  .q-cal__met{font-size:9.5px}
-  .q-cal__dn{font-size:11px}
-  .q-cal__pill{font-size:9px;padding:1px 4px}
-  .q-cal__tots{gap:8px;padding:10px}
-  .q-cal__tot-v{font-size:16px}
+  .q-cal-desktop{display:none}
+  .q-cal-mobile{display:block}
 }
+/* ── Mobile calendar ─────────────────────────────────────────── */
+.q-mcal__topbar{display:flex;align-items:center;gap:8px;padding:14px 0 10px}
+.q-mcal__toplbl{flex:1;text-align:center}
+.q-mcal__topmonth{display:block;font-size:13px;font-weight:700;color:var(--text-0);letter-spacing:.04em}
+.q-mcal__topsub{display:block;font-size:11px;color:var(--text-2);margin-top:1px}
+/* week strip */
+.q-mcal__strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:4px 0 12px}
+.q-mcal__sday{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:6px 2px;border-radius:8px}
+.q-mcal__sdow{font-size:10px;font-weight:600;color:var(--text-2);text-transform:uppercase}
+.q-mcal__snum{font-size:17px;font-weight:700;color:var(--text-0);line-height:1;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.q-mcal__snum.today{background:var(--accent);color:#fff}
+.q-mcal__sdot{width:6px;height:6px;border-radius:50%}
+/* mini month */
+.q-mcal__mini{background:var(--bg-2);border-radius:10px;padding:10px;margin-bottom:12px}
+.q-mcal__miniwdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.q-mcal__miniwdays div{font-size:9px;font-weight:600;color:var(--text-3);text-align:center;padding:2px 0}
+.q-mcal__minigrid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px}
+.q-mcal__mc{display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 1px;border-radius:4px;cursor:pointer;font-size:10px;color:var(--text-2)}
+.q-mcal__mc.out{color:var(--text-3);opacity:.4;pointer-events:none}
+.q-mcal__mc.cw{background:var(--bg-4)}
+.q-mcal__mc.today span:first-child{width:16px;height:16px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+.q-mcal__mpip{width:4px;height:4px;border-radius:50%}
+/* cards */
+.q-mcal__cards{display:flex;flex-direction:column;gap:8px;padding-bottom:16px}
+.q-mcal__card{border-radius:10px;padding:12px 14px;background:var(--bg-2);border:1px solid var(--line);border-left-width:4px;cursor:pointer;transition:background .12s}
+.q-mcal__card:active{background:var(--bg-3)}
+.q-mcal__card--train{border-left-color:var(--cal-train)}
+.q-mcal__card--match{border-left-color:var(--cal-match)}
+.q-mcal__card--recov{border-left-color:var(--cal-recov)}
+.q-mcal__card--libre{border-left-color:var(--cal-libre)}
+.q-mcal__card--empty{border-left-color:var(--line);cursor:pointer}
+.q-mcal__card.today{background:var(--accent-soft)}
+.q-mcal__ch{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.q-mcal__clbl{font-size:12px;font-weight:700;color:var(--text-0)}
+.q-mcal__cplan{font-size:13px;color:var(--text-0);font-weight:500;margin-bottom:6px}
+.q-mcal__cempty{font-size:12px;color:var(--text-2)}
+.q-mcal__cmet{display:flex;align-items:center;gap:12px;margin-top:4px}
+.q-mcal__cmet span{display:flex;align-items:center;gap:3px;font-size:11.5px;color:var(--text-2);font-family:var(--font-mono)}
+.q-mcal__cmet span.load{color:var(--warn)}
