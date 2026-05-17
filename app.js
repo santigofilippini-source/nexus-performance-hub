@@ -98,7 +98,7 @@ let S = {
   loadFilter:'7d', loadFrom:'', loadTo:'',
   athletes:{}, athleteKey:null, athleteTab:'perfil', athleteForm:null, editingEvalId:null,
   prevView:'home', prevTeamId:null, prevCat:null,
-  lastCatTid:null, lastCatCid:null, statsPeriod:7,
+  lastCatTid:null, lastCatCid:null, statsPeriod:7, calOffset:0,
   searchQuery:'',
   // Team/category forms
   medInjuries:{}, medFilter:'activa', medRegion:'', injForm:null,
@@ -565,7 +565,7 @@ function goToTodaySessions(){
   loadSession();loadSessionDraft();S.sessionPlans={};loadSessionPlans().then(()=>render());
 }
 function sidebarOpenTeam(tid){S.teamId=tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
-function sidebarOpenCat(tid,cid){S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
+function sidebarOpenCat(tid,cid){S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;S.view='cat';S.tab='calendario';S.calOffset=0;S.date=TODAY;loadSession();loadSessionDraft();render();}
 function openPrograms(){S.view='programs';S.programView=null;S.programForm=null;render();}
 function sidebarToggleAccess(tid){S.teamId=tid;S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};if(S.accessPanel)loadTeamMembers(tid);render();}
 function updateSidebarNav(){
@@ -2271,6 +2271,141 @@ function renderCatForm(){
 }
 
 // ── CATEGORY VIEW ─────────────────────────────────────────────
+function renderCategoryCalendar(){
+  const tid=S.teamId,catId=S.cat,cd=getCat();
+  const _svg=(d,sz=12)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="${d}"/></svg>`;
+  const _svgf=(d,sz=11)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden><path d="${d}"/></svg>`;
+
+  // Compute view month from offset
+  const base=new Date(TODAY+'T12:00:00');
+  const viewDate=new Date(base.getFullYear(),base.getMonth()+(S.calOffset||0),1);
+  const viewYear=viewDate.getFullYear(),viewMonth=viewDate.getMonth();
+  const daysInMonth=new Date(viewYear,viewMonth+1,0).getDate();
+  const firstDow=new Date(viewYear,viewMonth,1).getDay();
+  const firstDowMon=(firstDow+6)%7; // 0=Mon
+
+  const MONTH_NAMES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const monthLabel=`${MONTH_NAMES[viewMonth]} ${viewYear}`;
+
+  // Date string helper
+  const ds=(d)=>`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+  // Session type config (matches SESSION_TYPES ids)
+  const TYPE_CFG={
+    practica:    {label:'Práct.',cls:'train'},
+    partido:     {label:'Partido',cls:'match'},
+    recuperacion:{label:'Recup.',cls:'recov'},
+    libre:       {label:'Libre',cls:'libre'},
+  };
+
+  // Attendance % for a day
+  const calcAtt=(d)=>{
+    const att=cd.attendance?.[ds(d)]||{};
+    const total=cd.players.length;
+    if(!total)return null;
+    const present=Object.values(att).filter(s=>s==='P'||s==='T').length;
+    return Math.round(present/total*100);
+  };
+
+  // Avg load = avg(rpe * playerDur) for present players
+  const calcLoad=(d)=>{
+    const sess=cd.sessions?.[ds(d)];
+    if(!sess)return null;
+    const att=cd.attendance?.[ds(d)]||{};
+    const baseDur=parseInt(sess.duration)||0;
+    let sum=0,cnt=0;
+    cd.players.forEach(p=>{
+      if(att[p.id]==='P'||att[p.id]==='T'){
+        const rpe=sess.playerRPE?.[p.id]??sess.teamRPE;
+        const dur=sess.playerDuration?.[p.id]??baseDur;
+        if(rpe!=null&&dur){sum+=rpe*dur;cnt++;}
+      }
+    });
+    return cnt>0?Math.round(sum/cnt):null;
+  };
+
+  // Build month grid (Mon-aligned)
+  const prevDays=new Date(viewYear,viewMonth,0).getDate();
+  const cells=[];
+  for(let i=0;i<firstDowMon;i++)cells.push({day:prevDays-firstDowMon+1+i,month:-1});
+  for(let d=1;d<=daysInMonth;d++)cells.push({day:d,month:0});
+  while(cells.length%7)cells.push({day:cells.length-firstDowMon-daysInMonth+1,month:1});
+
+  // Count totals
+  const totals={practica:0,partido:0,recuperacion:0,libre:0};
+  let totalSess=0;
+  for(let d=1;d<=daysInMonth;d++){
+    const t=cd.sessions?.[ds(d)]?.sessionType;
+    if(t&&totals[t]!==undefined){totals[t]++;totalSess++;}
+  }
+
+  const WDAYS=['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+
+  const cellsHtml=cells.map(({day,month})=>{
+    const isOut=month!==0;
+    const dateStr=isOut?null:ds(day);
+    const isToday=dateStr===TODAY;
+    const isSel=dateStr===S.date;
+    const isPast=dateStr&&dateStr<TODAY;
+    const sess=dateStr?cd.sessions?.[dateStr]:null;
+    const stCfg=sess?.sessionType?TYPE_CFG[sess.sessionType]:null;
+    const planName=sess?.plans?Object.values(sess.plans)[0]?.name||'':'';
+    const att=isPast&&sess?calcAtt(day):null;
+    const load=isPast&&sess?calcLoad(day):null;
+
+    const cls=['q-cal__cell',isOut?'is-out':'',isToday?'is-today':'',isSel?'is-sel':'',!sess&&!isOut?'is-empty':''].filter(Boolean).join(' ');
+    const pill=stCfg?`<span class="q-cal__pill q-cal__pill--${stCfg.cls}">${stCfg.label}</span>`:'';
+    const metrics=(att!==null||load!==null)?`<div class="q-cal__metrics">
+      ${att!==null?`<span class="q-cal__met">${_svg('M16 19a4 4 0 0 0-8 0M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z')} ${att}%</span>`:''}
+      ${load!==null?`<span class="q-cal__met q-cal__met--load">${_svgf('M13 2 4 14h6l-1 8 10-12h-7l1-8Z')} ${load}</span>`:''}
+    </div>`:'';
+    const addHint=!sess&&!isOut?`<div class="q-cal__add">${_svg('M12 5v14M5 12h14')}</div>`:'';
+
+    return`<div class="${cls}"${!isOut?` data-action="calday" data-date="${dateStr}"`:''}>
+      <div class="q-cal__ch">
+        <span class="q-cal__dn${isToday?' today':''}">${day}</span>
+        ${pill}
+      </div>
+      ${planName?`<div class="q-cal__plan">${planName}</div>`:''}
+      ${metrics}${addHint}
+    </div>`;
+  }).join('');
+
+  const totalsHtml=[
+    {key:'practica',label:'Prácticas',cls:'train'},
+    {key:'partido',label:'Partidos',cls:'match'},
+    {key:'recuperacion',label:'Recuperaciones',cls:'recov'},
+    {key:'libre',label:'Días libres',cls:'libre'},
+  ].map(t=>`<div class="q-cal__tot">
+    <div class="q-cal__tot-sw q-cal__tot-sw--${t.cls}"></div>
+    <div><div class="q-cal__tot-l">${t.label}</div><div class="q-cal__tot-v">${totals[t.key]}<span class="q-cal__tot-u">/ mes</span></div></div>
+  </div>`).join('');
+
+  return`<div class="q-cal-wrap">
+    <div class="q-cal__bar">
+      <div class="q-cal__mnav">
+        <button class="q-cal__navbtn" data-action="calcalnav" data-dir="-1">${_svg('m15 6-6 6 6 6',14)}</button>
+        <div class="q-cal__mlbl">
+          <span class="q-cal__mname">${monthLabel}</span>
+          <span class="q-cal__msub">${daysInMonth} días · ${totalSess} sesiones</span>
+        </div>
+        <button class="q-cal__navbtn" data-action="calcalnav" data-dir="1">${_svg('m9 6 6 6-6 6',14)}</button>
+      </div>
+      <button class="q-btn q-btn--ghost q-btn--sm" data-action="calcalhoy">${_svg('M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3-2v4m8-4v4',12)} Hoy</button>
+      <div class="q-cal__legend">
+        <span class="q-cal__leg"><span class="q-cal__legsw" style="background:var(--cal-train)"></span>Práctica</span>
+        <span class="q-cal__leg"><span class="q-cal__legsw" style="background:var(--cal-match)"></span>Partido</span>
+        <span class="q-cal__leg"><span class="q-cal__legsw" style="background:var(--cal-recov)"></span>Recuperación</span>
+        <span class="q-cal__leg"><span class="q-cal__legsw" style="background:var(--cal-libre)"></span>Libre</span>
+      </div>
+    </div>
+    <div class="q-cal__wdays">${WDAYS.map(w=>`<div class="q-cal__wd">${w}</div>`).join('')}</div>
+    <div class="q-cal__grid">${cellsHtml}</div>
+    <div class="q-cal__tots">${totalsHtml}</div>
+    <div class="q-cal__foot">Click en cualquier día abre la tab Sesión de esa fecha</div>
+  </div>`;
+}
+
 function renderCatHeader(){
   const c=getCat(); const catName=getCatName();
   const role=myRole();
@@ -2278,6 +2413,7 @@ function renderCatHeader(){
   const svg=(d)=>`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden><path d="${d}"/></svg>`;
   const svg16=(paths)=>`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
   const tabs=[
+    {id:'calendario',label:'Calendario',icon:'M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3-2v4m8-4v4'},
     {id:'attend',label:'Asistencia',icon:'M22 12h-4l-3 9L9 3l-3 9H2',num:c.players.length},
     {id:'session',label:'Sesión',icon:'M6.5 6.5 17.5 17.5M6.5 17.5 17.5 6.5M3 12h2m14 0h2M7 8v8m10-8v8'},
     {id:'metrics',label:'Métricas',icon:'M3 12 7 8l4 6 4-3 6 8'},
@@ -2304,7 +2440,7 @@ function renderCatHeader(){
 }
 
 function renderCat(){
-  const map={attend:renderAttend,session:renderSession,metrics:renderMetrics,reports:renderReports,roster:renderRoster,medico:renderMedical};
+  const map={calendario:renderCategoryCalendar,attend:renderAttend,session:renderSession,metrics:renderMetrics,reports:renderReports,roster:renderRoster,medico:renderMedical};
   return`<div class="cat-wrap" style="padding-top:0;">${(map[S.tab]||renderRoster)()}</div>`;
 }
 
@@ -4135,7 +4271,7 @@ async function handleAction(e){
   // NAVIGATION
   if(a==='home'){S.view='home';S.teamFormMode=null;S.catFormMode=null;render();}
   else if(a==='openteam'){S.teamId=el.dataset.tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
-  else if(a==='opencat'){if(el.dataset.tid)S.teamId=el.dataset.tid;S.cat=el.dataset.cid;S.lastCatTid=S.teamId;S.lastCatCid=S.cat;S.view='cat';S.tab='attend';S.date=TODAY;loadSession();loadSessionDraft();render();}
+  else if(a==='opencat'){if(el.dataset.tid)S.teamId=el.dataset.tid;S.cat=el.dataset.cid;S.lastCatTid=S.teamId;S.lastCatCid=S.cat;S.view='cat';S.tab='calendario';S.calOffset=0;S.date=TODAY;loadSession();loadSessionDraft();render();}
   else if(a==='backtoTeam'){S.view='team';S.catFormMode=null;S.teamFormMode=null;render();}
   else if(a==='backfromathlete'){
     if(S.prevView==='search'){S.view='search';render();}
@@ -4145,6 +4281,13 @@ async function handleAction(e){
     S.athleteForm=null;
   }
   else if(a==='tab'){S.tab=el.dataset.tab;if(S.tab==='attend')loadSession();if(S.tab==='session'){loadSessionDraft();S.sessionPlans={};loadSessionPlans().then(()=>render());return;}if(S.tab==='medico'){S.medInjuries={};S.medRegion='';loadMedical();return;}render();}
+  else if(a==='calcalnav'){S.calOffset=(S.calOffset||0)+parseInt(el.dataset.dir);render();}
+  else if(a==='calcalhoy'){S.calOffset=0;render();}
+  else if(a==='calday'){
+    S.date=el.dataset.date;
+    S.tab='session';
+    loadSessionDraft();S.sessionPlans={};loadSessionPlans().then(()=>render());
+  }
   else if(a==='reportsub'){S.reportSub=el.dataset.sub;render();}
   else if(a==='reportplayerpid'){S.reportPlayerPid=el.dataset.pid;render();}
   else if(a==='prevreportweek'){S.reportWeekOffset=(S.reportWeekOffset||0)-1;render();}
