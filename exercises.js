@@ -317,6 +317,17 @@ const DEFAULT_EXERCISES = {
   'def_lmsplitpress':   {name:'Press Landmine a un Brazo en Split (Split-Stance SA Landmine Press)',   category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/XoeLztfQ4a4'},
   'def_lmsapress':      {name:'Press Landmine a un Brazo (Standing SA Landmine Press)',                 category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/WdbjoLSp7_k'},
   'def_lmsarow':        {name:'Remo Landmine Inclinado a un Brazo (SA Landmine Bent Over Row)',         category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/qKf_9iRReHc'},
+  // ── Banda / TRX ───────────────────────────────────────────────
+  'def_bandlatwalk':    {name:'Caminatas Laterales con Minibanda (Lateral Mini Band Walks)',            category:'Tren inferior',          videoUrl:'https://www.youtube.com/shorts/8GQXrETbgOo'},
+  'def_bandsquat':      {name:'Sentadillas con Minibanda (Squats with Mini Band)',                      category:'Tren inferior',          videoUrl:'https://www.youtube.com/shorts/--_OsBMNW4c'},
+  'def_bandpullapart':  {name:'Aperturas de Banda al Frente (Band Pull Apart - Front)',                 category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/VSeGyrFewkE'},
+  'def_chestsupdrow':   {name:'Remo con Mancuernas Apoyado en Banco (Chest-Supported DB Row)',         category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/pm-P9oUWk7g'},
+  'def_trxpushup2':     {name:'Push Ups en TRX (TRX Push-Ups)',                                        category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/yuhlD2Htb88'},
+  'def_trxsarowreach':  {name:'Remo a un Brazo con Alcance en TRX (TRX SA Row with Reach)',            category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/dLw_6BbW0n8'},
+  'def_trxirow':        {name:'Remo en I en TRX (TRX I\'s)',                                           category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/XoX4bcfH7cw'},
+  'def_trxyrow':        {name:'Remo en Y en TRX (TRX Y\'s)',                                           category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/A_lXN_9yQjc'},
+  'def_trxwrow':        {name:'Remo en W en TRX (TRX W\'s)',                                           category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/vs4IzE5ie_U'},
+  'def_trxsarow':       {name:'Remo a un Brazo en TRX (TRX SA Row)',                                   category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/aoPR_O7ivRs'},
 };
 
 // ── Default program templates (available to all users) ────────
