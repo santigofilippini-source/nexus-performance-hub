@@ -343,7 +343,7 @@ const DEFAULT_EXERCISES = {
   // ── Fitball / Swiss Ball ──────────────────────────────────────
   'def_sbodysaw':       {name:'Plancha Fitball con Movimiento de Sierra (Swiss Ball Body Saw)',              category:'Core',                   videoUrl:'https://www.youtube.com/shorts/LebhgK0NytY'},
   'def_sbpushup':       {name:'Flexiones de Brazos sobre Fitball (Push-Ups on Swiss Ball)',                  category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/mQ8N9ZZNEXo'},
-  'def_sbsideplank':    {name:'Plancha Lateral Isométrica en Fitball sin Apoyo (Swiss Ball Side Plank Hold)', category:'Core',                  videoUrl:'https://www.youtube.com/shorts/mQ8N9ZZNEXo'},
+  'def_sbsideplank':    {name:'Plancha Lateral Isométrica en Fitball sin Apoyo (Swiss Ball Side Plank Hold)', category:'Core',                  videoUrl:'https://www.youtube.com/shorts/n3QxqwiFNg4'},
   'def_sbsideplankhand':{name:'Plancha Lateral en Fitball con Apoyo de Mano (Swiss Ball Side Plank - Hand Supported)', category:'Core',         videoUrl:'https://www.youtube.com/shorts/vfz2CNz7c0o'},
   'def_sbkneestochest': {name:'Flexión de Rodillas al Pecho en Fitball (Swiss Ball Knees to Chest)',         category:'Core',                   videoUrl:'https://www.youtube.com/shorts/tw49_A9TWJg'},
   'def_sbpike':         {name:'Flexión de Cadera en Fitball (Swiss Ball Pikes)',                             category:'Core',                   videoUrl:'https://www.youtube.com/shorts/LoFpEFrEk0s'},
