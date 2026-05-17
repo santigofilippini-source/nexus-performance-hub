@@ -340,6 +340,18 @@ const DEFAULT_EXERCISES = {
   'def_bearcrawlkbdrag':     {name:'Arrastres KB en Bear Crawl (Crawling Position KB Pull Throughs)',        category:'Core',                   videoUrl:'https://www.youtube.com/shorts/79fGG5HDlfo'},
   'def_pushupdrag':          {name:'Arrastres KB en Push Up (Push-Up Position KB Pull Throughs)',            category:'Core',                   videoUrl:'https://www.youtube.com/shorts/BhxK9Y78yPk'},
   'def_kbhalo':         {name:'Halos con Pesa Rusa (KB Halos)',                                               category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/eA4vICB3tqo'},
+  // ── Fitball / Swiss Ball ──────────────────────────────────────
+  'def_sbodysaw':       {name:'Plancha Fitball con Movimiento de Sierra (Swiss Ball Body Saw)',              category:'Core',                   videoUrl:'https://www.youtube.com/shorts/LebhgK0NytY'},
+  'def_sbpushup':       {name:'Flexiones de Brazos sobre Fitball (Push-Ups on Swiss Ball)',                  category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/mQ8N9ZZNEXo'},
+  'def_sbsideplank':    {name:'Plancha Lateral Isométrica en Fitball sin Apoyo (Swiss Ball Side Plank Hold)', category:'Core',                  videoUrl:'https://www.youtube.com/shorts/mQ8N9ZZNEXo'},
+  'def_sbsideplankhand':{name:'Plancha Lateral en Fitball con Apoyo de Mano (Swiss Ball Side Plank - Hand Supported)', category:'Core',         videoUrl:'https://www.youtube.com/shorts/vfz2CNz7c0o'},
+  'def_sbkneestochest': {name:'Flexión de Rodillas al Pecho en Fitball (Swiss Ball Knees to Chest)',         category:'Core',                   videoUrl:'https://www.youtube.com/shorts/tw49_A9TWJg'},
+  'def_sbpike':         {name:'Flexión de Cadera en Fitball (Swiss Ball Pikes)',                             category:'Core',                   videoUrl:'https://www.youtube.com/shorts/LoFpEFrEk0s'},
+  'def_sbfeetkicks':    {name:'Patadas en Plancha con Pies en Fitball (Swiss Ball Feet on Ball Kicks)',      category:'Core',                   videoUrl:'https://www.youtube.com/shorts/BgA3qPiaum0'},
+  'def_sbstirpot':      {name:'Fitball Revolver la Olla (Swiss Ball Front Plank Stir the Pot)',              category:'Core',                   videoUrl:'https://www.youtube.com/shorts/1C4MxyLlA1g'},
+  'def_sbarmlift':      {name:'Plancha Fitball con Elevación de Brazos (Swiss Ball Front Plank Arm Lifts)',  category:'Core',                   videoUrl:'https://www.youtube.com/shorts/WfcPv-xFH_M'},
+  'def_sbpurollout':    {name:'Rollout Fitball desde Posición de Flexión (Push-Up Position Swiss Ball Rollout)', category:'Core',              videoUrl:'https://www.youtube.com/shorts/VK5nFecbZTc'},
+  'def_sbplankrollout': {name:'Rollout en Plancha sobre Fitball (Swiss Ball Front Plank Rollout)',           category:'Core',                   videoUrl:'https://www.youtube.com/shorts/873-UKojMz4'},
 };
 
 // ── Default program templates (available to all users) ────────
