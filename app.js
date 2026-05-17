@@ -144,6 +144,7 @@ let S = {
   upgradeModal:null,    // {feature, currentTier} — shown when limit hit
   subscriptionModal:false, // true = show subscription/plans modal
   adminTeams:null,         // null = not loaded yet, {} = loaded (admin only)
+  bugReports:null,         // null = not loaded, {} = loaded (admin only)
   // Athlete portal
   athletePortalTab:'today',
   athleteCheckin:null,     // draft: { sleep,fatigue,soreness,stress,mood,rpe,rpeDate }
@@ -256,11 +257,15 @@ auth.onAuthStateChanged(async user => {
       await handlePendingInvite(S.pendingInvite);
     }
     showBetaDisclaimer();
+    injectBugFab();
+    if(isAdmin()) loadBugReports();
   } else {
     currentUser=null;
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('app-screen').style.display='none';
     document.body.classList.remove('is-auth');
+    const fabEl=document.getElementById('bug-fab-container');
+    if(fabEl) fabEl.innerHTML='';
   }
 });
 
@@ -654,6 +659,176 @@ const ROLES = ['Entrenador Principal','Asistente Técnico','Preparador Físico',
 
 function openProfile() { S.profileView = true; render(); }
 
+// ── Bug Report FAB ────────────────────────────────────────────
+function injectBugFab(){
+  let el=document.getElementById('bug-fab-container');
+  if(!el){el=document.createElement('div');el.id='bug-fab-container';document.body.appendChild(el);}
+  const pending=isAdmin()&&S.bugReports
+    ?Object.values(S.bugReports).filter(r=>r.status==='pending').length:0;
+  const badge=pending>0?`<span class="bug-fab__badge">${pending}</span>`:'';
+  el.innerHTML=`<button class="bug-fab" onclick="openBugReportModal()" title="Reportar un problema">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+    ${badge}
+  </button>`;
+}
+function openBugReportModal(){
+  let el=document.getElementById('bug-report-modal');
+  if(!el){el=document.createElement('div');el.id='bug-report-modal';document.body.appendChild(el);}
+  el.innerHTML=`
+    <div class="q-modal-backdrop" style="z-index:9985;" onclick="closeBugReportModal()">
+      <div class="bug-report-modal" onclick="event.stopPropagation()">
+        <div class="bug-report-modal__header">
+          <span>Reportar un problema</span>
+          <button onclick="closeBugReportModal()">✕</button>
+        </div>
+        <div class="bug-report-modal__body">
+          <label>Categoría</label>
+          <select id="bug-cat">
+            <option value="bug_visual">Bug visual</option>
+            <option value="error">Error</option>
+            <option value="sugerencia">Sugerencia</option>
+          </select>
+          <label style="margin-top:4px;">Descripción</label>
+          <textarea id="bug-msg" placeholder="Describí el problema o sugerencia..." rows="4"></textarea>
+          <label style="margin-top:4px;">Screenshot (opcional)</label>
+          <input type="file" id="bug-screenshot" accept="image/*">
+        </div>
+        <div class="bug-report-modal__footer">
+          <button class="q-btn" onclick="closeBugReportModal()">Cancelar</button>
+          <button class="q-btn" id="bug-submit-btn" style="background:var(--accent);color:#fff;border-color:var(--accent);" onclick="submitBugReport()">Enviar</button>
+        </div>
+      </div>
+    </div>`;
+}
+function closeBugReportModal(){
+  const el=document.getElementById('bug-report-modal');
+  if(el) el.innerHTML='';
+}
+function _resizeScreenshot(file,maxW=800){
+  return new Promise(resolve=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const ratio=Math.min(1,maxW/img.width);
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.round(img.width*ratio);
+        canvas.height=Math.round(img.height*ratio);
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        resolve(canvas.toDataURL('image/jpeg',0.72));
+      };
+      img.onerror=()=>resolve(null);
+      img.src=e.target.result;
+    };
+    reader.onerror=()=>resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+async function submitBugReport(){
+  const cat=document.getElementById('bug-cat')?.value;
+  const msg=document.getElementById('bug-msg')?.value?.trim();
+  if(!msg){showToast('Escribí una descripción.');return;}
+  const btn=document.getElementById('bug-submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='Enviando...';}
+  const fileInput=document.getElementById('bug-screenshot');
+  let screenshotBase64=null;
+  if(fileInput?.files?.length) screenshotBase64=await _resizeScreenshot(fileInput.files[0]);
+  const p=S.userProfile||{};
+  const report={
+    uid:currentUser.uid,
+    email:currentUser.email,
+    displayName:(p.nombre?`${p.nombre} ${p.apellido||''}`.trim():currentUser.displayName||currentUser.email.split('@')[0]),
+    category:cat,
+    message:msg,
+    context:{
+      tab:S.tab||'',
+      teamId:S.teamId||'',
+      teamName:S.teams?.[S.teamId]?.name||'',
+      catId:S.cat||'',
+      catName:S.teams?.[S.teamId]?.categories?.[S.cat]?.name||'',
+    },
+    timestamp:Date.now(),
+    status:'pending',
+    ...(screenshotBase64?{screenshotBase64}:{}),
+  };
+  try{
+    await db.ref('bugReports').push(report);
+    closeBugReportModal();
+    showToast('✓ Reporte enviado. ¡Gracias!');
+  }catch(e){
+    devErr('submitBugReport:',e);
+    showToast('Error al enviar. Intentá de nuevo.');
+    if(btn){btn.disabled=false;btn.textContent='Enviar';}
+  }
+}
+async function loadBugReports(){
+  if(!isAdmin()) return;
+  try{
+    const snap=await db.ref('bugReports').orderByChild('timestamp').get();
+    S.bugReports=snap.exists()?snap.val():{};
+    injectBugFab();
+    render();
+  }catch(e){showToast('Error al cargar reportes: '+e.message);}
+}
+async function markBugResolved(id){
+  if(!isAdmin()) return;
+  try{
+    await db.ref(`bugReports/${id}/status`).set('resolved');
+    if(S.bugReports?.[id]) S.bugReports[id].status='resolved';
+    injectBugFab();
+    render();
+  }catch(e){showToast('Error al actualizar: '+e.message);}
+}
+function renderBugReportsSection(){
+  if(!isAdmin()) return '';
+  const CAT_LABEL={bug_visual:'Bug visual',error:'Error',sugerencia:'Sugerencia'};
+  const CAT_COLOR={bug_visual:'var(--warn)',error:'var(--bad)',sugerencia:'var(--info)'};
+  const reports=S.bugReports;
+  let content;
+  if(reports===null){
+    content=`<button class="q-admin-load-btn" onclick="loadBugReports()">Cargar reportes</button>`;
+  } else {
+    const ids=Object.keys(reports).sort((a,b)=>(reports[b].timestamp||0)-(reports[a].timestamp||0));
+    if(!ids.length){
+      content=`<div style="font-size:12px;color:var(--text-2);padding:4px 0;">Sin reportes todavía.</div>
+        <button class="q-admin-load-btn" onclick="loadBugReports()" style="margin-top:8px;">Recargar</button>`;
+    } else {
+      const renderRow=id=>{
+        const r=reports[id];
+        const d=new Date(r.timestamp||0);
+        const date=d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+        const isResolved=r.status==='resolved';
+        const ctx=r.context||{};
+        const ctxStr=[ctx.teamName,ctx.catName,ctx.tab].filter(Boolean).join(' · ');
+        const catColor=CAT_COLOR[r.category]||'var(--text-2)';
+        return`<div class="q-bug-row${isResolved?' q-bug-row--done':''}">
+          <div class="q-bug-row__top">
+            <span class="q-bug-cat" style="background:${catColor}20;color:${catColor};border:1px solid ${catColor}40;">${CAT_LABEL[r.category]||r.category}</span>
+            <span class="q-bug-user">${r.displayName||r.email}</span>
+            <span class="q-bug-date">${date}</span>
+          </div>
+          <div class="q-bug-msg">${r.message}</div>
+          ${ctxStr?`<div class="q-bug-ctx">${ctxStr}</div>`:''}
+          ${r.screenshotBase64?`<details class="q-bug-ss"><summary>Ver screenshot</summary><img src="${r.screenshotBase64}" style="max-width:100%;border-radius:8px;margin-top:6px;"></details>`:''}
+          ${!isResolved
+            ?`<button class="q-admin-load-btn" style="margin-top:6px;padding:3px 10px;font-size:11px;" onclick="markBugResolved('${id}')">✓ Marcar resuelto</button>`
+            :`<span style="font-size:11px;color:var(--ok);">✓ Resuelto</span>`}
+        </div>`;
+      };
+      const pending=ids.filter(id=>reports[id].status==='pending');
+      const resolved=ids.filter(id=>reports[id].status==='resolved');
+      content=`
+        ${pending.length?`<div class="q-bug-section-label">Pendientes (${pending.length})</div>${pending.map(renderRow).join('')}`:''}
+        ${resolved.length?`<div class="q-bug-section-label" style="margin-top:12px;">Resueltos (${resolved.length})</div>${resolved.map(renderRow).join('')}`:''}
+        <button class="q-admin-load-btn" onclick="loadBugReports()" style="margin-top:10px;">Recargar</button>`;
+    }
+  }
+  return`<div class="q-admin-section">
+    <div class="q-admin-section__label">Reportes de usuarios</div>
+    ${content}
+  </div>`;
+}
+
 // ── Admin actions ──────────────────────────────────────────────
 async function toggleBetaMode(){
   if(!isAdmin()) return;
@@ -747,6 +922,7 @@ function renderAdminPanel(){
       <div style="font-size:11px;color:var(--text-2);margin-bottom:10px;">Ignorado mientras betaMode esté activo.</div>
       ${teamRows}
     </div>
+    ${renderBugReportsSection()}
   </div>`;
 }
 
