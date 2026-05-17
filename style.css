@@ -777,6 +777,7 @@ input[type=number]{font-size:15px;border:1px solid var(--border);background:var(
 .q-admin-load-btn:hover{border-color:var(--accent);color:var(--text-0);}
 /* Bug Report FAB */
 .bug-fab{position:fixed;bottom:24px;right:24px;width:46px;height:46px;border-radius:50%;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:900;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:background .15s,color .15s;padding:0;flex-shrink:0;}
+@media(max-width:899px){.bug-fab{bottom:calc(64px + env(safe-area-inset-bottom,0px));right:16px;}}
 .bug-fab:hover{background:var(--bg-4);color:var(--text-0);}
 .bug-fab__badge{position:absolute;top:-5px;right:-5px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1;border:2px solid var(--bg-0);}
 /* Bug Report Modal */
