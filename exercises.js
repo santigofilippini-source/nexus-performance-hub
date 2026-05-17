@@ -297,6 +297,16 @@ const DEFAULT_EXERCISES = {
   'def_slstandclocks':  {name:'Relojes a una Pierna de Pie (Standing Single Leg Clocks)',               category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/sRclj8N5mMY'},
   'def_proneiytw':      {name:'I, Y, T, W en Prono (Prone I, Y, T, W\'s)',                              category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/AWQ9zmSMboQ'},
   'def_proneswim':      {name:'Nadadores en Prono (Prone Swimmers)',                                     category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/O-9I4R49Jqw'},
+  'def_scappushup':     {name:'Push ups Escapulares (Scap Push-Ups)',                                   category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/UFHpYbmymJQ'},
+  'def_butterflyglute': {name:'Puente de Glúteos Mariposa (Butterfly Glute Bridge)',                    category:'Tren inferior',          videoUrl:'https://www.youtube.com/shorts/ct7W0E-hXG0'},
+  'def_lacrossepec':    {name:'Liberación de Pectoral con Pelota de Lacrosse (Lacrosse Ball Pec)',      category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/0Qdf5t7t8Y4'},
+  'def_frlats':         {name:'Foam Roller Dorsales (Foam Roll Lats)',                                  category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/UtjqbXkMX4g'},
+  'def_frback':         {name:'Foam Roller Espalda (Foam Roll Back)',                                   category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/3FqinBKwNzs'},
+  'def_frquad':         {name:'Foam Roller Cuádriceps (Foam Roll Quad)',                                category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/6ANT_OiLeMU'},
+  'def_frcalf':         {name:'Foam Roller Gemelos (Foam Roll Calf)',                                   category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/Lx2LCDZ96Sk'},
+  'def_frham':          {name:'Foam Roller Isquiotibiales (Foam Roll Hamstring)',                       category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/yRn0U6TpdKU'},
+  'def_frglute':        {name:'Foam Roller Glúteos (Foam Roll Glute)',                                  category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/Koq_T_9MEio'},
+  'def_rollovervsit':   {name:'Rolido Atrás a sentarse V (Rollover to V Sit)',                          category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/a_NTTStggcI'},
 };
 
 // ── Default program templates (available to all users) ────────
