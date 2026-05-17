@@ -1580,7 +1580,11 @@ function loadSessionPlans(){
   let resolved=false;
   return new Promise(resolve=>{
     _plansFn=snap=>{
-      S.sessionPlans=snap.exists()?(snap.val()||{}):{};
+      const plans=snap.exists()?(snap.val()||{}):{};
+      S.sessionPlans=plans;
+      // Keep cd.sessions in sync so the Calendar tab can see plan names
+      const _cd=S.teams[tid]?.categories?.[cid];
+      if(_cd){if(!_cd.sessions)_cd.sessions={};if(!_cd.sessions[date])_cd.sessions[date]={};_cd.sessions[date].plans=plans;}
       if(!resolved){resolved=true;resolve();}
       else if(S.tab==='session'&&S.sessionSub==='plan')render();
     };
