@@ -307,6 +307,16 @@ const DEFAULT_EXERCISES = {
   'def_frham':          {name:'Foam Roller Isquiotibiales (Foam Roll Hamstring)',                       category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/yRn0U6TpdKU'},
   'def_frglute':        {name:'Foam Roller Glúteos (Foam Roll Glute)',                                  category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/Koq_T_9MEio'},
   'def_rollovervsit':   {name:'Rolido Atrás a sentarse V (Rollover to V Sit)',                          category:'Movilidad / Elongación', videoUrl:'https://www.youtube.com/shorts/a_NTTStggcI'},
+  // ── Tren superior — hombros / landmine ────────────────────────
+  'def_dbfrontraise':   {name:'Vuelos Frontales con Mancuernas (DB Front Raise)',                       category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/bODZ3JyMQBM'},
+  'def_dbbentflies':    {name:'Vuelos Posteriores Inclinados con Mancuernas (DB Bent Over Flies)',      category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/8_k3j1GDmdY'},
+  'def_dbohaltlock':    {name:'Press de Hombros Alterno con Mancuernas (Standing 2-DB Alt. Lockout)',   category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/ryrzIQ3gIyc'},
+  'def_seatedsaohp':    {name:'Press de Hombros Sentado a un Brazo con Mancuerna (Seated DB SA OHP)',  category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/czRSaYwIZsw'},
+  'def_curltopress':    {name:'Curl de Bíceps a Press de Hombros con Mancuernas (DB Curl to OHP)',     category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/VkDqXIyzM3E'},
+  'def_lmhkpress':      {name:'Press Landmine a un Brazo en Media Rodilla (1/2 Kneel SA Landmine Press)', category:'Tren superior',       videoUrl:'https://www.youtube.com/shorts/F51eoyE0eRI'},
+  'def_lmsplitpress':   {name:'Press Landmine a un Brazo en Split (Split-Stance SA Landmine Press)',   category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/XoeLztfQ4a4'},
+  'def_lmsapress':      {name:'Press Landmine a un Brazo (Standing SA Landmine Press)',                 category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/WdbjoLSp7_k'},
+  'def_lmsarow':        {name:'Remo Landmine Inclinado a un Brazo (SA Landmine Bent Over Row)',         category:'Tren superior',          videoUrl:'https://www.youtube.com/shorts/qKf_9iRReHc'},
 };
 
 // ── Default program templates (available to all users) ────────
