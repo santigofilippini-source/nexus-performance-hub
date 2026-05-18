@@ -4081,59 +4081,148 @@ function exportAthletePDF(){
   const az=acwrZone(met.acwr);
   const pAdip=la.masaAdip&&lm.weight?(la.masaAdip/lm.weight*100).toFixed(1):null;
   const pMusc=la.masaMusc&&lm.weight?(la.masaMusc/lm.weight*100).toFixed(1):null;
-  const row=(l,v)=>`<tr><td style="padding:5px 8px;color:#555;font-size:13px;">${l}</td><td style="padding:5px 8px;font-weight:600;font-size:13px;">${v||'—'}</td></tr>`;
-  const sec=(t)=>`<tr><td colspan="2" style="padding:10px 8px 4px;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.06em;border-top:1px solid #eee;">${t}</td></tr>`;
-  const initials=player.name.split(',').map(s=>s.trim()[0]).join('').toUpperCase().slice(0,2)||'?';
+  const initials=player.name.split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2)||'?';
+  const pm=morphoEvals[1]||{};const pa=antroEvals[1]||{};const pt=testEvals[1]||{};
+  const SC={green:'#16a34a',greenBg:'#dcfce7',amber:'#b45309',amberBg:'#fef3c7',red:'#dc2626',redBg:'#fee2e2',gray:'#64748b',grayBg:'#f1f5f9'};
+  const attC=(v)=>v==null?SC.gray:v>=85?SC.green:v>=70?SC.amber:SC.red;
+  const attBg=(v)=>v==null?SC.grayBg:v>=85?SC.greenBg:v>=70?SC.amberBg:SC.redBg;
+  const fmsC=(s)=>s==null?SC.gray:s===3?SC.green:s>=2?SC.amber:SC.red;
+  const fmsBg=(s)=>s==null?SC.grayBg:s===3?SC.greenBg:s>=2?SC.amberBg:SC.redBg;
+  const arw=(curr,prev,inv=false,dec=1)=>{if(curr==null||prev==null)return'';const d=parseFloat((curr-prev).toFixed(dec));if(Math.abs(d)<0.01)return'';const good=inv?(d<0):(d>0);return`<span style="font-size:11px;color:${good?SC.green:SC.red};margin-left:3px;">${d>0?'↑':'↓'}${Math.abs(d)}</span>`;};
+  const zBar=(val,goodPos)=>{if(val==null)return'';const pct=Math.min(Math.max((parseFloat(val)+3)/6*100,0),100);const c=goodPos?(val>0?SC.green:SC.red):(val<0?SC.green:SC.red);return`<div style="background:#e2e8f0;border-radius:3px;height:5px;position:relative;margin:5px 0 2px;"><div style="position:absolute;top:-4px;left:50%;width:1px;height:13px;background:#cbd5e1;transform:translateX(-50%);"></div><div style="position:absolute;top:-4px;left:${pct}%;width:13px;height:13px;border-radius:50%;background:${c};transform:translateX(-50%);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.25);"></div></div>`;};
+  const minBi=(l,r)=>l!=null&&r!=null?Math.min(l,r):l!=null?l:r!=null?r:null;
+  const fmsItems=[{n:'Deep Squat',v:lf.deepSquat},{n:'Hurdle Step',v:minBi(lf.hurdleL,lf.hurdleR)},{n:'Inline Lunge',v:minBi(lf.lungeL,lf.lungeR)},{n:'Shoulder Mob.',v:minBi(lf.shoulderL,lf.shoulderR)},{n:'ASLR',v:minBi(lf.aslrL,lf.aslrR)},{n:'Trunk Stab.',v:lf.trunkStab},{n:'Rotary Stab.',v:minBi(lf.rotaryL,lf.rotaryR)}];
+  const fmsValid=fmsItems.filter(s=>s.v!=null);const fmsSum=fmsValid.reduce((a,s)=>a+s.v,0);const fmsComplete=fmsValid.length===7;
+  const mrow=(l,v)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f8fafc;"><span style="font-size:12px;color:#64748b;">${l}</span><span style="font-size:13px;font-weight:600;">${v}</span></div>`;
+  const sublbl=(t)=>`<div style="font-size:10px;font-weight:700;color:#cbd5e1;text-transform:uppercase;letter-spacing:.05em;margin:10px 0 5px;">${t}</div>`;
   const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Ficha — ${player.name}</title>
-  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111;background:#fff;padding:24px;max-width:680px;margin:0 auto}@media print{.no-print{display:none}}
-  .header{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid ${color}}.avatar{width:48px;height:48px;border-radius:12px;background:${color};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}.card{background:#f8fafc;border-radius:10px;padding:12px 14px;border:1px solid #e2e8f0}.card-title{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
-  table{width:100%;border-collapse:collapse}.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}.footer{margin-top:20px;font-size:11px;color:#aaa;text-align:center}
-  .print-btn{margin-bottom:16px;padding:8px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-family:inherit}</style></head><body>
-  <button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
-  <div class="header"><div class="avatar">${initials}</div>
-    <div><div style="font-size:22px;font-weight:700;">${player.name}</div><div style="font-size:13px;color:#666;margin-top:2px;">${teamName} · ${catName}${p.position?' · '+p.position:''}${age?' · '+age+' años':''}</div></div>
-    <div style="margin-left:auto;font-size:12px;color:#999;">Generado: ${fmtDate(TODAY)}</div></div>
-  <div class="grid">
-    <div class="card"><div class="card-title">Datos personales</div><table>
-      ${p.birthdate?row('Nacimiento',fmtDate(p.birthdate)+' · '+age+' años'):''}
-      ${p.position?row('Posición',p.position):''}${p.number?row('Número','#'+p.number):''}${p.notes?row('Notas',p.notes):''}
-    </table></div>
-    <div class="card"><div class="card-title">Carga de entrenamiento</div><table>
-      ${row('Asistencia',attStats.pct!=null?attStats.pct+'%':'—')}
-      ${row('Carga aguda (7d)',met.ac+' UA')}
-      ${row('ACWR',met.acwr!=null?`<span class="badge" style="background:${az.bg};color:${az.fg};">${met.acwr} — ${az.label}</span>`:'—')}
-      ${row('Monotonía',met.monotony||'—')}${row('Wellness 7d',met.wellAvg||'—')}
-    </table></div></div>
-  ${lm.weight||lm.height?`<div class="card" style="margin-bottom:14px;"><div class="card-title">Morfología — ${fmtDate(lm.date)}</div><table><tr>
-    ${lm.weight?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lm.weight}</div><div style="font-size:11px;color:#999;">kg</div></td>`:''}
-    ${lm.height?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lm.height}</div><div style="font-size:11px;color:#999;">cm</div></td>`:''}
-    ${lm.wingspan?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lm.wingspan}</div><div style="font-size:11px;color:#999;">enverg.</div></td>`:''}
-
-  </tr></table></div>`:''}
-  ${sfVals.length>0||la.zAdip!=null?`<div class="card" style="margin-bottom:14px;"><div class="card-title">Composición corporal — ${fmtDate(la.date)} · ${th.label}</div><table>
-    ${sec('Pliegues ISAK')}${sfVals.length>0?row('Σ6 pliegues',suma6+' mm'+(suma6!=='—'&&parseFloat(suma6)<th.s6p?' ✓':' ✗')):''}
-    ${[['Tríceps',sf.triceps],['Subescapular',sf.subscapular],['Supraespinal',sf.supraspinal],['Abdominal',sf.abdominal],['Muslo medial',sf.thigh],['Pantorrilla',sf.calf]].filter(([,v])=>v!=null).map(([l,v])=>row(l,v+' mm')).join('')}
-    ${la.masaAdip!=null||la.masaMusc!=null?sec('Fraccionamiento D. Kerr'):''}
-    ${la.masaAdip!=null?row('Masa adiposa',la.masaAdip+' kg'+(pAdip?' ('+pAdip+'%)':'')):''}
-    ${la.masaMusc!=null?row('Masa muscular',la.masaMusc+' kg'+(pMusc?' ('+pMusc+'%)':'')):''}
-    ${la.masaOsea!=null?row('Masa ósea',la.masaOsea+' kg'):''}
-    ${la.zAdip!=null||la.zMusc!=null?sec('Z-scores Phantom'):''}
-    ${la.zAdip!=null?row('Z adiposa',(la.zAdip>0?'+':'')+la.zAdip+(la.zAdip<th.zadip?' ✓':' ✗')):''}
-    ${la.zMusc!=null?row('Z muscular',(la.zMusc>0?'+':'')+la.zMusc+(la.zMusc>th.zmuscle?' ✓':' ✗')):''}
-    ${zdiff!=='—'?row('Diferencia Z',(parseFloat(zdiff)>0?'+':'')+zdiff+' — '+(pc?.label||'')):''}
-    ${imoP?row('IMO',imoP+(parseFloat(imoP)>th.imo?' ✓':' ✗')+' (Umbral: >'+th.imo+')'):''}
-  </table></div>`:''}
-  ${lt.cmj!=null||lt.sj!=null||lt.abk!=null||rsi!=='—'?`<div class="card" style="margin-bottom:14px;"><div class="card-title">Tests de salto — ${fmtDate(lt.date)}</div><table><tr>
-    ${lt.sj!=null?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lt.sj}</div><div style="font-size:11px;color:#999;">SJ (cm)</div></td>`:''}
-    ${lt.cmj!=null?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lt.cmj}</div><div style="font-size:11px;color:#999;">CMJ (cm)</div></td>`:''}
-    ${lt.abk!=null?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lt.abk}</div><div style="font-size:11px;color:#999;">ABK (cm)</div></td>`:''}
-    ${lt.abkRight!=null?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lt.abkRight}</div><div style="font-size:11px;color:#999;">ABK D. (cm)</div></td>`:''}
-    ${lt.abkLeft!=null?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${lt.abkLeft}</div><div style="font-size:11px;color:#999;">ABK I. (cm)</div></td>`:''}
-    ${rsi!=='—'?`<td style="padding:5px 12px;text-align:center;"><div style="font-size:22px;font-weight:700;">${rsi}</div><div style="font-size:11px;color:#999;">RSI</div></td>`:''}
-  </tr></table>${lt.notes?`<p style="font-size:12px;color:#666;margin-top:6px;padding:0 8px;">${lt.notes}</p>`:''}</div>`:''}
-  ${(()=>{const hasLf=Object.keys(lf).length>0;if(!hasLf)return'';const minBiP=(l,r)=>(l!=null&&r!=null)?Math.min(l,r):l!=null?l:r!=null?r:null;const scoresP=[lf.deepSquat,minBiP(lf.hurdleL,lf.hurdleR),minBiP(lf.lungeL,lf.lungeR),minBiP(lf.shoulderL,lf.shoulderR),minBiP(lf.aslrL,lf.aslrR),lf.trunkStab,minBiP(lf.rotaryL,lf.rotaryR)];const validP=scoresP.filter(v=>v!=null);const completedP=validP.length;const sumP=validP.reduce((a,b)=>a+b,0);const maxP=completedP*3;const rowF=(l,v)=>v!=null?`<tr><td style="padding:4px 8px;color:#555;font-size:13px;">${l}</td><td style="padding:4px 8px;font-weight:600;font-size:13px;">${v}</td></tr>`:'';const rowFBi=(l,vl,vr)=>(vl!=null||vr!=null)?`<tr><td style="padding:4px 8px;color:#555;font-size:13px;">${l}</td><td style="padding:4px 8px;font-weight:600;font-size:13px;">${vl??'—'} / ${vr??'—'} <span style="font-size:11px;color:#888;">(min: ${minBiP(vl,vr)??'—'})</span></td></tr>`:'';return`<div class="card" style="margin-bottom:14px;"><div class="card-title">FMS — Functional Movement Screening — ${fmtDate(lf.date)}</div>${completedP>0?`<div style="margin-bottom:8px;"><span style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:14px;font-weight:700;${completedP===7?`background:${sumP>14?'#dcfce7':'#fee2e2'};color:${sumP>14?'#16a34a':'#dc2626'};`:'background:#f1f5f9;color:#64748b;'}">${completedP===7?`${sumP}/21 — ${sumP>14?'Sin riesgo':'⚠ Riesgo de lesión'}`:`Incompleto — ${completedP} de 7 mov. · ${sumP}/${maxP} pts`}</span></div>`:''}<table>${rowF('Deep Squat',lf.deepSquat)}${rowFBi('Hurdle Step',lf.hurdleL,lf.hurdleR)}${rowFBi('Inline Lunge',lf.lungeL,lf.lungeR)}${rowFBi('Shoulder Mobility',lf.shoulderL,lf.shoulderR)}${rowFBi('ASLR',lf.aslrL,lf.aslrR)}${rowF('Trunk Stability PU',lf.trunkStab)}${rowFBi('Rotary Stability',lf.rotaryL,lf.rotaryR)}</table>${lf.notes?`<p style="font-size:12px;color:#666;margin-top:6px;padding:0 8px;">${lf.notes}</p>`:''}</div>`;})()}
-  <div class="footer">Qoore · ${teamName} · ${TODAY}</div></body></html>`;
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;background:#fff;max-width:720px;margin:0 auto}
+@media print{.no-print{display:none}@page{margin:10mm 12mm;size:A4}}
+.print-btn{display:block;margin:14px 20px 10px;padding:9px 22px;background:#F97316;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit}
+.pdf-header{background:#111827;color:#fff;padding:20px 24px;display:flex;align-items:center;gap:16px}
+.avatar{width:54px;height:54px;border-radius:14px;background:#F97316;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;color:#fff;flex-shrink:0}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #f1f5f9}
+.kpi{padding:13px 16px;border-right:1px solid #f1f5f9}
+.kpi:last-child{border-right:none}
+.kpi-lbl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.kpi-val{font-size:24px;font-weight:800;line-height:1}
+.kpi-sub{font-size:11px;color:#94a3b8;margin-top:3px}
+.section{padding:15px 20px;border-bottom:1px solid #f1f5f9}
+.sec-ttl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sec-ttl::after{content:'';flex:1;height:1px;background:#f1f5f9}
+.big-grid{display:flex;gap:10px;flex-wrap:wrap}
+.big-card{background:#f8fafc;border-radius:10px;padding:12px 14px;text-align:center;border:1px solid #e2e8f0;flex:1;min-width:70px}
+.big-num{font-size:28px;font-weight:800;line-height:1}
+.big-sub{font-size:10px;color:#94a3b8;margin-top:3px;font-weight:600;text-transform:uppercase}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.badge{display:inline-block;padding:3px 11px;border-radius:20px;font-size:12px;font-weight:700}
+.fms-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.fms-item{text-align:center}
+.fms-circle{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;margin:0 auto 4px}
+.fms-name{font-size:9px;color:#94a3b8;line-height:1.3}
+.footer{padding:10px 20px;font-size:11px;color:#cbd5e1;text-align:center;background:#f8fafc;border-top:1px solid #f1f5f9}
+</style></head><body>
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+<div class="pdf-header">
+  <div class="avatar">${initials}</div>
+  <div>
+    <div style="font-size:22px;font-weight:700;line-height:1.2;">${player.name}</div>
+    <div style="font-size:12px;color:#9ca3af;margin-top:4px;">${teamName} · ${catName}${p.position?' · '+p.position:''}${p.number?' · #'+p.number:''}${age?' · '+age+' años':''}</div>
+  </div>
+  <div style="margin-left:auto;font-size:11px;color:#6b7280;text-align:right;flex-shrink:0;">Generado<br><strong style="color:#9ca3af;">${fmtDate(TODAY)}</strong></div>
+</div>
+<div style="height:3px;background:#F97316;"></div>
+<div class="kpi-strip">
+  <div class="kpi">
+    <div class="kpi-lbl">Asistencia</div>
+    <div class="kpi-val" style="color:${attC(attStats.pct)};">${attStats.pct!=null?attStats.pct+'%':'—'}</div>
+    <div class="kpi-sub">últimos 30d</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-lbl">Carga aguda</div>
+    <div class="kpi-val">${met.ac||'0'}</div>
+    <div class="kpi-sub">UA · 7 días</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-lbl">ACWR</div>
+    <div class="kpi-val">${met.acwr!=null?`<span class="badge" style="background:${az.bg};color:${az.fg};font-size:14px;">${met.acwr}</span>`:'—'}</div>
+    <div class="kpi-sub">${met.acwr!=null?az.label:'sin datos'}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-lbl">Wellness 7d</div>
+    <div class="kpi-val">${met.wellAvg||'—'}</div>
+    <div class="kpi-sub">promedio</div>
+  </div>
+</div>
+${lm.weight||lm.height?`<div class="section">
+  <div class="sec-ttl">Morfología${lm.date?' — '+fmtDate(lm.date):''}</div>
+  <div class="big-grid">
+    ${lm.weight?`<div class="big-card"><div class="big-num">${lm.weight}${arw(lm.weight,pm.weight,false)}</div><div class="big-sub">Peso · kg</div></div>`:''}
+    ${lm.height?`<div class="big-card"><div class="big-num">${lm.height}</div><div class="big-sub">Talla · cm</div></div>`:''}
+    ${lm.wingspan?`<div class="big-card"><div class="big-num">${lm.wingspan}</div><div class="big-sub">Enverg. · cm</div></div>`:''}
+    ${lm.sittingH?`<div class="big-card"><div class="big-num">${lm.sittingH}</div><div class="big-sub">Alt. sentado</div></div>`:''}
+  </div>
+</div>`:''}
+${sfVals.length>0||la.zAdip!=null||la.masaAdip!=null?`<div class="section">
+  <div class="sec-ttl">Composición corporal${la.date?' — '+fmtDate(la.date):''} · ${th.label}</div>
+  <div class="two-col">
+    <div>
+      ${sfVals.length>0?sublbl('Pliegues ISAK'):''}
+      ${sfVals.length>0?`${mrow('Σ6 pliegues','<span style="font-weight:700;color:'+(suma6!=='—'&&parseFloat(suma6)<th.s6p?SC.green:SC.red)+';">'+suma6+' mm '+(suma6!=='—'&&parseFloat(suma6)<th.s6p?'✓':'✗')+'</span>')}
+      ${[['Tríceps',sf.triceps],['Subescapular',sf.subscapular],['Supraespinal',sf.supraspinal],['Abdominal',sf.abdominal],['Muslo medial',sf.thigh],['Pantorrilla',sf.calf]].filter(([,v])=>v!=null).map(([l,v])=>mrow(l,v+' mm')).join('')}`:''}
+      ${la.masaAdip!=null||la.masaMusc!=null?sublbl('Fraccionamiento D. Kerr'):''}
+      ${la.masaAdip!=null?mrow('Masa adiposa','<span>'+la.masaAdip+' kg'+(pAdip?' <span style="color:#94a3b8;font-size:11px;">('+pAdip+'%)</span>':'')+arw(la.masaAdip,pa.masaAdip,true)+'</span>'):''}
+      ${la.masaMusc!=null?mrow('Masa muscular','<span>'+la.masaMusc+' kg'+(pMusc?' <span style="color:#94a3b8;font-size:11px;">('+pMusc+'%)</span>':'')+arw(la.masaMusc,pa.masaMusc,false)+'</span>'):''}
+      ${la.masaOsea!=null?mrow('Masa ósea',la.masaOsea+' kg'):''}
+    </div>
+    <div>
+      ${la.zAdip!=null||la.zMusc!=null?sublbl('Z-scores Phantom'):''}
+      ${la.zAdip!=null?`<div style="margin-bottom:12px;">
+        ${mrow('Z adiposa','<span style="font-weight:700;color:'+(la.zAdip<th.zadip?SC.green:SC.red)+';">'+(la.zAdip>0?'+':'')+la.zAdip+' '+(la.zAdip<th.zadip?'✓':'✗')+'</span>')}
+        ${zBar(la.zAdip,false)}
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:#cbd5e1;"><span>−3</span><span>0</span><span>+3</span></div>
+      </div>`:''}
+      ${la.zMusc!=null?`<div style="margin-bottom:12px;">
+        ${mrow('Z muscular','<span style="font-weight:700;color:'+(la.zMusc>th.zmuscle?SC.green:SC.red)+';">'+(la.zMusc>0?'+':'')+la.zMusc+' '+(la.zMusc>th.zmuscle?'✓':'✗')+'</span>')}
+        ${zBar(la.zMusc,true)}
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:#cbd5e1;"><span>−3</span><span>0</span><span>+3</span></div>
+      </div>`:''}
+      ${zdiff!=='—'?mrow('Diferencia Z','<span>'+(parseFloat(zdiff)>0?'+':'')+zdiff+' <span style="font-size:11px;color:#64748b;">— '+(pc?.label||'')+'</span></span>'):''}
+      ${imoP!=null?mrow('IMO','<span style="font-weight:700;color:'+(parseFloat(imoP)>th.imo?SC.green:SC.red)+';">'+imoP+' '+(parseFloat(imoP)>th.imo?'✓':'✗')+' <span style="font-size:11px;color:#94a3b8;">(umbral: >'+th.imo+')</span></span>'):''}
+    </div>
+  </div>
+</div>`:''}
+${lt.sj!=null||lt.cmj!=null||lt.abk!=null||rsi!=='—'?`<div class="section">
+  <div class="sec-ttl">Tests de salto${lt.date?' — '+fmtDate(lt.date):''}</div>
+  <div class="big-grid">
+    ${lt.sj!=null?`<div class="big-card"><div class="big-num">${lt.sj}${arw(lt.sj,pt.sj,false)}</div><div class="big-sub">SJ · cm</div></div>`:''}
+    ${lt.cmj!=null?`<div class="big-card"><div class="big-num">${lt.cmj}${arw(lt.cmj,pt.cmj,false)}</div><div class="big-sub">CMJ · cm</div></div>`:''}
+    ${lt.abk!=null?`<div class="big-card"><div class="big-num">${lt.abk}${arw(lt.abk,pt.abk,false)}</div><div class="big-sub">ABK · cm</div></div>`:''}
+    ${lt.abkRight!=null?`<div class="big-card"><div class="big-num">${lt.abkRight}</div><div class="big-sub">ABK D. · cm</div></div>`:''}
+    ${lt.abkLeft!=null?`<div class="big-card"><div class="big-num">${lt.abkLeft}</div><div class="big-sub">ABK I. · cm</div></div>`:''}
+    ${rsi!=='—'?`<div class="big-card"><div class="big-num">${rsi}</div><div class="big-sub">RSI</div></div>`:''}
+  </div>
+  ${lt.notes?`<p style="font-size:12px;color:#64748b;margin-top:10px;">${lt.notes}</p>`:''}
+</div>`:''}
+${fmsValid.length>0?`<div class="section">
+  <div class="sec-ttl">FMS — Functional Movement Screening${lf.date?' — '+fmtDate(lf.date):''}</div>
+  <div style="margin-bottom:14px;">
+    <span class="badge" style="background:${fmsComplete?(fmsSum>14?SC.greenBg:SC.redBg):SC.grayBg};color:${fmsComplete?(fmsSum>14?SC.green:SC.red):SC.gray};font-size:13px;padding:4px 14px;">
+      ${fmsComplete?fmsSum+'/21 — '+(fmsSum>14?'Sin riesgo':'⚠ Riesgo de lesión'):'Incompleto — '+fmsValid.length+'/7 mov. · '+fmsSum+'/'+(fmsValid.length*3)+' pts'}
+    </span>
+  </div>
+  <div class="fms-grid">
+    ${fmsItems.map(s=>`<div class="fms-item">
+      <div class="fms-circle" style="background:${fmsBg(s.v)};color:${fmsC(s.v)};">${s.v!=null?s.v:'—'}</div>
+      <div class="fms-name">${s.n}</div>
+    </div>`).join('')}
+  </div>
+  ${lf.notes?`<p style="font-size:12px;color:#64748b;margin-top:10px;">${lf.notes}</p>`:''}
+</div>`:''}
+<div class="footer">Qoore · ${teamName} · ${TODAY}</div>
+</body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 }
 
