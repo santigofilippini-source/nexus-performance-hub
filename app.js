@@ -4099,7 +4099,7 @@ function exportAthletePDF(){
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;background:#fff;max-width:720px;margin:0 auto}
-@media print{.no-print{display:none}@page{margin:10mm 12mm;size:A4}}
+@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}.no-print{display:none!important}.section{page-break-inside:avoid}.big-card{page-break-inside:avoid}@page{margin:10mm 12mm;size:A4}}
 .print-btn{display:block;margin:14px 20px 10px;padding:9px 22px;background:#F97316;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit}
 .pdf-header{background:#111827;color:#fff;padding:20px 24px;display:flex;align-items:center;gap:16px}
 .avatar{width:54px;height:54px;border-radius:14px;background:#F97316;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;color:#fff;flex-shrink:0}
