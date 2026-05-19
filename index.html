@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="es-AR">
 <head>
+<script>
+  (function(){
+    try {
+      const isAuth = Object.keys(localStorage).some(k => k.startsWith('firebase:authUser'));
+      if (isAuth) window.location.replace('./app.html');
+    } catch(e) {}
+  })();
+</script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Qoore — Performance management para clubes deportivos</title>
