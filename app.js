@@ -1633,14 +1633,10 @@ function renderAccessPanel(tid){
       +'</div>';
   }).join('');
 
-  const _invEmail=(form.email||'').trim();
   const linkSection = S.inviteLink
     ? '<div style="font-size:12px;color:#86efac;margin-bottom:4px;font-weight:500;">✓ Compartí este link:</div>'
       +'<div class="invite-link-box">'+S.inviteLink+'</div>'
-      +'<div style="display:flex;gap:6px;">'
-      +'<button class="save-btn" style="flex:1;padding:8px;font-size:13px;background:var(--bg2);color:var(--accent);border:1px solid var(--accent);" data-action="copyinvitelink">📋 Copiar</button>'
-      +(_invEmail?'<button class="save-btn" style="flex:1;padding:8px;font-size:13px;" data-action="sendinvemail" data-email="'+_invEmail+'" data-role="'+(form.role||'editor')+'" data-teamname="'+(S.teams[tid]?.name||'')+'" data-link="'+S.inviteLink+'">✉ Enviar email</button>':'')
-      +'</div>'
+      +'<button class="save-btn" style="width:100%;padding:8px;font-size:13px;background:var(--bg2);color:var(--accent);border:1px solid var(--accent);" data-action="copyinvitelink">📋 Copiar link</button>'
     : '';
 
   // Athlete picker (shown instead of cat perms when role=athlete)
