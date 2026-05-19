@@ -126,8 +126,8 @@ let S = {
   memberships:{},       // { teamId: {role, permissions, joinedAt} }
   pendingInvite:null,   // token from URL ?invite=
   accessPanel:false,    // show access management in team view
-  athleteInvitePanel:false, // simplified athlete-only invite for editors
   inviteLink:null,      // generated link to copy
+  accessSectionOpen:{invites:true, members:false}, // collapsible sections in access panel
   teamMembers:{},       // { teamId: [{uid, email, role, permissions}] }
   teamNotifs:{},        // { teamId: [{id, email, displayName, role, timestamp, read}] }
   teamInvites:{},       // { teamId: [{token, invitedEmail, role, permissions, expiresAt, createdAt}] }
@@ -586,7 +586,7 @@ function goToTodaySessions(){
 function sidebarOpenTeam(tid){S.teamId=tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
 function sidebarOpenCat(tid,cid){S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;S.view='cat';S.tab='calendario';S.calOffset=0;S.date=TODAY;loadSession();loadSessionDraft();render();}
 function openPrograms(){S.view='programs';S.programView=null;S.programForm=null;render();}
-function sidebarToggleAccess(tid){S.teamId=tid;S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};if(S.accessPanel){loadTeamMembers(tid);if(isOwner(tid))loadJoinCode(tid);}render();}
+function sidebarToggleAccess(tid){S.teamId=tid;S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};S.accessSectionOpen={invites:true,members:false};if(S.accessPanel){loadTeamMembers(tid);if(isOwner(tid))loadJoinCode(tid);}render();}
 function updateSidebarNav(){
   const nav=document.getElementById('nx-sidebar-nav');
   if(!nav)return;
@@ -1485,41 +1485,6 @@ async function markNotifsRead(tid){
 }
 
 // ── Athlete invite panel (for editors) ───────────────────────
-function renderAthleteInvitePanel(tid){
-  const cats=Object.entries(S.teams[tid]?.categories||{});
-  const form=S.inviteForm;
-  const limitCheck=canInviteMember(tid);
-  if(!limitCheck.ok){
-    return`<div class="access-panel"><div class="access-panel-title">Invitar atleta <button class="sm-btn" data-action="toggleathletesinvite">✕ Cerrar</button></div><div style="font-size:13px;color:var(--text2);padding:8px 0;">Límite de miembros alcanzado para el plan actual.</div></div>`;
-  }
-  const catBtns=cats.map(([cid,cat])=>`<button class="perm-btn ${form.catId===cid?'sel-edit':''}" data-action="setinvitecategory" data-cid="${cid}">${cat.name}</button>`).join('');
-  let playerHtml='';
-  if(form.catId){
-    const players=S.teams[tid]?.categories?.[form.catId]?.players||[];
-    if(players.length){
-      const pBtns=players.map(p=>`<button class="perm-btn ${form.pid===p.id?'sel-edit':''}" style="font-size:11px;" data-action="setinviteplayer" data-pid="${p.id}">${p.name}</button>`).join('');
-      playerHtml=`<div style="margin-top:8px;"><div style="font-size:11px;color:var(--text3);margin-bottom:5px;">Jugador</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${pBtns}</div></div>`;
-    } else {
-      playerHtml=`<div style="font-size:12px;color:var(--text3);margin-top:6px;">Esta categoría no tiene jugadores en el plantel.</div>`;
-    }
-  }
-  const linkSection=S.inviteLink
-    ?`<div style="font-size:12px;color:#86efac;margin-bottom:4px;font-weight:500;">✓ Compartí este link:</div><div class="invite-link-box">${S.inviteLink}</div><button class="save-btn" style="width:100%;padding:8px;font-size:13px;background:var(--bg2);color:var(--accent);border:1px solid var(--accent);" data-action="copyinvitelink">📋 Copiar link</button>`
-    :'';
-  return`<div class="access-panel">
-    <div class="access-panel-title">Invitar atleta <button class="sm-btn" data-action="toggleathletesinvite">✕ Cerrar</button></div>
-    <div class="form-field" style="margin-bottom:8px;"><label>Email del atleta</label>
-      <input type="email" id="inv-email" class="form-input" style="margin:0;padding:8px 10px;font-size:13px;" placeholder="atleta@email.com" value="${form.email||''}">
-    </div>
-    <div style="margin-bottom:8px;">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:5px;">Categoría</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;">${catBtns}</div>
-    </div>
-    ${playerHtml}
-    <button class="save-btn" style="width:100%;margin-top:12px;" data-action="sendinvite" data-tid="${tid}">Generar link de invitación</button>
-    ${linkSection}
-  </div>`;
-}
 
 // ── Access panel render ───────────────────────────────────────
 function renderAccessPanel(tid){
@@ -1677,45 +1642,63 @@ function renderAccessPanel(tid){
       +'<button class="save-btn" style="width:100%;padding:8px;font-size:13px;background:var(--bg2);color:var(--accent);border:1px solid var(--accent);" data-action="copyinvitelink">📋 Copiar link</button>'
     : '';
 
-  // Athlete picker (shown instead of cat perms when role=athlete)
-  const isAthleteInvite = form.role === 'athlete';
-  let athletePickerHtml = '';
-  if(isAthleteInvite){
-    const catBtns = cats.map(([cid,cat])=>`<button class="perm-btn ${form.catId===cid?'sel-edit':''}" data-action="setinvitecategory" data-cid="${cid}">${cat.name}</button>`).join('');
-    const noCats = !cats.length ? '<div style="font-size:12px;color:var(--text3);">Este equipo no tiene categorías todavía.</div>' : '';
-    let playerHtml = '';
-    if(form.catId){
-      const players=S.teams[tid]?.categories?.[form.catId]?.players||[];
-      if(players.length){
-        const pBtns=players.map(p=>`<button class="perm-btn ${form.pid===p.id?'sel-edit':''}" style="font-size:11px;" data-action="setinviteplayer" data-pid="${p.id}">${p.name}</button>`).join('');
-        playerHtml='<div style="margin-top:8px;"><div style="font-size:11px;color:var(--text3);margin-bottom:5px;">Jugador</div><div style="display:flex;flex-wrap:wrap;gap:5px;">'+pBtns+'</div></div>';
-      } else {
-        playerHtml='<div style="font-size:12px;color:var(--text3);margin-top:6px;">Esta categoría no tiene jugadores en el plantel.</div>';
-      }
-    }
-    athletePickerHtml='<div class="ap-roster-pick"><div style="font-size:11px;color:var(--text3);margin-bottom:5px;">Categoría</div>'+(noCats||'<div style="display:flex;flex-wrap:wrap;gap:5px;">'+catBtns+'</div>')+playerHtml+'</div>';
-  }
+  // ── Collapsible: invitaciones ──────────────────────────────
+  const invOpen = S.accessSectionOpen.invites;
+  const invHeader = '<div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0;margin-bottom:'+(invOpen?'8px':'12px')+'" data-action="toggleaccesssection" data-section="invites">'
+    +'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Invitaciones'+(invites.length?' ('+invites.length+')':'')+'</div>'
+    +'<span style="font-size:11px;color:var(--text3);">'+(invOpen?'▲':'▼')+'</span>'
+    +'</div>';
+  const invBody = invOpen ? (invites.length
+    ? invites.map(inv=>{
+        const exp=new Date(inv.expiresAt); const expired=now>exp;
+        const daysLeft=expired?0:Math.ceil((exp-now)/(1000*60*60*24));
+        const roleLabel=inv.role==='editor'?'Staff':inv.role==='athlete'?'Atleta':'Observador';
+        const invLink=window.location.origin+window.location.pathname+'?invite='+inv.token;
+        const permsStr=JSON.stringify(inv.permissions||{}).replace(/'/g,"&#39;");
+        return '<div style="background:var(--bg2);border-radius:8px;padding:9px 10px;margin-bottom:6px;border:1px solid '+(expired?'#7f1d1d':'var(--border')+';"> '
+          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
+          +'<span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:12px;background:'+(expired?'#2d0a0a':'#052e16')+';color:'+(expired?'#fca5a5':'#86efac')+';"> '+(expired?'Expirada':'Pendiente')+'</span>'
+          +'<span style="font-size:11px;padding:1px 7px;border-radius:12px;background:var(--bg3);color:var(--text3);">'+roleLabel+'</span>'
+          +(!expired?'<span style="font-size:11px;color:var(--text3);margin-left:auto;">⏳ '+daysLeft+'d</span>':'')
+          +'</div>'
+          +'<div style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:6px;">'+inv.invitedEmail+'</div>'
+          +'<div style="display:flex;gap:5px;flex-wrap:wrap;">'
+          +(!expired?'<button class="sm-btn" style="font-size:11px;" data-action="copyinvlink" data-link="'+invLink+'">📋 Copiar link</button>':'')
+          +'<button class="sm-btn" style="font-size:11px;" data-action="resendtoinvite" data-tid="'+tid+'" data-email="'+inv.invitedEmail+'" data-role="'+inv.role+'" data-perms=\''+permsStr+'\''+(inv.catId?' data-catid="'+inv.catId+'"'+'data-pid="'+(inv.pid||'')+'"':'')+'>🔄 '+(expired?'Reenviar':'Regenerar')+'</button>'
+          +'<button class="sm-btn" style="font-size:11px;color:#fca5a5;border-color:#991b1b;" data-action="revokeinvite" data-tid="'+tid+'" data-token="'+inv.token+'">Revocar</button>'
+          +'</div></div>';
+      }).join('')
+    : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Sin invitaciones pendientes.</div>')
+    : '';
+
+  // ── Collapsible: miembros ──────────────────────────────────
+  const memOpen = S.accessSectionOpen.members;
+  const memHeader = '<div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0;margin-bottom:'+(memOpen&&members.length?'8px':'12px')+'" data-action="toggleaccesssection" data-section="members">'
+    +'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Miembros activos'+(members.length?' ('+members.length+')':'')+'</div>'
+    +'<span style="font-size:11px;color:var(--text3);">'+(memOpen?'▲':'▼')+'</span>'
+    +'</div>';
+  const memBody = memOpen
+    ? (members.length ? memberRows : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Sin miembros aún.</div>')
+    : '';
 
   return '<div class="access-panel">'
     +'<div class="access-panel-title">👥 Gestionar acceso <button class="sm-btn" data-action="toggleaccess">✕ Cerrar</button></div>'
     + joinCodeHtml
     + joinReqsHtml
     + notifsHtml
-    + pendingHtml
-    +(members.length
-      ? '<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Miembros activos ('+members.length+')</div>'+memberRows
-      : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Sin miembros aún.</div>')
+    + invHeader + invBody
+    +'<div style="border-top:1px solid var(--border);margin:0 0 12px;"></div>'
+    + memHeader + memBody
     +'<div style="border-top:1px solid var(--border);margin:12px 0;"></div>'
     +'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Nueva invitación</div>'
     +'<div class="form-field" style="margin-bottom:8px;"><label>Email del invitado</label>'
-    +'<input type="email" id="inv-email" class="form-input" style="margin:0;padding:8px 10px;font-size:13px;" placeholder="atleta@email.com" value="'+(form.email||'')+'"></div>'
+    +'<input type="email" id="inv-email" class="form-input" style="margin:0;padding:8px 10px;font-size:13px;" placeholder="staff@email.com" value="'+(form.email||'')+'"></div>'
     +'<div class="form-field" style="margin-bottom:8px;"><label>Rol</label>'
     +'<div style="display:flex;gap:6px;margin-top:4px;">'
     +'<button class="perm-btn '+((form.role||'editor')==='editor'?'sel-edit':'')+'" data-action="setinviterole" data-val="editor">Staff</button>'
     +'<button class="perm-btn '+((form.role||'editor')==='viewer'?'sel-view':'')+'" data-action="setinviterole" data-val="viewer">Observador</button>'
-    +'<button class="perm-btn '+(form.role==='athlete'?'sel-edit':'')+'" data-action="setinviterole" data-val="athlete">Atleta</button>'
     +'</div></div>'
-    +(isAthleteInvite ? athletePickerHtml : (cats.length ? '<div style="font-size:11px;color:var(--text3);margin:8px 0 4px;">Permisos por categoría</div>'+catPerms : ''))
+    +(cats.length ? '<div style="font-size:11px;color:var(--text3);margin:8px 0 4px;">Permisos por categoría</div>'+catPerms : '')
     +'<button class="save-btn" style="width:100%;margin-top:12px;" data-action="sendinvite" data-tid="'+tid+'">Generar link de invitación</button>'
     + linkSection
     +'</div>';
@@ -4993,11 +4976,9 @@ async function handleAction(e){
     }catch(e){ showAlert('Error al regenerar invitación.'); }
   }
   // PERMISSIONS & INVITATIONS
-  else if(a==='toggleathletesinvite'){
-    S.athleteInvitePanel=!S.athleteInvitePanel;
-    S.inviteLink=null;
-    S.inviteForm={role:'athlete',permissions:{},email:'',catId:null,pid:null};
-    if(S.athleteInvitePanel) await loadTeamMembers(S.teamId);
+  else if(a==='toggleaccesssection'){
+    const sec=el.dataset.section;
+    if(sec==='invites'||sec==='members') S.accessSectionOpen[sec]=!S.accessSectionOpen[sec];
     render();
   }
   else if(a==='toggleaccess'){
