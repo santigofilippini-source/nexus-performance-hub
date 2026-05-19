@@ -4,8 +4,7 @@
 <script>
   (function(){
     try {
-      const isAuth = Object.keys(localStorage).some(k => k.startsWith('firebase:authUser'));
-      if (isAuth) window.location.replace('./app.html');
+      if (localStorage.getItem('q_session') === '1') window.location.replace('./app.html');
     } catch(e) {}
   })();
 </script>

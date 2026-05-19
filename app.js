@@ -256,10 +256,12 @@ auth.onAuthStateChanged(async user => {
     if(S.pendingInvite){
       await handlePendingInvite(S.pendingInvite);
     }
+    localStorage.setItem('q_session','1');
     showBetaDisclaimer();
     injectBugFab();
     if(isAdmin()) loadBugReports();
   } else {
+    localStorage.removeItem('q_session');
     currentUser=null;
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('app-screen').style.display='none';
