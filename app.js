@@ -134,6 +134,9 @@ let S = {
   inviteForm:{role:'editor', permissions:{}, email:''}, // draft form for new invite
   showInviteModal:false,// show accept-invitation modal
   pendingInviteData:null,// data loaded from Firebase for pending invite
+  // Join by code
+  joinCodeModal:false, joinCodeInput:'', joinCodeData:null, joinCodeCatId:null, joinCodePid:null,
+  teamJoinCodes:{},     // {tid: code}
   editingMember:null,   // uid of member being edited in access panel
   editMemberForm:{},    // {role, permissions} draft for member being edited
   confirmModal:null,    // {msg, cb} — custom confirm dialog
@@ -230,6 +233,8 @@ function athleteKey(teamId=S.teamId, catId=S.cat, pid) { return `${teamId}__${ca
   const upgrade=params.get('upgrade');
   if(upgrade==='success') S.upgradeSuccess=params.get('tier')||'pro';
   if(upgrade) window.history.replaceState({},'',window.location.pathname);
+  const jc=params.get('joincode');
+  if(jc){ S.joinCodeInput=jc.toUpperCase().replace(/[^A-Z0-9]/g,''); S.joinCodeModal=true; }
 })();
 
 // ── Login tab switch ──────────────────────────────────────────
@@ -252,9 +257,12 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('user-name').textContent=user.displayName||user.email.split('@')[0];
     document.getElementById('app-body').innerHTML='<div style="padding:24px 16px;display:flex;flex-direction:column;gap:12px;"><div style="height:14px;background:var(--bg-3);border-radius:6px;width:30%;animation:nx-pulse 1.4s ease-in-out infinite;"></div><div style="height:80px;background:var(--bg-3);border-radius:12px;animation:nx-pulse 1.4s ease-in-out infinite;"></div><div style="height:80px;background:var(--bg-3);border-radius:12px;animation:nx-pulse 1.4s ease-in-out infinite;opacity:.7;"></div><div style="height:80px;background:var(--bg-3);border-radius:12px;animation:nx-pulse 1.4s ease-in-out infinite;opacity:.5;"></div></div>';
     await loadAll();
-    // After loading, check for pending invite
+    // After loading, check for pending invite or join code
     if(S.pendingInvite){
       await handlePendingInvite(S.pendingInvite);
+    }
+    if(S.joinCodeModal && S.joinCodeInput){
+      render(); // show join code modal
     }
     localStorage.setItem('q_session','1');
     showBetaDisclaimer();
@@ -574,7 +582,7 @@ function goToTodaySessions(){
 function sidebarOpenTeam(tid){S.teamId=tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
 function sidebarOpenCat(tid,cid){S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;S.view='cat';S.tab='calendario';S.calOffset=0;S.date=TODAY;loadSession();loadSessionDraft();render();}
 function openPrograms(){S.view='programs';S.programView=null;S.programForm=null;render();}
-function sidebarToggleAccess(tid){S.teamId=tid;S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};if(S.accessPanel)loadTeamMembers(tid);render();}
+function sidebarToggleAccess(tid){S.teamId=tid;S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};if(S.accessPanel){loadTeamMembers(tid);if(isOwner(tid))loadJoinCode(tid);}render();}
 function updateSidebarNav(){
   const nav=document.getElementById('nx-sidebar-nav');
   if(!nav)return;
@@ -1226,6 +1234,99 @@ async function handlePendingInvite(token){
   } catch(e){ devErr('Error loading invite:',e); }
 }
 
+// ── Team join codes ───────────────────────────────────────────
+function genJoinCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin O,0,I,1 (confundibles)
+  const arr=new Uint8Array(6);
+  crypto.getRandomValues(arr);
+  return Array.from(arr,b=>chars[b%chars.length]).join('');
+}
+
+async function generateJoinCode(tid){
+  const doGen=async()=>{
+    try{
+      const code=genJoinCode();
+      const team=S.teams[tid];
+      const cats={};
+      Object.entries(team.categories||{}).forEach(([cid,cat])=>{
+        const players=(Array.isArray(cat.players)?cat.players:Object.values(cat.players||{}))
+          .map(p=>({id:p.id,name:p.name}));
+        cats[cid]={name:cat.name,players};
+      });
+      const codeData={tid,teamName:team.name,cats,createdAt:new Date().toISOString()};
+      const oldCode=S.teamJoinCodes[tid];
+      const updates={};
+      if(oldCode) updates[`teamCodes/${oldCode}`]=null;
+      updates[`teamCodes/${code}`]=codeData;
+      updates[`teams/${tid}/joinCode`]=code;
+      await db.ref().update(updates);
+      S.teamJoinCodes[tid]=code;
+      render();
+      showAlert('Código generado ✓');
+    }catch(e){devErr('generateJoinCode:',e);showAlert('Error al generar código.');}
+  };
+  if(S.teamJoinCodes[tid]){
+    showConfirm('¿Regenerar el código? El anterior dejará de funcionar.',doGen);
+  } else {
+    await doGen();
+  }
+}
+
+async function loadJoinCode(tid){
+  try{
+    const snap=await db.ref(`teams/${tid}/joinCode`).get();
+    if(snap.exists()) S.teamJoinCodes[tid]=snap.val();
+    render();
+  }catch{}
+}
+
+async function joinByCode(){
+  const code=(S.joinCodeInput||'').trim().toUpperCase();
+  if(code.length<4){showAlert('Ingresá el código del equipo.');return;}
+  try{
+    const snap=await db.ref(`teamCodes/${code}`).get();
+    if(!snap.exists()){showAlert('Código inválido. Verificá que esté bien escrito.');return;}
+    const data=snap.val();
+    if(S.memberships[data.tid]){showAlert('Ya sos miembro de este equipo.');return;}
+    S.joinCodeData={...data,code};
+    S.joinCodeCatId=null; S.joinCodePid=null;
+    render();
+  }catch(e){devErr('joinByCode:',e);showAlert('Error al buscar el equipo.');}
+}
+
+async function confirmJoinByCode(){
+  const d=S.joinCodeData;
+  if(!d||!currentUser)return;
+  const {tid,code}=d;
+  const catId=S.joinCodeCatId, pid=S.joinCodePid;
+  if(!catId){showAlert('Seleccioná tu categoría.');return;}
+  if(!pid){showAlert('Seleccioná tu jugador.');return;}
+  try{
+    const membershipData={role:'athlete',catId,pid,joinedAt:TODAY,_jc:code};
+    const memberPermData={role:'athlete',catId,pid};
+    await db.ref(`users/${currentUser.uid}/memberships/${tid}`).set(membershipData);
+    await db.ref().update({
+      [`teams/${tid}/memberIndex/${currentUser.uid}`]:{email:currentUser.email,role:'athlete',displayName:currentUser.displayName||''},
+      [`teams/${tid}/memberPermissions/${currentUser.uid}`]:memberPermData,
+    });
+    try{
+      const notifId='notif_'+Date.now();
+      await db.ref(`teams/${tid}/notifications/${notifId}`).set({
+        type:'invite_accepted',uid:currentUser.uid,email:currentUser.email||'',
+        displayName:currentUser.displayName||'',role:'athlete',timestamp:new Date().toISOString(),read:false
+      });
+    }catch{}
+    const tSnap=await db.ref(`teams/${tid}`).get();
+    if(tSnap.exists()){S.teams[tid]=tSnap.val();normalizeTeam(tid);}
+    S.memberships[tid]=membershipData;
+    S.joinCodeModal=false; S.joinCodeData=null; S.joinCodeInput='';
+    S.joinCodeCatId=null; S.joinCodePid=null;
+    window.history.replaceState({},'',window.location.pathname);
+    showAlert('¡Te uniste al equipo! 🎉');
+    render();
+  }catch(e){devErr('confirmJoinByCode:',e);showAlert('Error al unirse. Verificá con el administrador.');}
+}
+
 async function acceptInvitation(){
   const inv = S.pendingInviteData;
   if(!inv||!currentUser) return;
@@ -1414,6 +1515,34 @@ function renderAccessPanel(tid){
   const form    = S.inviteForm;
   const now     = new Date();
 
+  // ── Join code section (owners only) ───────────────────────
+  let joinCodeHtml='';
+  if(isOwner(tid)){
+    const code=S.teamJoinCodes[tid];
+    const joinUrl=code?`${window.location.origin}${window.location.pathname}?joincode=${code}`:'';
+    const qrSrc=code?`https://api.qrserver.com/v1/create-qr-code/?size=180x180&qzone=1&color=F97316&bgcolor=0f172a&data=${encodeURIComponent(joinUrl)}`:'';
+    joinCodeHtml='<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Código de acceso para atletas</div>'
+      +(code
+        ?'<div style="background:var(--bg2);border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+          +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+          +'<div style="font-size:26px;font-weight:800;letter-spacing:5px;color:var(--accent);font-family:var(--font-mono);">'+code+'</div>'
+          +'<div style="margin-left:auto;display:flex;gap:5px;">'
+          +'<button class="sm-btn" style="font-size:11px;" data-action="copyjoincode" data-code="'+code+'">📋 Copiar</button>'
+          +'<button class="sm-btn" style="font-size:11px;color:#fca5a5;border-color:#991b1b;" data-action="genjoincode" data-tid="'+tid+'">🔄</button>'
+          +'</div>'
+          +'</div>'
+          +'<div style="display:flex;align-items:flex-start;gap:12px;">'
+          +'<img src="'+qrSrc+'" style="width:100px;height:100px;border-radius:8px;flex-shrink:0;" loading="lazy">'
+          +'<div style="font-size:12px;color:var(--text2);line-height:1.5;">Tus atletas escanean el QR o ingresan el código en la pantalla de inicio de Qoore.<br><br><span style="color:var(--text3);font-size:11px;">El QR abre el link de registro directo.</span></div>'
+          +'</div>'
+          +'</div>'
+        :'<div style="background:var(--bg2);border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+          +'<div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Generá un código para que tus atletas puedan unirse sin invitación individual.</div>'
+          +'<button class="save-btn" style="width:100%;padding:8px;font-size:13px;" data-action="genjoincode" data-tid="'+tid+'">Generar código de acceso</button>'
+          +'</div>')
+      +'<div style="border-top:1px solid var(--border);margin:0 0 12px;"></div>';
+  }
+
   // ── Notifications ──────────────────────────────────────────
   const unreadCount = notifs.filter(n=>!n.read).length;
   let notifsHtml = '';
@@ -1504,10 +1633,14 @@ function renderAccessPanel(tid){
       +'</div>';
   }).join('');
 
+  const _invEmail=(form.email||'').trim();
   const linkSection = S.inviteLink
     ? '<div style="font-size:12px;color:#86efac;margin-bottom:4px;font-weight:500;">✓ Compartí este link:</div>'
       +'<div class="invite-link-box">'+S.inviteLink+'</div>'
-      +'<button class="save-btn" style="width:100%;padding:8px;font-size:13px;background:var(--bg2);color:var(--accent);border:1px solid var(--accent);" data-action="copyinvitelink">📋 Copiar link</button>'
+      +'<div style="display:flex;gap:6px;">'
+      +'<button class="save-btn" style="flex:1;padding:8px;font-size:13px;background:var(--bg2);color:var(--accent);border:1px solid var(--accent);" data-action="copyinvitelink">📋 Copiar</button>'
+      +(_invEmail?'<button class="save-btn" style="flex:1;padding:8px;font-size:13px;" data-action="sendinvemail" data-email="'+_invEmail+'" data-role="'+(form.role||'editor')+'" data-teamname="'+(S.teams[tid]?.name||'')+'" data-link="'+S.inviteLink+'">✉ Enviar email</button>':'')
+      +'</div>'
     : '';
 
   // Athlete picker (shown instead of cat perms when role=athlete)
@@ -1531,6 +1664,7 @@ function renderAccessPanel(tid){
 
   return '<div class="access-panel">'
     +'<div class="access-panel-title">👥 Gestionar acceso <button class="sm-btn" data-action="toggleaccess">✕ Cerrar</button></div>'
+    + joinCodeHtml
     + notifsHtml
     + pendingHtml
     +(members.length
@@ -1572,6 +1706,50 @@ function renderInviteModal(){
       </div>
       <button class="save-btn" style="width:100%;margin-bottom:8px;" data-action="acceptinvite">Aceptar invitación</button>
       <button class="sm-btn" style="width:100%;padding:8px;" data-action="dismissinvite">Rechazar</button>
+    </div>
+  </div>`;
+}
+
+function renderJoinCodeModal(){
+  if(!S.joinCodeModal)return '';
+  const d=S.joinCodeData;
+  if(!d){
+    return`<div class="invite-modal">
+      <div class="invite-modal-card">
+        <div style="text-align:center;margin-bottom:8px;"><img src="public/brand/logo.png" style="width:44px;height:44px;object-fit:contain;"></div>
+        <div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:4px;">Unirse a un equipo</div>
+        <div style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:20px;">Ingresá el código que te dio tu entrenador.</div>
+        <input id="join-code-input" class="form-input" maxlength="8" autocomplete="off" autocapitalize="characters"
+          style="text-align:center;font-size:24px;letter-spacing:6px;text-transform:uppercase;font-weight:700;padding:12px;"
+          placeholder="ABCD12" value="${S.joinCodeInput||''}">
+        <button class="save-btn" style="width:100%;margin-top:12px;" data-action="joinsubmit">Buscar equipo</button>
+        <button class="sm-btn" style="width:100%;padding:8px;margin-top:6px;" data-action="dismissjoin">Cancelar</button>
+      </div>
+    </div>`;
+  }
+  const cats=Object.entries(d.cats||{});
+  const catBtns=cats.map(([cid,cat])=>`<button class="perm-btn ${S.joinCodeCatId===cid?'sel-edit':''}" data-action="joincodecatsel" data-cid="${cid}">${cat.name}</button>`).join('');
+  let playerBtns='';
+  if(S.joinCodeCatId){
+    const cat=d.cats[S.joinCodeCatId];
+    const players=cat?.players||[];
+    playerBtns='<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 6px;">Jugador</div>'
+      +(players.length
+        ?players.map(p=>`<button class="perm-btn ${S.joinCodePid===p.id?'sel-edit':''}" style="font-size:11px;" data-action="joincodeplayersel" data-pid="${p.id}">${p.name}</button>`).join('')
+        :'<div style="font-size:12px;color:var(--text3);">Esta categoría no tiene jugadores registrados. Contactá al entrenador.</div>');
+  }
+  return`<div class="invite-modal">
+    <div class="invite-modal-card">
+      <div style="text-align:center;margin-bottom:8px;"><img src="public/brand/logo.png" style="width:44px;height:44px;object-fit:contain;"></div>
+      <div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:2px;">${d.teamName||'Equipo'}</div>
+      <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:16px;">Código: <span style="color:var(--accent);font-weight:700;letter-spacing:2px;">${d.code}</span></div>
+      <div style="background:var(--bg2);border-radius:10px;padding:12px 14px;margin-bottom:16px;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Tu categoría</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">${catBtns||'<span style="font-size:12px;color:var(--text3);">Sin categorías</span>'}</div>
+        ${playerBtns}
+      </div>
+      <button class="save-btn" style="width:100%;margin-bottom:8px;" data-action="confirmjoin">Unirme al equipo</button>
+      <button class="sm-btn" style="width:100%;padding:8px;" data-action="dismissjoin">Cancelar</button>
     </div>
   </div>`;
 }
@@ -1961,6 +2139,11 @@ function render(){
     body.innerHTML=renderHome()+renderInviteModal();
     attachEvents(); updateHeader(); return;
   }
+  // Join by code modal
+  if(S.joinCodeModal){
+    body.innerHTML=renderHome()+renderJoinCodeModal();
+    attachEvents(); updateHeader(); return;
+  }
   // Athlete portal — completely separate UI
   const _athCtx=getAthleteCtx();
   if(_athCtx){
@@ -2099,8 +2282,11 @@ function renderHome(){
   const empty=!teamIds.length?`<div class="empty-state" style="padding:60px 20px;">
     <div style="margin-bottom:16px;"><img src="public/brand/logo.png" style="width:80px;height:80px;object-fit:contain;"></div>
     <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">Bienvenido a Qoore</div>
-    <div style="font-size:14px;color:var(--text2);margin-bottom:24px;">Creá tu primer equipo o pedile al Admin que te invite a uno existente.</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:24px;">Creá tu primer equipo o pedile al entrenador que te invite.</div>
+    <button class="save-btn" style="width:100%;max-width:280px;margin:0 auto;display:block;margin-bottom:10px;" data-action="openjoinmodal">Tengo un código de equipo</button>
   </div>`:'';
+  const joinCodeBtn=teamIds.length?`<button class="sm-btn" style="font-size:12px;" data-action="openjoinmodal">+ Unirme a un equipo</button>`:'';
+
 
   const _now=new Date();
   const _hr=_now.getHours();
@@ -2115,7 +2301,10 @@ function renderHome(){
         <div style="font-size:20px;font-weight:600;color:var(--text-0);line-height:1.2;">${_greeting}${_firstName?', '+_firstName:''}</div>
         <div style="font-size:12px;color:var(--text-2);margin-top:3px;">${_dateStr}</div>
       </div>
-      ${!isAthleteOnly()?`<button class="sm-btn" data-action="newteam">+ Nuevo equipo</button>`:''}
+      <div style="display:flex;gap:6px;align-items:center;">
+        ${!isAthleteOnly()?`<button class="sm-btn" data-action="newteam">+ Nuevo equipo</button>`:''}
+        ${joinCodeBtn||''}
+      </div>
     </div>
     ${S.teamFormMode?renderTeamForm():''}
     ${cards}${empty}
@@ -4806,6 +4995,20 @@ async function handleAction(e){
       catch(e){showAlert('No se pudo copiar automáticamente.');}
     }
   }
+  else if(a==='sendinvemail'){
+    const {email,role,teamname,link}=el.dataset;
+    if(!email||!link){showAlert('Faltan datos para enviar el email.');return;}
+    try{
+      const idToken=await currentUser.getIdToken();
+      const r=await fetch('/api/send-invite-email',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},
+        body:JSON.stringify({to:email,teamName:teamname,inviteLink:link,role})
+      });
+      if(r.ok){showAlert('Email enviado a '+email+' ✓');}
+      else{const d=await r.json();showAlert('Error al enviar: '+(d.error||'desconocido'));}
+    }catch(e){showAlert('Error al enviar email.');}
+  }
   else if(a==='revokeaccess'){
     await revokeAccess(el.dataset.tid||S.teamId, el.dataset.muid);
   }
@@ -4814,6 +5017,29 @@ async function handleAction(e){
     S.pendingInvite=null; S.pendingInviteData=null; S.showInviteModal=false;
     window.history.replaceState({},'',window.location.pathname);
     render();
+  }
+  // ── Join by code ───────────────────────────────────────────
+  else if(a==='openjoinmodal'){ S.joinCodeModal=true; S.joinCodeData=null; render(); }
+  else if(a==='dismissjoin'){
+    S.joinCodeModal=false; S.joinCodeData=null; S.joinCodeInput='';
+    S.joinCodeCatId=null; S.joinCodePid=null;
+    window.history.replaceState({},'',window.location.pathname);
+    render();
+  }
+  else if(a==='joinsubmit'){
+    const inp=document.getElementById('join-code-input');
+    if(inp) S.joinCodeInput=inp.value.toUpperCase().trim();
+    await joinByCode();
+  }
+  else if(a==='joincodecatsel'){ S.joinCodeCatId=el.dataset.cid; S.joinCodePid=null; render(); }
+  else if(a==='joincodeplayersel'){ S.joinCodePid=el.dataset.pid; render(); }
+  else if(a==='confirmjoin'){ await confirmJoinByCode(); }
+  else if(a==='genjoincode'){ await generateJoinCode(el.dataset.tid||S.teamId); }
+  else if(a==='copyjoincode'){
+    const code=el.dataset.code;
+    const url=`${window.location.origin}${window.location.pathname}?joincode=${code}`;
+    try{ await navigator.clipboard.writeText(url); showAlert('Link de registro copiado ✓'); }
+    catch(e){ showAlert('Código: '+code); }
   }
   // ATHLETE PORTAL
   else if(a==='aptab'){
