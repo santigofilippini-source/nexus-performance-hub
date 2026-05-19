@@ -1,0 +1,130 @@
+{
+  "rules": {
+    "exercises_library": {
+      ".read": "auth != null",
+      ".write": false
+    },
+
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        "profile":              { ".write": "$uid === auth.uid" },
+        "programs":             { ".write": "$uid === auth.uid" },
+        "exercises":            { ".write": "$uid === auth.uid" },
+        "teams":                { ".write": "$uid === auth.uid" },
+        "athletes":             { ".write": "$uid === auth.uid" },
+        "data":                 { ".write": "$uid === auth.uid" },
+        "pendingJoinRequests":  { ".write": "$uid === auth.uid" },
+        "memberships": {
+          "$teamId": {
+            ".write": "auth != null && (auth.token.email === 'santigofilippini@gmail.com' || (auth.uid === $uid && !data.exists() && newData.child('role').val() === 'owner' && !root.child('teams').child($teamId).exists()) || (auth.uid === $uid && !data.exists() && newData.child('_it').exists() && root.child('invitations').child(newData.child('_it').val()).child('teamId').val() === $teamId && root.child('invitations').child(newData.child('_it').val()).child('status').val() === 'pending' && (!root.child('invitations').child(newData.child('_it').val()).child('invitedEmail').exists() || root.child('invitations').child(newData.child('_it').val()).child('invitedEmail').val() === auth.token.email)) || (auth.uid === $uid && !data.exists() && newData.child('_jc').exists() && root.child('teamCodes').child(newData.child('_jc').val()).child('tid').val() === $teamId) || (auth.uid === $uid && data.exists() && !newData.exists()) || (auth.uid !== $uid && data.exists() && !newData.exists() && root.child('users').child(auth.uid).child('memberships').child($teamId).child('role').val() === 'owner'))"
+          }
+        }
+      }
+    },
+
+    "teams": {
+      ".read": "auth != null && auth.token.email === 'santigofilippini@gmail.com'",
+      "$teamId": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('memberships').child($teamId).exists()",
+        ".write": "auth != null && (auth.token.email === 'santigofilippini@gmail.com' || (root.child('users').child(auth.uid).child('memberships').child($teamId).exists() && root.child('users').child(auth.uid).child('memberships').child($teamId).child('role').val() !== 'athlete'))",
+
+        "memberIndex": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('memberships').child($teamId).exists()"
+          }
+        },
+
+        "memberPermissions": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('users').child(auth.uid).child('memberships').child($teamId).exists()"
+          }
+        },
+
+        "pendingInvites": {
+          "$token": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('memberships').child($teamId).exists() && root.child('users').child(auth.uid).child('memberships').child($teamId).child('role').val() !== 'athlete'"
+          }
+        },
+
+        "joinRequests": {
+          "$uid": {
+            ".write": "auth != null && (auth.uid === $uid && newData.exists() && root.child('teamCodes').child(newData.child('_jc').val()).child('tid').val() === $teamId)"
+          }
+        },
+
+        "notifications": {
+          "$notifId": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('memberships').child($teamId).exists() && root.child('users').child(auth.uid).child('memberships').child($teamId).child('role').val() !== 'athlete'"
+          }
+        },
+
+        "athletes": {
+          "$key": {
+            "personal": {
+              ".write": "auth != null && $key === ($teamId + '__' + root.child('users').child(auth.uid).child('memberships').child($teamId).child('catId').val() + '__' + root.child('users').child(auth.uid).child('memberships').child($teamId).child('pid').val())"
+            }
+          }
+        },
+
+        "categories": {
+          "$catId": {
+            "sessions": {
+              "$date": {
+                "wellness": {
+                  "$pid": {
+                    ".write": "auth != null && root.child('users').child(auth.uid).child('memberships').child($teamId).child('pid').val() === $pid"
+                  }
+                },
+                "playerRPE": {
+                  "$pid": {
+                    ".write": "auth != null && root.child('users').child(auth.uid).child('memberships').child($teamId).child('pid').val() === $pid"
+                  }
+                },
+                "playerDuration": {
+                  "$pid": {
+                    ".write": "auth != null && root.child('users').child(auth.uid).child('memberships').child($teamId).child('pid').val() === $pid"
+                  }
+                },
+                "workoutLog": {
+                  "$pid": {
+                    ".write": "auth != null && root.child('users').child(auth.uid).child('memberships').child($teamId).child('pid').val() === $pid"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "invitations": {
+      "$token": {
+        ".read": "auth != null",
+        ".write": "auth != null && (auth.token.email === 'santigofilippini@gmail.com' || (!data.exists() && newData.child('teamId').exists() && root.child('users').child(auth.uid).child('memberships').child(newData.child('teamId').val()).exists() && root.child('users').child(auth.uid).child('memberships').child(newData.child('teamId').val()).child('role').val() !== 'athlete') || (data.exists() && data.child('status').val() === 'pending' && (!data.child('invitedEmail').exists() || data.child('invitedEmail').val() === auth.token.email)) || (data.exists() && root.child('users').child(auth.uid).child('memberships').child(data.child('teamId').val()).exists() && root.child('users').child(auth.uid).child('memberships').child(data.child('teamId').val()).child('role').val() !== 'athlete'))"
+      }
+    },
+
+    "teamCodes": {
+      ".read": "auth != null",
+      "$code": {
+        ".write": "auth != null && (!newData.exists() || root.child('users').child(auth.uid).child('memberships').child(newData.child('tid').val()).child('role').val() === 'owner')"
+      }
+    },
+
+    "config": {
+      "app": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.token.email === 'santigofilippini@gmail.com'"
+      }
+    },
+
+    "bugReports": {
+      ".read": "auth != null && auth.token.email === 'santigofilippini@gmail.com'",
+      ".indexOn": ["timestamp"],
+      "$reportId": {
+        ".write": "auth != null && (!data.exists() || auth.token.email === 'santigofilippini@gmail.com')"
+      }
+    }
+  }
+}

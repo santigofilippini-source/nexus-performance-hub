@@ -137,6 +137,8 @@ let S = {
   // Join by code
   joinCodeModal:false, joinCodeInput:'', joinCodeData:null, joinCodeCatId:null, joinCodePid:null,
   teamJoinCodes:{},     // {tid: code}
+  teamJoinRequests:{},  // {tid: [{uid, playerName, catName, email, displayName, requestedAt}]}
+  myPendingRequests:{}, // {tid: {teamName, playerName, catName, requestedAt, status?}}
   editingMember:null,   // uid of member being edited in access panel
   editMemberForm:{},    // {role, permissions} draft for member being edited
   confirmModal:null,    // {msg, cb} — custom confirm dialog
@@ -460,15 +462,17 @@ async function loadAll() {
     S.onboardingDone = localStorage.getItem(`ap_obd_${currentUser.uid}`) === '1';
     if(!S.onboardingDone && S.onboardingStep===null) S.onboardingStep=0;
 
-    // 6. Load personal programs and exercise library (in parallel)
-    const [progSnap, exPersonalSnap, exGlobalSnap] = await Promise.all([
+    // 6. Load personal programs, exercise library, and pending join requests (in parallel)
+    const [progSnap, exPersonalSnap, exGlobalSnap, pendingReqSnap] = await Promise.all([
       db.ref(`users/${currentUser.uid}/programs`).get(),
       db.ref(`users/${currentUser.uid}/exercises`).get(),
-      db.ref('exercises_library').get()
+      db.ref('exercises_library').get(),
+      db.ref(`users/${currentUser.uid}/pendingJoinRequests`).get()
     ]);
     S.programs = progSnap.exists() ? (progSnap.val()||{}) : {};
     S.exercises.personal = exPersonalSnap.exists() ? (exPersonalSnap.val()||{}) : {};
     S.exercises.global   = exGlobalSnap.exists()   ? (exGlobalSnap.val()||{})   : {};
+    S.myPendingRequests  = pendingReqSnap.exists()  ? (pendingReqSnap.val()||{}) : {};
 
     setSyncBar('ok');
   } catch(e) {
@@ -1294,37 +1298,42 @@ async function joinByCode(){
   }catch(e){devErr('joinByCode:',e);showAlert('Error al buscar el equipo.');}
 }
 
-async function confirmJoinByCode(){
+async function submitJoinRequest(){
   const d=S.joinCodeData;
   if(!d||!currentUser)return;
   const {tid,code}=d;
   const catId=S.joinCodeCatId, pid=S.joinCodePid;
   if(!catId){showAlert('Seleccioná tu categoría.');return;}
   if(!pid){showAlert('Seleccioná tu jugador.');return;}
+  const cat=d.cats?.[catId];
+  const player=(cat?.players||[]).find(p=>p.id===pid);
+  if(!player){showAlert('Jugador no encontrado.');return;}
   try{
-    const membershipData={role:'athlete',catId,pid,joinedAt:TODAY,_jc:code};
-    const memberPermData={role:'athlete',catId,pid};
-    await db.ref(`users/${currentUser.uid}/memberships/${tid}`).set(membershipData);
-    await db.ref().update({
-      [`teams/${tid}/memberIndex/${currentUser.uid}`]:{email:currentUser.email,role:'athlete',displayName:currentUser.displayName||''},
-      [`teams/${tid}/memberPermissions/${currentUser.uid}`]:memberPermData,
-    });
-    try{
-      const notifId='notif_'+Date.now();
-      await db.ref(`teams/${tid}/notifications/${notifId}`).set({
-        type:'invite_accepted',uid:currentUser.uid,email:currentUser.email||'',
-        displayName:currentUser.displayName||'',role:'athlete',timestamp:new Date().toISOString(),read:false
-      });
-    }catch{}
-    const tSnap=await db.ref(`teams/${tid}`).get();
-    if(tSnap.exists()){S.teams[tid]=tSnap.val();normalizeTeam(tid);}
-    S.memberships[tid]=membershipData;
+    const req={
+      catId, pid, teamName:d.teamName,
+      playerName:player.name, catName:cat.name,
+      email:currentUser.email||'', displayName:currentUser.displayName||currentUser.email?.split('@')[0]||'',
+      requestedAt:new Date().toISOString(), _jc:code
+    };
+    const pendingEntry={teamName:d.teamName, playerName:player.name, catName:cat.name, requestedAt:new Date().toISOString()};
+    await db.ref(`teams/${tid}/joinRequests/${currentUser.uid}`).set(req);
+    await db.ref(`users/${currentUser.uid}/pendingJoinRequests/${tid}`).set(pendingEntry);
+    S.myPendingRequests[tid]=pendingEntry;
     S.joinCodeModal=false; S.joinCodeData=null; S.joinCodeInput='';
     S.joinCodeCatId=null; S.joinCodePid=null;
     window.history.replaceState({},'',window.location.pathname);
-    showAlert('¡Te uniste al equipo! 🎉');
     render();
-  }catch(e){devErr('confirmJoinByCode:',e);showAlert('Error al unirse. Verificá con el administrador.');}
+    showAlert('✓ Solicitud enviada. El entrenador la va a confirmar pronto.');
+    // Notificar staff via push — best-effort
+    try{
+      const idToken=await currentUser.getIdToken();
+      fetch('/api/send-push',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},
+        body:JSON.stringify({notifyStaff:true,tid,title:'Nueva solicitud de ingreso',body:`${req.displayName||req.email} quiere unirse como ${player.name}`,url:window.location.pathname})
+      }).catch(()=>{});
+    }catch{}
+  }catch(e){devErr('submitJoinRequest:',e);showAlert('Error al enviar la solicitud. Intentá de nuevo.');}
 }
 
 async function acceptInvitation(){
@@ -1412,11 +1421,12 @@ async function updateMemberPermissions(tid, memberUid, role, permissions){
 
 async function loadTeamMembers(tid){
   try {
-    const [idxSnap, permSnap, notifSnap, invSnap] = await Promise.all([
+    const [idxSnap, permSnap, notifSnap, invSnap, reqSnap] = await Promise.all([
       db.ref(`teams/${tid}/memberIndex`).get(),
       db.ref(`teams/${tid}/memberPermissions`).get(),
       db.ref(`teams/${tid}/notifications`).get(),
-      db.ref(`teams/${tid}/pendingInvites`).get()
+      db.ref(`teams/${tid}/pendingInvites`).get(),
+      isOwner(tid) ? db.ref(`teams/${tid}/joinRequests`).get() : Promise.resolve(null)
     ]);
     const index = idxSnap.exists()  ? idxSnap.val()||{}  : {};
     const perms = permSnap.exists() ? permSnap.val()||{} : {};
@@ -1442,7 +1452,12 @@ async function loadTeamMembers(tid){
       if(Object.keys(toDelete).length) db.ref().update(toDelete).catch(()=>{});
       S.teamInvites[tid]=active.sort((a,b)=>b.createdAt?.localeCompare(a.createdAt||'')||0);
     } else { S.teamInvites[tid]=[]; }
-  } catch(e){ S.teamMembers[tid]=[]; S.teamNotifs[tid]=[]; S.teamInvites[tid]=[]; }
+    // Join requests (owners only)
+    if(reqSnap?.exists()){
+      S.teamJoinRequests[tid]=Object.entries(reqSnap.val()||{}).map(([uid,r])=>({uid,...r}))
+        .sort((a,b)=>a.requestedAt?.localeCompare(b.requestedAt||'')||0);
+    } else { S.teamJoinRequests[tid]=[]; }
+  } catch(e){ S.teamMembers[tid]=[]; S.teamNotifs[tid]=[]; S.teamInvites[tid]=[]; S.teamJoinRequests[tid]=[]; }
 }
 
 async function revokeInvite(tid, token){
@@ -1541,6 +1556,29 @@ function renderAccessPanel(tid){
           +'<button class="save-btn" style="width:100%;padding:8px;font-size:13px;" data-action="genjoincode" data-tid="'+tid+'">Generar código de acceso</button>'
           +'</div>')
       +'<div style="border-top:1px solid var(--border);margin:0 0 12px;"></div>';
+  }
+
+  // ── Join requests (owners only) ────────────────────────────
+  const joinReqs = S.teamJoinRequests[tid]||[];
+  let joinReqsHtml='';
+  if(isOwner(tid) && joinReqs.length){
+    const rows=joinReqs.map(r=>{
+      const ago=r.requestedAt?timeSince(new Date(r.requestedAt)):'';
+      return '<div style="background:#0c1a2e;border:1px solid #1e40af;border-radius:8px;padding:10px 12px;margin-bottom:6px;">'
+        +'<div style="display:flex;align-items:flex-start;gap:8px;">'
+        +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(r.displayName||r.email)+'</div>'
+        +'<div style="font-size:11px;color:var(--text2);margin-top:2px;">Quiere unirse como <strong style="color:var(--text);">'+r.playerName+'</strong> · '+r.catName+'</div>'
+        +(ago?'<div style="font-size:10px;color:var(--text3);margin-top:2px;">'+ago+'</div>':'')
+        +'</div>'
+        +'<div style="display:flex;gap:5px;flex-shrink:0;">'
+        +'<button class="save-btn" style="padding:5px 10px;font-size:11px;" data-action="approvejoinreq" data-tid="'+tid+'" data-uid="'+r.uid+'" data-name="'+(r.displayName||r.email)+'" data-player="'+r.playerName+'">✓ Aprobar</button>'
+        +'<button class="sm-btn" style="font-size:11px;color:#fca5a5;border-color:#991b1b;" data-action="rejectjoinreq" data-tid="'+tid+'" data-uid="'+r.uid+'" data-name="'+(r.displayName||r.email)+'">✗ Rechazar</button>'
+        +'</div></div></div>';
+    }).join('');
+    joinReqsHtml='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+      +'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Solicitudes pendientes <span style="background:#ef4444;color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:4px;">'+joinReqs.length+'</span></div>'
+      +'</div>'+rows+'<div style="border-top:1px solid var(--border);margin:12px 0;"></div>';
   }
 
   // ── Notifications ──────────────────────────────────────────
@@ -1661,6 +1699,7 @@ function renderAccessPanel(tid){
   return '<div class="access-panel">'
     +'<div class="access-panel-title">👥 Gestionar acceso <button class="sm-btn" data-action="toggleaccess">✕ Cerrar</button></div>'
     + joinCodeHtml
+    + joinReqsHtml
     + notifsHtml
     + pendingHtml
     +(members.length
@@ -1744,7 +1783,7 @@ function renderJoinCodeModal(){
         <div style="display:flex;flex-wrap:wrap;gap:6px;">${catBtns||'<span style="font-size:12px;color:var(--text3);">Sin categorías</span>'}</div>
         ${playerBtns}
       </div>
-      <button class="save-btn" style="width:100%;margin-bottom:8px;" data-action="confirmjoin">Unirme al equipo</button>
+      <button class="save-btn" style="width:100%;margin-bottom:8px;" data-action="confirmjoin">Solicitar unirse</button>
       <button class="sm-btn" style="width:100%;padding:8px;" data-action="dismissjoin">Cancelar</button>
     </div>
   </div>`;
@@ -2213,6 +2252,25 @@ function renderHomeAlerts(){
     <div class="q-alerts-strip__scroll">${chips}</div>
   </div>`;
 }
+function renderPendingRequestsBanner(){
+  const entries=Object.entries(S.myPendingRequests||{}).filter(([tid])=>!S.memberships[tid]);
+  if(!entries.length)return'';
+  return entries.map(([tid,r])=>{
+    const rejected=r.status==='rejected';
+    const bg=rejected?'#2d0a0a':'#0c1a2e';
+    const border=rejected?'#991b1b':'#1e40af';
+    const icon=rejected?'✗':'⏳';
+    const msg=rejected
+      ?`Tu solicitud para <strong>${r.teamName}</strong> fue rechazada.`
+      :`Solicitud enviada a <strong>${r.teamName}</strong> como <strong>${r.playerName}</strong>. Esperá la confirmación del entrenador.`;
+    return`<div style="background:${bg};border:1px solid ${border};border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:flex-start;gap:10px;">
+      <span style="font-size:16px;flex-shrink:0;">${icon}</span>
+      <div style="flex:1;font-size:13px;color:var(--text2);line-height:1.5;">${msg}</div>
+      <button class="sm-btn" style="flex-shrink:0;font-size:11px;" data-action="dismissrejection" data-tid="${tid}">✕</button>
+    </div>`;
+  }).join('');
+}
+
 function renderHome(){
   const teamIds=Object.keys(S.teams);
   const cards=teamIds.map(tid=>{
@@ -2303,6 +2361,7 @@ function renderHome(){
       </div>
     </div>
     ${S.teamFormMode?renderTeamForm():''}
+    ${renderPendingRequestsBanner()}
     ${cards}${empty}
   </div>`;
 }
@@ -5029,8 +5088,59 @@ async function handleAction(e){
   }
   else if(a==='joincodecatsel'){ S.joinCodeCatId=el.dataset.cid; S.joinCodePid=null; render(); }
   else if(a==='joincodeplayersel'){ S.joinCodePid=el.dataset.pid; render(); }
-  else if(a==='confirmjoin'){ await confirmJoinByCode(); }
+  else if(a==='confirmjoin'){ await submitJoinRequest(); }
   else if(a==='genjoincode'){ await generateJoinCode(el.dataset.tid||S.teamId); }
+  else if(a==='approvejoinreq'){
+    const {tid,uid,name,player}=el.dataset;
+    const req=(S.teamJoinRequests[tid]||[]).find(r=>r.uid===uid);
+    if(!req)return;
+    showConfirm(`¿Aprobar a ${name} como ${player}?`, async()=>{
+      try{
+        const idToken=await currentUser.getIdToken();
+        const r=await fetch('/api/handle-join-request',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},
+          body:JSON.stringify({action:'approve',tid,uid})
+        });
+        if(r.ok){
+          S.teamJoinRequests[tid]=(S.teamJoinRequests[tid]||[]).filter(x=>x.uid!==uid);
+          await loadTeamMembers(tid);
+          render();
+          showAlert(`${player} aprobado ✓`);
+        } else {
+          const d=await r.json();
+          showAlert('Error: '+(d.error||'desconocido'));
+        }
+      }catch(e){showAlert('Error al aprobar.');}
+    });
+  }
+  else if(a==='rejectjoinreq'){
+    const {tid,uid,name}=el.dataset;
+    showConfirm(`¿Rechazar la solicitud de ${name}?`, async()=>{
+      try{
+        const idToken=await currentUser.getIdToken();
+        const r=await fetch('/api/handle-join-request',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},
+          body:JSON.stringify({action:'reject',tid,uid})
+        });
+        if(r.ok){
+          S.teamJoinRequests[tid]=(S.teamJoinRequests[tid]||[]).filter(x=>x.uid!==uid);
+          render();
+          showAlert('Solicitud rechazada.');
+        } else {
+          const d=await r.json();
+          showAlert('Error: '+(d.error||'desconocido'));
+        }
+      }catch(e){showAlert('Error al rechazar.');}
+    });
+  }
+  else if(a==='dismissrejection'){
+    const tid=el.dataset.tid;
+    try{ await db.ref(`users/${currentUser.uid}/pendingJoinRequests/${tid}`).remove(); }catch{}
+    delete S.myPendingRequests[tid];
+    render();
+  }
   else if(a==='copyjoincode'){
     const code=el.dataset.code;
     const url=`${window.location.origin}${window.location.pathname}?joincode=${code}`;
