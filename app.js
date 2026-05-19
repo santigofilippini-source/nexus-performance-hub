@@ -51,7 +51,7 @@ async function sendPushNotif(payload){
 }
 
 // ── Constants ─────────────────────────────────────────────────
-const TODAY = new Date().toISOString().split('T')[0];
+const TODAY = (()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
 const ALERT_N = 3;
 const MES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const CAT_PALETTE = ['#2563eb','#d97706','#059669','#7c3aed','#dc2626','#0891b2','#db2777','#ea580c','#16a34a','#b45309'];
