@@ -102,7 +102,8 @@ function renderAthleteToday(ctx){
   const sess=S.teams[tid]?.categories?.[catId]?.sessions?.[TODAY]||{};
   const savedW=sess.wellness?.[pid];
   const lastDate=getAthleteLastSessionDate(ctx);
-  const lastSessRPE=lastDate?(S.teams[tid]?.categories?.[catId]?.sessions?.[lastDate]?.playerRPE?.[pid]??null):null;
+  const rpeDate=lastDate||TODAY;
+  const lastSessRPE=S.teams[tid]?.categories?.[catId]?.sessions?.[rpeDate]?.playerRPE?.[pid]??null;
 
   const _n=new Date();
   const _dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -158,7 +159,7 @@ function renderAthleteToday(ctx){
   const rpeSavedBadge=lastSessRPE!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
 
   // Duration last session — free numeric input
-  const lastSessDuration=lastDate?(S.teams[tid]?.categories?.[catId]?.sessions?.[lastDate]?.playerDuration?.[pid]??null):null;
+  const lastSessDuration=S.teams[tid]?.categories?.[catId]?.sessions?.[rpeDate]?.playerDuration?.[pid]??null;
   const durSavedBadge=lastSessDuration!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
   const durInputVal=ci.sessionDuration!=null?ci.sessionDuration:'';
 
@@ -180,35 +181,31 @@ function renderAthleteToday(ctx){
     </div>
     <div class="ap-well-card">
       <div class="ap-well-card__h">
-        <h3>${lastDate===TODAY?'RPE — Sesión de hoy':'RPE — Última sesión'}</h3>
+        <h3>${rpeDate===TODAY?'RPE — Sesión de hoy':'RPE — Última sesión'}</h3>
         <div style="display:flex;align-items:center;gap:8px;">
-          ${lastDate&&lastDate!==TODAY?`<span style="font-size:11px;color:var(--text-2);">${fmtDate(lastDate)}</span>`:''}
+          ${rpeDate!==TODAY?`<span style="font-size:11px;color:var(--text-2);">${fmtDate(rpeDate)}</span>`:''}
           ${rpeSavedBadge}
         </div>
       </div>
       <div class="ap-well-card__b">
-        ${lastDate
-          ?`<div class="ap-rpe-grid">${rpeBtns}</div>${rpeDescription}`
-          :`<div style="font-size:13px;color:var(--text-2);padding:4px 0;">No hay sesiones anteriores registradas.</div>`}
+        <div class="ap-rpe-grid">${rpeBtns}</div>${rpeDescription}
       </div>
     </div>
     <div class="ap-well-card">
       <div class="ap-well-card__h">
-        <h3>${lastDate===TODAY?'Duración — Sesión de hoy':'Duración — Última sesión'}</h3>
+        <h3>${rpeDate===TODAY?'Duración — Sesión de hoy':'Duración — Última sesión'}</h3>
         <div style="display:flex;align-items:center;gap:8px;">
-          ${lastDate&&lastDate!==TODAY?`<span style="font-size:11px;color:var(--text-2);">${fmtDate(lastDate)}</span>`:''}
+          ${rpeDate!==TODAY?`<span style="font-size:11px;color:var(--text-2);">${fmtDate(rpeDate)}</span>`:''}
           ${durSavedBadge}
         </div>
       </div>
       <div class="ap-well-card__b">
-        ${lastDate
-          ?`<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px 4px;">
-              <input type="number" min="1" max="480" placeholder="ej. 73" value="${durInputVal}"
-                oninput="setAthleteDuration(this.value)"
-                style="width:96px;height:48px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg-3);color:var(--text-1);font-size:24px;font-weight:700;text-align:center;padding:0 8px;">
-              <span style="font-size:15px;color:var(--text-2);font-weight:600;">min</span>
-            </div>`
-          :`<div style="font-size:13px;color:var(--text-2);padding:4px 0;">No hay sesiones anteriores registradas.</div>`}
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px 4px;">
+          <input type="number" min="1" max="480" placeholder="ej. 73" value="${durInputVal}"
+            oninput="setAthleteDuration(this.value)"
+            style="width:96px;height:48px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg-3);color:var(--text-1);font-size:24px;font-weight:700;text-align:center;padding:0 8px;">
+          <span style="font-size:15px;color:var(--text-2);font-weight:600;">min</span>
+        </div>
       </div>
     </div>
     <div style="padding:0 16px 16px;">
