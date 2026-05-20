@@ -5569,8 +5569,9 @@ async function handleAction(e){
     if(S.planForm){S.planForm.assignedToAll=!S.planForm.assignedToAll;if(S.planForm.assignedToAll)S.planForm.assignedTo={};render();}
   }
   else if(a==='plantoggleplayer'){
-    if(S.planForm&&!S.planForm.assignedToAll){
+    if(S.planForm){
       const pid=el.dataset.pid;
+      if(S.planForm.assignedToAll){S.planForm.assignedToAll=false;S.planForm.assignedTo={};}
       if(S.planForm.assignedTo[pid])delete S.planForm.assignedTo[pid];else S.planForm.assignedTo[pid]=true;
       render();
     }
