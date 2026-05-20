@@ -102,8 +102,7 @@ function renderAthleteToday(ctx){
   const sess=S.teams[tid]?.categories?.[catId]?.sessions?.[TODAY]||{};
   const savedW=sess.wellness?.[pid];
   const lastDate=getAthleteLastSessionDate(ctx);
-  const rpeDate=lastDate||TODAY;
-  const lastSessRPE=S.teams[tid]?.categories?.[catId]?.sessions?.[rpeDate]?.playerRPE?.[pid]??null;
+  const lastSessRPE=S.teams[tid]?.categories?.[catId]?.sessions?.[TODAY]?.playerRPE?.[pid]??null;
 
   const _n=new Date();
   const _dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -159,7 +158,7 @@ function renderAthleteToday(ctx){
   const rpeSavedBadge=lastSessRPE!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
 
   // Duration last session — free numeric input
-  const lastSessDuration=S.teams[tid]?.categories?.[catId]?.sessions?.[rpeDate]?.playerDuration?.[pid]??null;
+  const lastSessDuration=S.teams[tid]?.categories?.[catId]?.sessions?.[TODAY]?.playerDuration?.[pid]??null;
   const durSavedBadge=lastSessDuration!=null?`<span style="font-size:11px;color:var(--ok);font-weight:600;">✓ Registrado</span>`:'';
   const durInputVal=ci.sessionDuration!=null?ci.sessionDuration:'';
 
@@ -181,11 +180,8 @@ function renderAthleteToday(ctx){
     </div>
     <div class="ap-well-card">
       <div class="ap-well-card__h">
-        <h3>${rpeDate===TODAY?'RPE — Sesión de hoy':'RPE — Última sesión'}</h3>
-        <div style="display:flex;align-items:center;gap:8px;">
-          ${rpeDate!==TODAY?`<span style="font-size:11px;color:var(--text-2);">${fmtDate(rpeDate)}</span>`:''}
-          ${rpeSavedBadge}
-        </div>
+        <h3>RPE — Sesión de hoy</h3>
+        <div style="display:flex;align-items:center;gap:8px;">${rpeSavedBadge}</div>
       </div>
       <div class="ap-well-card__b">
         <div class="ap-rpe-grid">${rpeBtns}</div>${rpeDescription}
@@ -193,11 +189,8 @@ function renderAthleteToday(ctx){
     </div>
     <div class="ap-well-card">
       <div class="ap-well-card__h">
-        <h3>${rpeDate===TODAY?'Duración — Sesión de hoy':'Duración — Última sesión'}</h3>
-        <div style="display:flex;align-items:center;gap:8px;">
-          ${rpeDate!==TODAY?`<span style="font-size:11px;color:var(--text-2);">${fmtDate(rpeDate)}</span>`:''}
-          ${durSavedBadge}
-        </div>
+        <h3>Duración — Sesión de hoy</h3>
+        <div style="display:flex;align-items:center;gap:8px;">${durSavedBadge}</div>
       </div>
       <div class="ap-well-card__b">
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px 4px;">

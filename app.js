@@ -1172,14 +1172,10 @@ function initAthleteCheckin(ctx){
   const{tid,catId,pid}=ctx;
   const sess=S.teams[tid]?.categories?.[catId]?.sessions?.[TODAY]||{};
   const w=sess.wellness?.[pid]||{};
-  const lastDate=getAthleteLastSessionDate(ctx);
-  const lastSess=lastDate?S.teams[tid]?.categories?.[catId]?.sessions?.[lastDate]:null;
-  const lastRPE=lastSess?.playerRPE?.[pid]??null;
-  const lastDur=lastSess?.playerDuration?.[pid]??null;
   S.athleteCheckin={
     sleep:w.sleep??null,fatigue:w.fatigue??null,soreness:w.soreness??null,
     stress:w.stress??null,mood:w.mood??null,
-    rpe:lastRPE,rpeDate:lastDate||TODAY,sessionDuration:lastDur
+    rpe:sess.playerRPE?.[pid]??null,rpeDate:TODAY,sessionDuration:sess.playerDuration?.[pid]??null
   };
 }
 
