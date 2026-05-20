@@ -1992,8 +1992,10 @@ async function saveSessionDraft(){
   try {
     await db.ref(planBase()).update(sessData);
     setSyncBar('ok');
+    return true;
   } catch(e) {
     setSyncBar('error', e.code||e.message||'Error');
+    return false;
   }
 }
 // ── Programs Firebase ─────────────────────────────────────────
@@ -4906,7 +4908,7 @@ async function handleAction(e){
   else if(a==='playerrpe'){const _pid=el.dataset.pid;S.sessionDraft.playerRPE[_pid]=parseInt(el.dataset.rpe);if(S.rpeExpand)delete S.rpeExpand[_pid];if(S.rpeSheet&&S.rpeSheet.pid===_pid)S.rpeSheet=null;render();}
   else if(a==='wellness'){const pid=el.dataset.pid,key=el.dataset.key,val=parseInt(el.dataset.val);if(!S.wellnessDraft[pid])S.wellnessDraft[pid]={};S.wellnessDraft[pid][key]=val;render();}
   else if(a==='togglewellness'){S.wellnessExpanded[el.dataset.pid]=!S.wellnessExpanded[el.dataset.pid];render();}
-  else if(a==='savesession'){const durI=document.getElementById('dur-input');if(durI)S.sessionDraft.duration=durI.value;await saveSessionDraft();render();const msg=document.getElementById('sess-save-msg');if(msg){msg.textContent='✓ Guardado';setTimeout(()=>{if(msg)msg.textContent='';},2500);}}
+  else if(a==='savesession'){const durI=document.getElementById('dur-input');if(durI)S.sessionDraft.duration=durI.value;const _ok=await saveSessionDraft();render();const msg=document.getElementById('sess-save-msg');if(msg&&_ok){msg.textContent='✓ Guardado';setTimeout(()=>{if(msg)msg.textContent='';},2500);}}
   // ROSTER
   else if(a==='addplayer'){await addPlayer();}
   else if(a==='startdel'){S.confirmDel=el.dataset.pid;render();}
