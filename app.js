@@ -3149,6 +3149,17 @@ function renderIndividualRPE(){
   const isMob=window.innerWidth<900;
   if(!S.rpeExpand)S.rpeExpand={};
   const sheetHtml=isMob&&S.rpeSheet&&editable?renderRPEBottomSheet(S.rpeSheet.pid,dur,cd):'';
+  const hasPresent=cd.players.some(p=>{const s=att[p.id];return s==='P'||s==='T';});
+  if(!hasPresent){
+    return`<div style="border-top:1px solid var(--line);">
+      <div style="padding:8px 16px;background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;">RPE por jugador</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px 16px;text-align:center;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div style="font-size:13px;color:var(--text-2);line-height:1.5;">Marcá la asistencia antes<br>de cargar el RPE</div>
+        <button class="q-btn" data-action="gotab" data-tab="attend" style="font-size:13px;gap:6px;">Ir a Asistencia →</button>
+      </div>
+    </div>`;
+  }
   return`<div style="border-top:1px solid var(--line);">
     <div style="padding:8px 16px;background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;">RPE por jugador</div>
     ${cd.players.map(p=>{
@@ -4890,6 +4901,7 @@ async function handleAction(e){
     else if(el.dataset.sub==='load'||el.dataset.sub==='wellness'){refreshSessionDraftFromFirebase().then(()=>render());}
     else render();
   }
+  else if(a==='gotab'){S.tab=el.dataset.tab;loadSession();render();}
   else if(a==='rpemode'){S.rpeMode=el.dataset.mode;render();}
   else if(a==='sessiontype'){S.sessionDraft.sessionType=el.dataset.type;render();}
   else if(a==='cancelsearch'){S.view=S.searchReturnView||S.prevView||'home';S.teamId=S.searchReturnTeamId||S.prevTeamId||S.teamId;S.searchReturnView=null;S.searchReturnTeamId=null;render();}
