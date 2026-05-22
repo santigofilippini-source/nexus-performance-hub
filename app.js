@@ -1340,10 +1340,10 @@ async function acceptInvitation(){
     const isAthlete = role === 'athlete';
     const membershipData = isAthlete
       ? {role:'athlete', catId:catId||null, pid:pid||null, joinedAt:TODAY, _it:token}
-      : {role, permissions, joinedAt:TODAY, _it:token};
+      : {role, permissions:permissions||null, joinedAt:TODAY, _it:token};
     const memberPermData = isAthlete
       ? {role:'athlete', catId:catId||null, pid:pid||null}
-      : {role, permissions};
+      : {role, permissions:permissions||null};
     // Step 1: write membership first so teams/ rule passes
     await db.ref(`users/${currentUser.uid}/memberships/${teamId}`).set(membershipData);
     // Step 2: mark invite accepted (invitations path — no team permission required)
