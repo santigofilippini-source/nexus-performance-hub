@@ -2707,6 +2707,7 @@ function renderCategoryCalendar(){
 
   // Attendance % for a day
   const calcAtt=(d)=>{
+    if(cd.sessions?.[ds(d)]?.sessionType==='libre') return null;
     const att=cd.attendance?.[ds(d)]||{};
     const total=cd.players.length;
     if(!total)return null;
@@ -2822,7 +2823,7 @@ function renderCategoryCalendar(){
   const weekMon=new Date(todayD);weekMon.setDate(weekMon.getDate()-daysToMon+wOff*7);
   const weekDays=Array.from({length:7},(_,i)=>{const d=new Date(weekMon);d.setDate(d.getDate()+i);return d;});
   const fmtDs=d=>d.toISOString().split('T')[0];
-  const calcAttDs=dateStr=>{const att=cd.attendance?.[dateStr]||{};const tot=cd.players.length;if(!tot)return null;return Math.round(Object.values(att).filter(s=>s==='P'||s==='T').length/tot*100);};
+  const calcAttDs=dateStr=>{if(cd.sessions?.[dateStr]?.sessionType==='libre')return null;const att=cd.attendance?.[dateStr]||{};const tot=cd.players.length;if(!tot)return null;return Math.round(Object.values(att).filter(s=>s==='P'||s==='T').length/tot*100);};
   const calcLoadDs=dateStr=>{const sess=cd.sessions?.[dateStr];if(!sess)return null;const att=cd.attendance?.[dateStr]||{};const bDur=parseInt(sess.duration)||0;let sum=0,cnt=0;cd.players.forEach(p=>{if(att[p.id]==='P'||att[p.id]==='T'){const rpe=sess.playerRPE?.[p.id]??sess.teamRPE;const dur=sess.playerDuration?.[p.id]??bDur;if(rpe!=null&&dur){sum+=rpe*dur;cnt++;}}});return cnt>0?Math.round(sum/cnt):null;};
 
   // Week nav label
@@ -3352,10 +3353,11 @@ function renderReports(){
   const DAY_LBL=['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
   // Daily metrics
   const daily=weekDays.map((ds,di)=>{
+    const sess=cd.sessions[ds];
+    const isLibre=sess?.sessionType==='libre';
     const dayAtt=cd.attendance[ds]||{};
     const present=cd.players.filter(p=>{const s=dayAtt[p.id];return s==='P'||s==='T';}).length;
-    const pct=cd.players.length>0?Math.round(present/cd.players.length*100):null;
-    const sess=cd.sessions[ds];
+    const pct=(!isLibre&&cd.players.length>0)?Math.round(present/cd.players.length*100):null;
     return{ds,lbl:DAY_LBL[di],pct,rpe:sess?.teamRPE??null,type:sess?.sessionType??null,hasSess:!!sess?.duration};
   });
   // Week KPIs
@@ -3431,7 +3433,7 @@ function renderReports(){
     const wm=new Date(TODAY+'T12:00:00');const wd=wm.getDay();wm.setDate(wm.getDate()+(wd===0?-6:1-wd)+off*7);
     const ws=wm.toISOString().split('T')[0];
     const wdays=Array.from({length:7},(_,j)=>{const d=new Date(wm);d.setDate(d.getDate()+j);return d.toISOString().split('T')[0];});
-    const wAttVals=wdays.map(ds=>{const da=cd.attendance[ds]||{};const pr=cd.players.filter(p=>{const s=da[p.id];return s==='P'||s==='T';}).length;return cd.players.length>0?pr/cd.players.length*100:null;}).filter(v=>v!==null);
+    const wAttVals=wdays.map(ds=>{if(cd.sessions[ds]?.sessionType==='libre')return null;const da=cd.attendance[ds]||{};const pr=cd.players.filter(p=>{const s=da[p.id];return s==='P'||s==='T';}).length;return cd.players.length>0?pr/cd.players.length*100:null;}).filter(v=>v!==null);
     const wAtt=wAttVals.length>0?Math.round(wAttVals.reduce((a,b)=>a+b,0)/wAttVals.length):null;
     const wTot=cd.players.reduce((a,p)=>a+wdays.reduce((b,ds)=>b+playerLoadOnDate(cd,p.id,ds),0),0);
     const wLoad=cd.players.length>0?Math.round(wTot/cd.players.length):0;
