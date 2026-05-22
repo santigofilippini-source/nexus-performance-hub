@@ -1504,7 +1504,7 @@ function renderAccessPanel(tid){
           +'<div style="font-size:26px;font-weight:800;letter-spacing:5px;color:var(--accent);font-family:var(--font-mono);">'+code+'</div>'
           +'<div style="margin-left:auto;display:flex;gap:5px;">'
           +'<button class="sm-btn" style="font-size:11px;" data-action="copyjoincode" data-code="'+code+'">📋 Copiar</button>'
-          +(isOwner(tid)?'<button class="sm-btn" style="font-size:11px;color:#fca5a5;border-color:#991b1b;" data-action="genjoincode" data-tid="'+tid+'">🔄</button>':'')
+          +'<button class="sm-btn" style="font-size:11px;color:#fca5a5;border-color:#991b1b;" data-action="genjoincode" data-tid="'+tid+'">🔄</button>'
           +'</div>'
           +'</div>'
           +'<div style="display:flex;align-items:flex-start;gap:12px;">'
@@ -1512,14 +1512,10 @@ function renderAccessPanel(tid){
           +'<div style="font-size:12px;color:var(--text2);line-height:1.5;">Los atletas escanean el QR o ingresan el código en la pantalla de inicio de Qoore.<br><br><span style="color:var(--text3);font-size:11px;">El QR abre el link de registro directo.</span></div>'
           +'</div>'
           +'</div>'
-        :(isOwner(tid)
-          ?'<div style="background:var(--bg2);border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
-            +'<div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Generá un código para que tus atletas puedan unirse sin invitación individual.</div>'
+        :'<div style="background:var(--bg2);border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+            +'<div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Generá un código para que los atletas puedan unirse sin invitación individual.</div>'
             +'<button class="save-btn" style="width:100%;padding:8px;font-size:13px;" data-action="genjoincode" data-tid="'+tid+'">Generar código de acceso</button>'
-            +'</div>'
-          :'<div style="background:var(--bg2);border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
-            +'<div style="font-size:12px;color:var(--text3);">El propietario del equipo aún no generó un código de acceso.</div>'
-            +'</div>'))
+            +'</div>')
       +'<div style="border-top:1px solid var(--border);margin:0 0 12px;"></div>';
   }
 

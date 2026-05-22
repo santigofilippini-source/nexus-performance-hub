@@ -108,7 +108,7 @@
     "teamCodes": {
       ".read": "auth != null",
       "$code": {
-        ".write": "auth != null && (!newData.exists() || root.child('users').child(auth.uid).child('memberships').child(newData.child('tid').val()).child('role').val() === 'owner')"
+        ".write": "auth != null && (!newData.exists() || root.child('users').child(auth.uid).child('memberships').child(newData.child('tid').val()).child('role').val() === 'owner' || root.child('users').child(auth.uid).child('memberships').child(newData.child('tid').val()).child('role').val() === 'editor')"
       }
     },
 
