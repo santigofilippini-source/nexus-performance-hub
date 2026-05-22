@@ -586,7 +586,7 @@ function goToTodaySessions(){
 function sidebarOpenTeam(tid){S.teamId=tid;S.view='team';S.teamFormMode=null;S.catFormMode=null;render();}
 function sidebarOpenCat(tid,cid){S.teamId=tid;S.cat=cid;S.lastCatTid=tid;S.lastCatCid=cid;S.view='cat';S.tab='calendario';S.calOffset=0;S.date=TODAY;loadSession();loadSessionDraft();render();}
 function openPrograms(){S.view='programs';S.programView=null;S.programForm=null;render();}
-function sidebarToggleAccess(tid){S.teamId=tid;S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};S.accessSectionOpen={invites:true,members:false};if(S.accessPanel){loadTeamMembers(tid);if(isOwner(tid))loadJoinCode(tid);}render();}
+function sidebarToggleAccess(tid){S.teamId=tid;S.accessPanel=!S.accessPanel;S.inviteLink=null;S.inviteForm={role:'editor',permissions:{},email:''};S.accessSectionOpen={invites:true,members:false};if(S.accessPanel){loadTeamMembers(tid);if(isOwner(tid)||myRole(tid)==='editor')loadJoinCode(tid);}render();}
 function updateSidebarNav(){
   const nav=document.getElementById('nx-sidebar-nav');
   if(!nav)return;
@@ -604,7 +604,7 @@ function updateSidebarNav(){
     h+=`<div class="q-tree__group">`;
     h+=`<div class="q-tree__team${isOpen?' open':''}" onclick="sidebarOpenTeam('${tid}')">`;
     h+=`<span class="chev">${chevR}</span><span class="crest">${crest}</span><span class="name">${t.name}</span><span class="count">${totalPlayers}</span>`;
-    if(isOwn) h+=`<button onclick="event.stopPropagation();sidebarToggleAccess('${tid}')" title="Acceso" style="background:transparent;border:0;color:var(--text-2);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:12px;">👥</button>`;
+    if(isOwn||myRole(tid)==='editor') h+=`<button onclick="event.stopPropagation();sidebarToggleAccess('${tid}')" title="Acceso" style="background:transparent;border:0;color:var(--text-2);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:12px;">👥</button>`;
     h+=`</div>`;
     if(isOpen&&cats.length){
       h+=`<div class="q-tree__cats">`;
@@ -1385,7 +1385,7 @@ async function acceptInvitation(){
     render();
     const roleLabel=role==='editor'?'Staff':role==='athlete'?'Atleta':'Observador';
     showAlert(`✓ Te uniste a "${inv.teamName}" como ${roleLabel}.`);
-  } catch(e){ devErr('Error accepting invite:',e); showAlert('Error al aceptar la invitación.'); }
+  } catch(e){ devErr('Error accepting invite:',e); showAlert('Error al aceptar la invitación. '+(e?.code||e?.message||'')); }
 }
 
 async function revokeAccess(tid, memberUid){
@@ -1422,7 +1422,7 @@ async function loadTeamMembers(tid){
       db.ref(`teams/${tid}/memberPermissions`).get(),
       db.ref(`teams/${tid}/notifications`).get(),
       db.ref(`teams/${tid}/pendingInvites`).get(),
-      isOwner(tid) ? db.ref(`teams/${tid}/joinRequests`).get() : Promise.resolve(null)
+      isOwner(tid)||myRole(tid)==='editor' ? db.ref(`teams/${tid}/joinRequests`).get() : Promise.resolve(null)
     ]);
     const index = idxSnap.exists()  ? idxSnap.val()||{}  : {};
     const perms = permSnap.exists() ? permSnap.val()||{} : {};
@@ -1491,9 +1491,9 @@ function renderAccessPanel(tid){
   const form    = S.inviteForm;
   const now     = new Date();
 
-  // ── Join code section (owners only) ───────────────────────
+  // ── Join code section (owners + editors) ──────────────────
   let joinCodeHtml='';
-  if(isOwner(tid)){
+  if(isOwner(tid)||myRole(tid)==='editor'){
     const code=S.teamJoinCodes[tid];
     const joinUrl=code?`${window.location.origin}${window.location.pathname}?joincode=${code}`:'';
     const qrSrc=code?`https://api.qrserver.com/v1/create-qr-code/?size=180x180&qzone=1&color=F97316&bgcolor=0f172a&data=${encodeURIComponent(joinUrl)}`:'';
@@ -1504,25 +1504,29 @@ function renderAccessPanel(tid){
           +'<div style="font-size:26px;font-weight:800;letter-spacing:5px;color:var(--accent);font-family:var(--font-mono);">'+code+'</div>'
           +'<div style="margin-left:auto;display:flex;gap:5px;">'
           +'<button class="sm-btn" style="font-size:11px;" data-action="copyjoincode" data-code="'+code+'">📋 Copiar</button>'
-          +'<button class="sm-btn" style="font-size:11px;color:#fca5a5;border-color:#991b1b;" data-action="genjoincode" data-tid="'+tid+'">🔄</button>'
+          +(isOwner(tid)?'<button class="sm-btn" style="font-size:11px;color:#fca5a5;border-color:#991b1b;" data-action="genjoincode" data-tid="'+tid+'">🔄</button>':'')
           +'</div>'
           +'</div>'
           +'<div style="display:flex;align-items:flex-start;gap:12px;">'
           +'<img src="'+qrSrc+'" style="width:100px;height:100px;border-radius:8px;flex-shrink:0;" loading="lazy">'
-          +'<div style="font-size:12px;color:var(--text2);line-height:1.5;">Tus atletas escanean el QR o ingresan el código en la pantalla de inicio de Qoore.<br><br><span style="color:var(--text3);font-size:11px;">El QR abre el link de registro directo.</span></div>'
+          +'<div style="font-size:12px;color:var(--text2);line-height:1.5;">Los atletas escanean el QR o ingresan el código en la pantalla de inicio de Qoore.<br><br><span style="color:var(--text3);font-size:11px;">El QR abre el link de registro directo.</span></div>'
           +'</div>'
           +'</div>'
-        :'<div style="background:var(--bg2);border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
-          +'<div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Generá un código para que tus atletas puedan unirse sin invitación individual.</div>'
-          +'<button class="save-btn" style="width:100%;padding:8px;font-size:13px;" data-action="genjoincode" data-tid="'+tid+'">Generar código de acceso</button>'
-          +'</div>')
+        :(isOwner(tid)
+          ?'<div style="background:var(--bg2);border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+            +'<div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Generá un código para que tus atletas puedan unirse sin invitación individual.</div>'
+            +'<button class="save-btn" style="width:100%;padding:8px;font-size:13px;" data-action="genjoincode" data-tid="'+tid+'">Generar código de acceso</button>'
+            +'</div>'
+          :'<div style="background:var(--bg2);border-radius:10px;padding:12px 14px;margin-bottom:12px;">'
+            +'<div style="font-size:12px;color:var(--text3);">El propietario del equipo aún no generó un código de acceso.</div>'
+            +'</div>'))
       +'<div style="border-top:1px solid var(--border);margin:0 0 12px;"></div>';
   }
 
   // ── Join requests (owners only) ────────────────────────────
   const joinReqs = S.teamJoinRequests[tid]||[];
   let joinReqsHtml='';
-  if(isOwner(tid) && joinReqs.length){
+  if((isOwner(tid)||myRole(tid)==='editor') && joinReqs.length){
     const rows=joinReqs.map(r=>{
       const ago=r.requestedAt?timeSince(new Date(r.requestedAt)):'';
       return '<div style="background:#0c1a2e;border:1px solid #1e40af;border-radius:8px;padding:10px 12px;margin-bottom:6px;">'
@@ -4995,7 +4999,8 @@ async function handleAction(e){
   }
   else if(a==='toggleaccess'){
     S.accessPanel=!S.accessPanel; S.inviteLink=null; S.inviteForm={role:'editor',permissions:{},email:''};
-    if(S.accessPanel) await loadTeamMembers(S.teamId||el.dataset.tid);
+    S.accessSectionOpen={invites:true,members:false};
+    if(S.accessPanel){const _atid=S.teamId||el.dataset.tid;await loadTeamMembers(_atid);if(isOwner(_atid)||myRole(_atid)==='editor')loadJoinCode(_atid);}
     render();
   }
   else if(a==='setinviterole'){

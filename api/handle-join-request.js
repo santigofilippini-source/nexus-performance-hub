@@ -15,10 +15,11 @@ module.exports = async (req, res) => {
 
   const db = admin.database();
 
-  // Verify caller is owner of the team
-  const ownerSnap = await db.ref(`users/${callerUid}/memberships/${tid}`).get();
-  if (!ownerSnap.exists() || ownerSnap.val()?.role !== 'owner') {
-    return res.status(403).json({ error: 'Not owner' });
+  // Verify caller is owner or editor of the team
+  const callerMembSnap = await db.ref(`users/${callerUid}/memberships/${tid}`).get();
+  const callerRole = callerMembSnap.val()?.role;
+  if (!callerMembSnap.exists() || (callerRole !== 'owner' && callerRole !== 'editor')) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
   }
 
   // Load the join request
