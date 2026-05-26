@@ -3279,25 +3279,35 @@ function renderMetrics(){
     <div class="q-section-h__l"><h2>Métricas · Carga de equipo</h2><p>${withData.length} atletas con datos · ${filterLabel}</p></div>
     <div class="q-section-h__r">${filterToggle}<button class="q-btn q-btn--ghost q-btn--sm" data-action="exportloadspdf">⬇ Exportar</button></div>
   </div>`;
+  const customDateRow=S.loadFilter==='custom'?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+    <input id="load-from" type="date" value="${S.loadFrom||''}" style="background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:5px 10px;color:var(--text-0);font-size:13px;">
+    <span style="color:var(--text-2);">—</span>
+    <input id="load-to" type="date" value="${S.loadTo||''}" style="background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:5px 10px;color:var(--text-0);font-size:13px;">
+    <button class="q-btn q-btn--sm" data-action="applycustomfilter">Aplicar</button>
+  </div>`:'';
   const kpiRow=`<div class="q-stats">
     <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Carga semanal prom.</span></div><div class="q-stat__val">${avgWeekly}<span class="u">UA</span></div><div class="q-stat__sub"><span>Promedio del plantel</span></div></div>
     <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">ACWR equipo</span></div><div class="q-stat__val" style="color:${teamSt?teamSt.c:'var(--text-0)'};">${avgAcwr!==null?avgAcwr:'—'}</div><div class="q-stat__sub"><span class="q-stat__delta flat">${teamSt?teamSt.lbl:'Sin datos'}</span><span>rango 0.8–1.3</span></div></div>
     <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Monotonía</span></div><div class="q-stat__val">${avgMono||'—'}</div><div class="q-stat__sub"><span>variación del plantel</span></div></div>
     <div class="q-stat"><div class="q-stat__row"><span class="q-stat__label">Atletas en riesgo</span></div><div class="q-stat__val" style="color:${atRisk>0?'var(--bad)':'var(--ok)'};">${atRisk}<span class="u">/${allM.length}</span></div><div class="q-stat__sub"><span>ACWR &gt; 1.3</span></div></div>
   </div>`;
-  const teamDays=Array.from({length:28},(_,i)=>{
-    const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-(27-i));
+  const _cs=new Date(from+'T12:00:00'),_ce=new Date(to+'T12:00:00');
+  const chartLen=Math.max(1,Math.round((_ce-_cs)/86400000)+1);
+  const teamDays=Array.from({length:chartLen},(_,i)=>{
+    const d=new Date(_cs);d.setDate(d.getDate()+i);
     const ds=d.toISOString().split('T')[0];
     const tot=allM.reduce((a,m)=>a+playerLoadOnDate(cd,m.id,ds),0);
     return{ds,avg:allM.length>0?Math.round(tot/allM.length):0};
   });
   const maxDay=Math.max(...teamDays.map(d=>d.avg),1);
+  const _n=chartLen-1;
+  const _axisIdxs=chartLen<=1?[0]:[0,Math.round(_n/4),Math.round(_n/2),Math.round(3*_n/4),_n].filter((v,i,a)=>a.indexOf(v)===i);
   const barChart=`<div class="q-card" style="margin-bottom:14px;">
-    <div class="q-card__h"><h3>Carga diaria · 28 días</h3><span class="meta">Promedio del plantel</span></div>
+    <div class="q-card__h"><h3>Carga diaria · ${filterLabel}</h3><span class="meta">Promedio del plantel</span></div>
     <div style="padding:16px;">
       <div style="display:flex;align-items:flex-end;gap:3px;height:80px;">${teamDays.map(d=>{const pct=d.avg/maxDay;const col=pct>0.85?'var(--bad)':pct>0.65?'var(--warn)':d.avg>0?'var(--accent)':'var(--bg-3)';return`<div style="flex:1;height:${Math.max(d.avg>0?4:2,Math.round(pct*80))}px;background:${col};border-radius:2px 2px 0 0;" title="${d.ds}: ${d.avg} UA"></div>`;}).join('')}</div>
       <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:var(--font-mono);font-size:10px;color:var(--text-2);">
-        <span>${fmtDate(teamDays[0].ds)}</span><span>${fmtDate(teamDays[6].ds)}</span><span>${fmtDate(teamDays[13].ds)}</span><span>${fmtDate(teamDays[20].ds)}</span><span>${fmtDate(teamDays[27].ds)}</span>
+        ${_axisIdxs.map(i=>`<span>${fmtDate(teamDays[i].ds)}</span>`).join('')}
       </div>
     </div>
   </div>`;
@@ -3312,7 +3322,7 @@ function renderMetrics(){
     ${lowPl.map(m=>`<div style="font-size:12px;">• ${m.name}: ACWR ${m.acwr} — Subcarga</div>`).join('')}
     ${monoPl.map(m=>`<div style="font-size:12px;">• ${m.name}: Monotonía ${m.monotony} — Alta</div>`).join('')}
   </div>`:'';
-  if(!withData.length)return sectionHeader+kpiRow+barChart+insufficientBanner+`<div class="empty-state">Sin datos de sesión aún.<br>Registrá RPE y duración en la tab <strong>Sesión</strong>.</div>`;
+  if(!withData.length)return sectionHeader+customDateRow+kpiRow+barChart+insufficientBanner+`<div class="empty-state">Sin datos de sesión aún.<br>Registrá RPE y duración en la tab <strong>Sesión</strong>.</div>`;
   const sorted=[...allM].sort((a,b)=>(b.acwr??-1)-(a.acwr??-1));
   const COL='minmax(0,1.6fr) 50px 80px 100px 80px 80px 1fr 90px';
   const tableHead=`<div style="display:grid;grid-template-columns:${COL};gap:14px;padding:10px 16px;background:var(--bg-1);border-bottom:1px solid var(--line);font-size:10.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">
@@ -3335,7 +3345,7 @@ function renderMetrics(){
       ${pill}
     </div>`;
   }).join('');
-  return sectionHeader+kpiRow+barChart+insufficientBanner+alertsBanner+`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><div class="q-card" style="min-width:760px;">${tableHead}${tableRows}</div></div>`;
+  return sectionHeader+customDateRow+kpiRow+barChart+insufficientBanner+alertsBanner+`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><div class="q-card" style="min-width:760px;">${tableHead}${tableRows}</div></div>`;
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
