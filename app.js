@@ -326,10 +326,30 @@ async function doRegister() {
   try {
     const cred=await auth.createUserWithEmailAndPassword(email,pass);
     if(name) await cred.user.updateProfile({displayName:name});
+    // Fire-and-forget welcome email
+    cred.user.getIdToken().then(tok=>fetch('/api/welcome-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+      body:JSON.stringify({name:name||email.split('@')[0],email}),
+    })).catch(()=>{});
   } catch(e) {
     const msgs={'auth/email-already-in-use':'Ya existe una cuenta con ese email.','auth/invalid-email':'Email inválido.','auth/weak-password':'Contraseña muy débil.'};
     err.textContent=msgs[e.code]||'Error: '+e.message;
     btn.disabled=false; btn.textContent='Crear cuenta';
+  }
+}
+async function doForgotPassword(){
+  const email=document.getElementById('email-input').value.trim();
+  const err=document.getElementById('login-err');
+  if(!email){err.style.color='var(--warn)';err.textContent='Ingresá tu email arriba para recuperar la contraseña.';return;}
+  try{
+    await auth.sendPasswordResetEmail(email);
+    err.style.color='var(--ok)';
+    err.textContent='¡Listo! Revisá tu casilla — te mandamos un link para restablecer tu contraseña.';
+  }catch(e){
+    err.style.color='var(--bad)';
+    const msgs={'auth/user-not-found':'No hay ninguna cuenta con ese email.','auth/invalid-email':'Email inválido.'};
+    err.textContent=msgs[e.code]||'Error: '+e.message;
   }
 }
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();});
