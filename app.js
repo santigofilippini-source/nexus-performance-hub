@@ -3689,7 +3689,9 @@ function renderRoster(){
     if(S.confirmDel===p.id)return`<div class="roster-row" style="border-color:#991b1b;"><span class="roster-name">${p.name}</span><button class="del-confirm-btn" data-action="confirmdel" data-pid="${p.id}">Eliminar</button><button class="sm-btn" data-action="canceldel">No</button></div>`;
     const key=athleteKey(S.teamId,S.cat,p.id);
     const hasProfile=S.athletes[key]&&(S.athletes[key].personal?.birthdate||Object.keys(S.athletes[key].morphology||{}).length||Object.keys(S.athletes[key].jumpTests||{}).length);
-    return`<div class="roster-row"><span class="roster-num">${i+1}.</span><span class="roster-name">${p.name}</span>
+    const gender=S.athletes[key]?.personal?.gender;
+    const gBadge=gender==='M'?`<span style="font-size:12px;font-weight:700;color:#60a5fa;line-height:1;">♂</span>`:gender==='F'?`<span style="font-size:12px;font-weight:700;color:#f472b6;line-height:1;">♀</span>`:gender==='O'?`<span style="font-size:12px;font-weight:700;color:var(--text-3);line-height:1;">⚧</span>`:'';
+    return`<div class="roster-row"><span class="roster-num">${i+1}.</span><span class="roster-name">${p.name}</span>${gBadge}
       <button class="sm-btn" style="${hasProfile?'color:#60a5fa;border-color:#1e40af;':''}" data-action="openathlete" data-pid="${p.id}">📋 Ficha</button>
       ${editable?`<button class="sm-btn" data-action="startdel" data-pid="${p.id}">✕</button>`:''}
     </div>`;
@@ -3844,6 +3846,7 @@ function renderAthletePerfil(a,tid,cid,pid){
       <div class="form-field" style="margin-bottom:10px;"><label>Nombre completo</label><input type="text" id="af-playername" value="${player.name.replace(/"/g,'&quot;')}" placeholder="Apellido, Nombre"></div>
       <div class="form-grid-2">
         <div class="form-field"><label>Fecha de nacimiento</label><input type="date" id="af-birthdate" value="${p.birthdate||''}"></div>
+        <div class="form-field"><label>Sexo</label><select id="af-gender"><option value="">—</option><option value="M"${p.gender==='M'?' selected':''}>Masculino</option><option value="F"${p.gender==='F'?' selected':''}>Femenino</option><option value="O"${p.gender==='O'?' selected':''}>Otro</option></select></div>
         <div class="form-field"><label>Posición</label><select id="af-position"><option value="">—</option>${POSITIONS.map(pos=>`<option value="${pos}"${p.position===pos?' selected':''}>${pos}</option>`).join('')}</select></div>
         <div class="form-field"><label>Número</label><input type="number" id="af-number" value="${p.number||''}" min="0" max="99" placeholder="7"></div>
         <div class="form-field"><label>Lateralidad</label><select id="af-laterality"><option value="">—</option><option value="Diestro"${p.laterality==='Diestro'?' selected':''}>Diestro</option><option value="Zurdo"${p.laterality==='Zurdo'?' selected':''}>Zurdo</option><option value="Ambidiestro"${p.laterality==='Ambidiestro'?' selected':''}>Ambidiestro</option></select></div>
@@ -5371,7 +5374,7 @@ async function handleAction(e){
   else if(a==='saveperfilform'){
     const [tid,cid,pid]=S.athleteKey.split('__');
     const ath=getAthlete(S.athleteKey);
-    ath.personal={birthdate:document.getElementById('af-birthdate')?.value||'',position:document.getElementById('af-position')?.value||'',number:document.getElementById('af-number')?.value||'',laterality:document.getElementById('af-laterality')?.value||'',phone:document.getElementById('af-phone')?.value||'',documento:document.getElementById('af-documento')?.value||'',mutualista:document.getElementById('af-mutualista')?.value||'',notes:document.getElementById('af-notes')?.value||''};
+    ath.personal={birthdate:document.getElementById('af-birthdate')?.value||'',gender:document.getElementById('af-gender')?.value||'',position:document.getElementById('af-position')?.value||'',number:document.getElementById('af-number')?.value||'',laterality:document.getElementById('af-laterality')?.value||'',phone:document.getElementById('af-phone')?.value||'',documento:document.getElementById('af-documento')?.value||'',mutualista:document.getElementById('af-mutualista')?.value||'',notes:document.getElementById('af-notes')?.value||''};
     const newName=document.getElementById('af-playername')?.value?.trim();
     if(newName&&S.teams[tid]?.categories?.[cid]){
       const players=S.teams[tid].categories[cid].players;
@@ -6009,6 +6012,7 @@ function openAthleteProfile(mode='toggle'){
       <div class="ap-pm-name" style="margin-bottom:16px;">${name}</div>
       <div class="ap-pm-form">
         <label class="ap-pm-form-label">Fecha de nacimiento<input type="date" id="apf-birthdate" value="${p.birthdate||''}"></label>
+        <label class="ap-pm-form-label">Sexo<select id="apf-gender"><option value="">—</option><option value="M"${p.gender==='M'?' selected':''}>Masculino</option><option value="F"${p.gender==='F'?' selected':''}>Femenino</option><option value="O"${p.gender==='O'?' selected':''}>Otro</option></select></label>
         <label class="ap-pm-form-label">Posición<select id="apf-position"><option value="">—</option>${POSITIONS.map(pos=>`<option value="${pos}"${p.position===pos?' selected':''}>${pos}</option>`).join('')}</select></label>
         <label class="ap-pm-form-label">Número<input type="number" id="apf-number" value="${p.number||''}" min="0" max="99" placeholder="7"></label>
         <label class="ap-pm-form-label">Lateralidad<select id="apf-laterality"><option value="">—</option><option value="Diestro"${p.laterality==='Diestro'?' selected':''}>Diestro</option><option value="Zurdo"${p.laterality==='Zurdo'?' selected':''}>Zurdo</option><option value="Ambidiestro"${p.laterality==='Ambidiestro'?' selected':''}>Ambidiestro</option></select></label>
@@ -6058,6 +6062,7 @@ async function saveAthletePersonal(ctx){
   const existing=getAthlete(key).personal||{};
   const personal={
     birthdate:document.getElementById('apf-birthdate')?.value||'',
+    gender:document.getElementById('apf-gender')?.value||'',
     position:document.getElementById('apf-position')?.value||'',
     number:document.getElementById('apf-number')?.value||'',
     laterality:document.getElementById('apf-laterality')?.value||'',
