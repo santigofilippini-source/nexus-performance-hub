@@ -63,6 +63,12 @@
           "$key": {
             "personal": {
               ".write": "auth != null && $key === ($teamId + '__' + root.child('users').child(auth.uid).child('memberships').child($teamId).child('catId').val() + '__' + root.child('users').child(auth.uid).child('memberships').child($teamId).child('pid').val())"
+            },
+            "menstrualCycles": {
+              ".write": "auth != null && $key === ($teamId + '__' + root.child('users').child(auth.uid).child('memberships').child($teamId).child('catId').val() + '__' + root.child('users').child(auth.uid).child('memberships').child($teamId).child('pid').val())"
+            },
+            "menstrualConfig": {
+              ".write": "auth != null && $key === ($teamId + '__' + root.child('users').child(auth.uid).child('memberships').child($teamId).child('catId').val() + '__' + root.child('users').child(auth.uid).child('memberships').child($teamId).child('pid').val())"
             }
           }
         },

@@ -111,7 +111,8 @@ let S = {
   collapsedFolders:{},      // { folderName: true } — collapsed folder headers
   renamingFolder:null,      // string | null
   programFolderNames:{},    // { "FolderName": true } — persisted to Firebase, allows empty folders
-  newFolderForm:false,      // showing the new folder inline form
+  newFolderForm:false,
+  menstrualConfigOpen:false, // athlete menstrual config form open
   // Exercise library
   exercises:{ global:{}, personal:{} },
   // Session plans (loaded for current date)
@@ -1897,6 +1898,27 @@ function getFilterWindow(){
   else if(f==='1m'){const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-29);from=d.toISOString().split('T')[0];}
   else{from=S.loadFrom||TODAY;to=S.loadTo||TODAY;}
   return{from,to};
+}
+function getMenstrualPhase(key){
+  const ath=S.athletes[key];
+  if(!ath) return null;
+  const config=ath.menstrualConfig;
+  const cycles=ath.menstrualCycles;
+  if(!config) return {phase:'noconfig'};
+  const cl=Math.max(21,Math.min(45,parseInt(config.cycleLength)||28));
+  const pl=Math.max(2,Math.min(10,parseInt(config.periodLength)||5));
+  if(!cycles||!Object.keys(cycles).length) return {phase:'nostart',cl,pl};
+  const lastStart=Object.values(cycles).map(c=>c.startDate).filter(Boolean).sort((a,b)=>b.localeCompare(a))[0];
+  if(!lastStart) return {phase:'nostart',cl,pl};
+  const dayOfCycle=Math.floor((new Date(TODAY+'T12:00:00')-new Date(lastStart+'T12:00:00'))/86400000)+1;
+  if(dayOfCycle<1) return {phase:'future',cl,pl,lastStart};
+  const ovDay=Math.max(pl+2, cl-14);
+  const daysUntilNext=cl-dayOfCycle+1;
+  if(dayOfCycle<=pl)          return{phase:'menstrual',cl,pl,lastStart,dayOfCycle,daysUntilNext};
+  if(dayOfCycle<ovDay-1)      return{phase:'folicular',cl,pl,lastStart,dayOfCycle,daysUntilNext};
+  if(dayOfCycle<=ovDay+1)     return{phase:'ovulacion',cl,pl,lastStart,dayOfCycle,daysUntilNext};
+  if(dayOfCycle<=cl)          return{phase:'lutea',cl,pl,lastStart,dayOfCycle,daysUntilNext};
+  return{phase:'irregular',cl,pl,lastStart,dayOfCycle,daysOverdue:dayOfCycle-cl};
 }
 function calcPeriodLoad(cd,pid,from,to){
   let total=0;
@@ -3868,7 +3890,28 @@ function renderAthletePerfil(a,tid,cid,pid){
       <div class="form-row"><button class="save-btn" style="width:100%;background:#d97706;" data-action="confirmtransfer">Confirmar transferencia</button></div>
     </div>`;
   }
+  // Menstrual phase badge (staff view, F/O only)
+  const _mPhaseKey=`${tid}__${cid}__${pid}`;
+  const _mGender=p.gender;
+  let menstrualBadge='';
+  if(_mGender==='F'||_mGender==='O'){
+    const mp=getMenstrualPhase(_mPhaseKey);
+    const MPHASE_STAFF={menstrual:{label:'Período activo',color:'#f472b6',bg:'#f472b614'},folicular:{label:'Fase folicular',color:'#34d399',bg:'#34d39914'},ovulacion:{label:'Ovulación',color:'#fbbf24',bg:'#fbbf2414'},lutea:{label:'Fase lútea',color:'#a78bfa',bg:'#a78bfa14'},irregular:{label:'Ciclo irregular — posible retraso',color:'#f87171',bg:'#f8717114'}};
+    const svgCycle=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>`;
+    if(mp&&MPHASE_STAFF[mp.phase]){
+      const mpd=MPHASE_STAFF[mp.phase];
+      const dayInfo=mp.phase==='menstrual'?`Día ${mp.dayOfCycle} del período`:mp.phase==='irregular'?`${mp.daysOverdue}d de retraso`:`Día ${mp.dayOfCycle} de ${mp.cl}`;
+      menstrualBadge=`<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:${mpd.bg};border-radius:10px;margin-bottom:12px;">
+        <span style="color:${mpd.color};">${svgCycle}</span>
+        <span style="font-size:13px;font-weight:600;color:${mpd.color};">${mpd.label}</span>
+        <span style="font-size:12px;color:var(--text-2);">${dayInfo}</span>
+      </div>`;
+    } else if(mp&&(mp.phase==='noconfig'||mp.phase==='nostart')){
+      menstrualBadge=`<div style="padding:8px 14px;background:var(--bg-2);border-radius:10px;margin-bottom:12px;font-size:12px;color:var(--text-3);">🌸 Ciclo no registrado</div>`;
+    }
+  }
   return`
+    ${menstrualBadge}
     ${hasZ?`<div style="background:${pc?.bg||'var(--bg2)'};border:1px solid ${pc?.fg||'var(--border)'}33;border-radius:12px;padding:12px 14px;margin-bottom:12px;">
       <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Composición corporal — última eval.</div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -5234,6 +5277,40 @@ async function handleAction(e){
   else if(a==='apshowprofileedit'){ openAthleteProfile('edit'); }
   else if(a==='apcancelprofileedit'){ S.pendingAthletePhoto=null; openAthleteProfile('info'); }
   else if(a==='apsaveprofileedit'){ await saveAthletePersonal(getAthleteCtx()); }
+  // MENSTRUAL CYCLE
+  else if(a==='openmenstrualconfig'){S.menstrualConfigOpen=true;render();}
+  else if(a==='cancelmenstrualconfig'){S.menstrualConfigOpen=false;render();}
+  else if(a==='savemenstrualconfig'){
+    const ctx=getAthleteCtx();if(!ctx)return;
+    const{tid,catId,pid}=ctx;
+    const key=`${tid}__${catId}__${pid}`;
+    const cl=Math.max(21,Math.min(45,parseInt(document.getElementById('mc-cycle-length')?.value)||28));
+    const pl=Math.max(2,Math.min(10,parseInt(document.getElementById('mc-period-length')?.value)||5));
+    const lastStart=document.getElementById('mc-last-start')?.value;
+    if(!S.athletes[key]) S.athletes[key]={};
+    S.athletes[key].menstrualConfig={cycleLength:cl,periodLength:pl};
+    const updates={[`teams/${tid}/athletes/${key}/menstrualConfig`]:{cycleLength:cl,periodLength:pl}};
+    if(lastStart){
+      const cid='mc_'+Date.now();
+      if(!S.athletes[key].menstrualCycles) S.athletes[key].menstrualCycles={};
+      S.athletes[key].menstrualCycles[cid]={startDate:lastStart};
+      updates[`teams/${tid}/athletes/${key}/menstrualCycles/${cid}`]={startDate:lastStart};
+    }
+    S.menstrualConfigOpen=false;
+    await db.ref().update(updates);
+    render();
+  }
+  else if(a==='logperiodstart'){
+    const ctx=getAthleteCtx();if(!ctx)return;
+    const{tid,catId,pid}=ctx;
+    const key=`${tid}__${catId}__${pid}`;
+    const cid='mc_'+Date.now();
+    if(!S.athletes[key]) S.athletes[key]={};
+    if(!S.athletes[key].menstrualCycles) S.athletes[key].menstrualCycles={};
+    S.athletes[key].menstrualCycles[cid]={startDate:TODAY};
+    await db.ref(`teams/${tid}/athletes/${key}/menstrualCycles/${cid}`).set({startDate:TODAY});
+    render();
+  }
   // ATHLETE INVITE PICKER
   else if(a==='setinvitecategory'){
     const emailEl=document.getElementById('inv-email');if(emailEl)S.inviteForm.email=emailEl.value;

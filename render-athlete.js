@@ -164,10 +164,88 @@ function renderAthleteToday(ctx){
 
   const pushBanner=typeof Notification!=='undefined'&&Notification.permission==='default'&&!VAPID_PUBLIC_KEY.startsWith('PASTE')
     ?`<div class="ap-push-banner"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>Activá las notificaciones para no perderte nada</span><button class="ap-push-btn" onclick="requestPushPermission()">Activar</button></div>`:'';
+  // Menstrual cycle section (F / O only)
+  const _mKey=`${tid}__${catId}__${pid}`;
+  const _mGender=S.athletes[_mKey]?.personal?.gender;
+  let menstrualSection='';
+  if(_mGender==='F'||_mGender==='O'){
+    const PHASE_DATA={
+      menstrual:{label:'Período activo',color:'#f472b6',bg:'#f472b614',icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="#f472b6"><circle cx="12" cy="12" r="10"/></svg>',tip:'Es normal sentir más fatiga y sensibilidad. Ajustá la intensidad según cómo te sentís.'},
+      folicular:{label:'Fase folicular',color:'#34d399',bg:'#34d39914',icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="#34d399"><circle cx="12" cy="12" r="10"/></svg>',tip:'Energía en aumento. Buena fase para entrenamientos de alta intensidad.'},
+      ovulacion:{label:'Ovulación',color:'#fbbf24',bg:'#fbbf2414',icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24"><circle cx="12" cy="12" r="10"/></svg>',tip:'Pico de energía. Tené cuidado con movimientos explosivos y cambios de dirección bruscos.'},
+      lutea:{label:'Fase lútea',color:'#a78bfa',bg:'#a78bfa14',icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="#a78bfa"><circle cx="12" cy="12" r="10"/></svg>',tip:'Es normal sentir más esfuerzo con la misma carga. Hidratación y descanso son clave.'},
+      irregular:{label:'Ciclo irregular',color:'#f87171',bg:'#f8717114',icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="#f87171"><circle cx="12" cy="12" r="10"/></svg>',tip:'Tu ciclo lleva más días de lo habitual. Comentalo con tu cuerpo técnico.'},
+    };
+    const svgCycle=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>`;
+    const svgGear=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M14.83 9.17a4 4 0 0 1 0 5.66M9.17 9.17a4 4 0 0 0 0 5.66"/></svg>`;
+    if(S.menstrualConfigOpen){
+      const ath=S.athletes[_mKey];
+      const ecl=ath?.menstrualConfig?.cycleLength||28;
+      const epl=ath?.menstrualConfig?.periodLength||5;
+      menstrualSection=`<div class="ap-well-card" style="border-color:#f472b644;">
+        <div class="ap-well-card__h"><h3 style="display:flex;align-items:center;gap:6px;">${svgCycle} Configurar ciclo</h3></div>
+        <div class="ap-well-card__b" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+          <div><label style="font-size:12px;color:var(--text-2);display:block;margin-bottom:4px;">Duración de mi ciclo <span style="color:var(--text-3);">(días, ej: 28)</span></label>
+            <input type="number" id="mc-cycle-length" value="${ecl}" min="21" max="45" style="width:80px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg-2);color:var(--text-0);font-size:15px;text-align:center;"></div>
+          <div><label style="font-size:12px;color:var(--text-2);display:block;margin-bottom:4px;">Duración de mi período <span style="color:var(--text-3);">(días, ej: 5)</span></label>
+            <input type="number" id="mc-period-length" value="${epl}" min="2" max="10" style="width:80px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg-2);color:var(--text-0);font-size:15px;text-align:center;"></div>
+          <div><label style="font-size:12px;color:var(--text-2);display:block;margin-bottom:4px;">¿Cuándo empezó tu último período?</label>
+            <input type="date" id="mc-last-start" value="" style="padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg-2);color:var(--text-0);font-size:14px;"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="q-btn q-btn--primary" style="flex:1;" data-action="savemenstrualconfig">Guardar</button>
+            <button class="q-btn" data-action="cancelmenstrualconfig">Cancelar</button>
+          </div>
+        </div>
+      </div>`;
+    } else {
+      const phase=getMenstrualPhase(_mKey);
+      if(!phase||phase.phase==='noconfig'){
+        menstrualSection=`<div class="ap-well-card" style="border-color:#f472b633;">
+          <div class="ap-well-card__h"><h3 style="display:flex;align-items:center;gap:6px;">${svgCycle} Ciclo menstrual</h3></div>
+          <div class="ap-well-card__b" style="padding:12px 16px;">
+            <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;">Registrá tu ciclo para que el cuerpo técnico pueda adaptar tu entrenamiento a cada fase.</p>
+            <button class="q-btn q-btn--primary" style="width:100%;" data-action="openmenstrualconfig">Configurar ciclo →</button>
+          </div>
+        </div>`;
+      } else if(phase.phase==='nostart'){
+        menstrualSection=`<div class="ap-well-card" style="border-color:#f472b633;">
+          <div class="ap-well-card__h"><h3 style="display:flex;align-items:center;gap:6px;">${svgCycle} Ciclo</h3>
+            <button class="q-icon-btn" data-action="openmenstrualconfig" style="opacity:.5;">${svgGear}</button></div>
+          <div class="ap-well-card__b" style="padding:12px 16px;">
+            <p style="font-size:13px;color:var(--text-2);margin-bottom:12px;">¿Cuándo empezó tu último período?</p>
+            <button class="q-btn q-btn--primary" style="width:100%;" data-action="openmenstrualconfig">Registrar inicio →</button>
+          </div>
+        </div>`;
+      } else {
+        const pd=PHASE_DATA[phase.phase]||PHASE_DATA.folicular;
+        const showPrompt=(phase.phase==='lutea'&&phase.daysUntilNext<=2)||(phase.phase==='irregular');
+        const dayInfo=phase.phase==='menstrual'?`Día ${phase.dayOfCycle} de tu período · ${phase.daysUntilNext} día${phase.daysUntilNext!==1?'s':''} para que termine`:
+          phase.phase==='irregular'?`${phase.daysOverdue} día${phase.daysOverdue!==1?'s':''} de retraso`:
+          `Día ${phase.dayOfCycle} de ${phase.cl} · próximo período en ${Math.max(0,phase.daysUntilNext)} día${phase.daysUntilNext!==1?'s':''}`;
+        const prompt=showPrompt?`<div style="margin-top:10px;padding:10px 12px;background:var(--bg-2);border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span style="font-size:13px;color:var(--text-1);">${phase.phase==='irregular'?'¿Empezó tu período?':'Tu período está próximo — ¿ya empezó?'}</span>
+            <button class="q-btn q-btn--primary" style="font-size:12px;padding:5px 12px;white-space:nowrap;" data-action="logperiodstart">Sí, hoy</button>
+          </div>`:'';
+        menstrualSection=`<div class="ap-well-card" style="border-color:${pd.color}44;">
+          <div class="ap-well-card__h"><h3 style="display:flex;align-items:center;gap:6px;">${svgCycle} Ciclo</h3>
+            <button class="q-icon-btn" data-action="openmenstrualconfig" title="Editar configuración" style="opacity:.5;">${svgGear}</button></div>
+          <div class="ap-well-card__b" style="padding:12px 16px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;background:${pd.bg};color:${pd.color};font-size:13px;font-weight:600;">${pd.icon} ${pd.label}</span>
+              <span style="font-size:12px;color:var(--text-2);">${dayInfo}</span>
+            </div>
+            <p style="font-size:13px;color:var(--text-2);margin:0;">${pd.tip}</p>
+            ${prompt}
+          </div>
+        </div>`;
+      }
+    }
+  }
   return`<div style="padding-top:4px;">
     ${pushBanner}
     <div style="padding:10px 16px 2px;font-size:12px;color:var(--text-2);">${dateStr}</div>
     ${routineBanner}
+    ${menstrualSection}
     <div class="ap-well-card">
       <div class="ap-well-card__h">
         <h3>Cómo me siento hoy</h3>
