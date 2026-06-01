@@ -41,10 +41,13 @@ function renderProgramsList(){
   const svgDupe=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
   const svgTrash=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
 
-  // Group by folder
+  // Group by folder — merge Firebase folder names with program-derived folders
   const folderMap={};
   progs.forEach(([pid,p])=>{const f=p.folder||'';if(!folderMap[f])folderMap[f]=[];folderMap[f].push([pid,p]);});
-  const namedFolders=Object.keys(folderMap).filter(f=>f).sort((a,b)=>a.localeCompare(b));
+  const namedFolders=[...new Set([
+    ...Object.keys(S.programFolderNames||{}).filter(f=>f),
+    ...Object.keys(folderMap).filter(f=>f)
+  ])].sort((a,b)=>a.localeCompare(b));
   const hasUncategorized=!!(folderMap['']?.length);
 
   // Program card
@@ -84,16 +87,21 @@ function renderProgramsList(){
           ${collapsed?svgChevronRight:svgChevronDown}
           ${isUncategorized?svgFolderGray:svgFolder}
           <span style="font-weight:600;font-size:13px;color:${isUncategorized?'var(--text-2)':'var(--text)'};">${isUncategorized?'Sin carpeta':folderName}</span>
-          <span style="font-size:11px;color:var(--text-3);background:var(--bg-3);padding:1px 7px;border-radius:99px;font-weight:500;">${folderProgs.length}</span>
+          <span style="font-size:11px;color:var(--text-3);background:var(--bg-3);padding:1px 7px;border-radius:99px;font-weight:500;">${(folderMap[folderName]||[]).length}</span>
           <div style="flex:1;"></div>
-          ${!isUncategorized?`<button class="q-icon-btn" data-action="renamefolder" data-folder="${esc}" title="Renombrar carpeta" onclick="event.stopPropagation();" style="opacity:.5;">${svgEdit}</button>`:''}
+          ${!isUncategorized?`<button class="q-icon-btn" data-action="renamefolder" data-folder="${esc}" title="Renombrar" onclick="event.stopPropagation();" style="opacity:.5;">${svgEdit}</button>
+          <button class="q-icon-btn" data-action="deletefolder" data-folder="${esc}" title="Eliminar carpeta" onclick="event.stopPropagation();" style="opacity:.5;color:var(--bad);">${svgTrash}</button>`:''}
         </div>`;
     return`<div style="margin-bottom:4px;">
       <div data-action="${isRenaming?'':'togglefolder'}" data-folder="${esc}"
            style="display:flex;align-items:center;gap:8px;padding:8px 6px;cursor:${isRenaming?'default':'pointer'};border-radius:8px;transition:background .15s;" onmouseenter="if(!${isRenaming})this.style.background='var(--bg-2)';" onmouseleave="this.style.background='transparent';">
         ${header}
       </div>
-      ${!collapsed?`<div style="display:flex;flex-direction:column;gap:10px;padding-left:8px;margin-bottom:12px;">${folderProgs.map(progCard).join('')}</div>`:''}
+      ${!collapsed?`<div style="display:flex;flex-direction:column;gap:10px;padding-left:8px;margin-bottom:12px;">${
+        folderProgs.length
+          ? folderProgs.map(progCard).join('')
+          : `<div style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px;border:1px dashed var(--line);border-radius:10px;">Carpeta vacía — asigná un programa acá al crearlo o editarlo</div>`
+      }</div>`:''}
     </div>`;
   };
 
@@ -152,14 +160,29 @@ function renderProgramsList(){
       <div style="display:flex;flex-direction:column;gap:10px;">${templateCards}</div>
     </div>`:'';
 
+  const newFolderFormHtml=S.newFolderForm?`<div class="q-card" style="margin-bottom:16px;">
+    <div class="q-card__b" style="padding:12px 16px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${svgFolder}
+        <input type="text" id="new-folder-input" placeholder="Nombre de la carpeta" class="q-input" style="flex:1;">
+        <button class="q-btn q-btn--primary" style="white-space:nowrap;" data-action="savenewfolder">Crear carpeta</button>
+        <button class="q-btn" data-action="cancelnewfolder">✕</button>
+      </div>
+    </div>
+  </div>`:'';
+
   return`<div class="wrap">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div>
         <div style="font-size:18px;font-weight:700;color:var(--text);">Programas</div>
         <div style="font-size:12px;color:var(--text-2);margin-top:2px;">Tus rutinas reutilizables — disponibles en cualquier equipo</div>
       </div>
-      <button class="q-btn q-btn--primary" data-action="newprog">+ Nuevo programa</button>
+      <div style="display:flex;gap:8px;">
+        <button class="q-btn q-btn--ghost" data-action="shownewfolderform">${svgFolder} Nueva carpeta</button>
+        <button class="q-btn q-btn--primary" data-action="newprog">+ Nuevo programa</button>
+      </div>
     </div>
+    ${newFolderFormHtml}
     ${formHtml}
     ${mainContent}
     ${templatesSection}

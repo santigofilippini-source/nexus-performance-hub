@@ -108,8 +108,10 @@ let S = {
   programs:{},           // { progId: { name, folder, createdAt, days:{dayId:{name,order,blocks}} } }
   programView:null,      // null | { progId, dayId? }
   programForm:null,      // null | { mode:'new'|'edit', progId?, name, folder, dayId?, dayName }
-  collapsedFolders:{},   // { folderName: true } — collapsed folder headers
-  renamingFolder:null,   // string | null
+  collapsedFolders:{},      // { folderName: true } — collapsed folder headers
+  renamingFolder:null,      // string | null
+  programFolderNames:{},    // { "FolderName": true } — persisted to Firebase, allows empty folders
+  newFolderForm:false,      // showing the new folder inline form
   // Exercise library
   exercises:{ global:{}, personal:{} },
   // Session plans (loaded for current date)
@@ -485,16 +487,18 @@ async function loadAll() {
     if(!S.onboardingDone && S.onboardingStep===null) S.onboardingStep=0;
 
     // 6. Load personal programs, exercise library, and pending join requests (in parallel)
-    const [progSnap, exPersonalSnap, exGlobalSnap, pendingReqSnap] = await Promise.all([
+    const [progSnap, exPersonalSnap, exGlobalSnap, pendingReqSnap, folderNamesSnap] = await Promise.all([
       db.ref(`users/${currentUser.uid}/programs`).get(),
       db.ref(`users/${currentUser.uid}/exercises`).get(),
       db.ref('exercises_library').get(),
-      db.ref(`users/${currentUser.uid}/pendingJoinRequests`).get()
+      db.ref(`users/${currentUser.uid}/pendingJoinRequests`).get(),
+      db.ref(`users/${currentUser.uid}/programFolderNames`).get()
     ]);
     S.programs = progSnap.exists() ? (progSnap.val()||{}) : {};
     S.exercises.personal = exPersonalSnap.exists() ? (exPersonalSnap.val()||{}) : {};
     S.exercises.global   = exGlobalSnap.exists()   ? (exGlobalSnap.val()||{})   : {};
     S.myPendingRequests  = pendingReqSnap.exists()  ? (pendingReqSnap.val()||{}) : {};
+    S.programFolderNames = folderNamesSnap.exists() ? (folderNamesSnap.val()||{}) : {};
 
     setSyncBar('ok');
   } catch(e) {
@@ -5511,7 +5515,33 @@ async function handleAction(e){
     });
   }
   // ── PROGRAMS ──────────────────────────────────────────────────
-  else if(a==='newprog'){S.programForm={mode:'new',name:'',folder:''};render();}
+  else if(a==='newprog'){S.programForm={mode:'new',name:'',folder:''};S.newFolderForm=false;render();}
+  else if(a==='shownewfolderform'){S.newFolderForm=true;S.programForm=null;render();}
+  else if(a==='cancelnewfolder'){S.newFolderForm=false;render();}
+  else if(a==='savenewfolder'){
+    const name=document.getElementById('new-folder-input')?.value.trim();
+    if(!name){showAlert('Ingresá un nombre para la carpeta.');return;}
+    if(S.programFolderNames[name]){showAlert('Ya existe una carpeta con ese nombre.');return;}
+    S.programFolderNames[name]=true;
+    S.newFolderForm=false;
+    await db.ref(`users/${currentUser.uid}/programFolderNames/${name}`).set(true);
+    render();
+  }
+  else if(a==='deletefolder'){
+    const f=el.dataset.folder;
+    const count=Object.values(S.programs||{}).filter(p=>p.folder===f).length;
+    const msg=count>0?`¿Eliminar la carpeta "${f}"? Los ${count} programa${count!==1?'s':''} dentro quedarán sin carpeta.`:`¿Eliminar la carpeta "${f}"?`;
+    showConfirm(msg, async()=>{
+      const updates={};
+      delete S.programFolderNames[f];
+      updates[`users/${currentUser.uid}/programFolderNames/${f}`]=null;
+      Object.entries(S.programs||{}).forEach(([pid,p])=>{
+        if(p.folder===f){S.programs[pid].folder='';updates[`users/${currentUser.uid}/programs/${pid}/folder`]='';}
+      });
+      await db.ref().update(updates);
+      render();
+    });
+  }
   else if(a==='editprog'){
     const pid=el.dataset.pid;
     S.programForm={mode:'edit',progId:pid,name:S.programs[pid]?.name||'',folder:S.programs[pid]?.folder||''};
@@ -5544,13 +5574,17 @@ async function handleAction(e){
     S.renamingFolder=null;
     if(newName===oldName){render();return;}
     const updates={};
+    delete S.programFolderNames[oldName];
+    S.programFolderNames[newName]=true;
+    updates[`users/${currentUser.uid}/programFolderNames/${oldName}`]=null;
+    updates[`users/${currentUser.uid}/programFolderNames/${newName}`]=true;
     Object.entries(S.programs||{}).forEach(([pid,p])=>{
       if((p.folder||'')===oldName){
         S.programs[pid].folder=newName;
         updates[`users/${currentUser.uid}/programs/${pid}/folder`]=newName;
       }
     });
-    if(Object.keys(updates).length) await db.ref().update(updates);
+    await db.ref().update(updates);
     render();
   }
   else if(a==='deleteprog'){
