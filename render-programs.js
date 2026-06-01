@@ -110,7 +110,7 @@ function renderProgramsList(){
   if(!progs.length&&!form){
     mainContent=`<div class="q-empty-state"><div style="font-size:36px;margin-bottom:12px;">📋</div><div style="font-weight:600;margin-bottom:4px;">Sin programas todavía</div><div style="font-size:13px;color:var(--text-2);">Creá tu primer programa de entrenamiento</div></div>`;
   } else {
-    mainContent=namedFolders.map(f=>folderSection(f,folderMap[f])).join('');
+    mainContent=namedFolders.map(f=>folderSection(f,folderMap[f]||[])).join('');
     if(hasUncategorized) mainContent+=folderSection('',folderMap[''],true);
   }
 
