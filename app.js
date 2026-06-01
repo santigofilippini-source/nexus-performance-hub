@@ -105,9 +105,11 @@ let S = {
   editingTeamId:null, editingCatId:null,
   teamFormMode:null, catFormMode:null, // 'new'|'edit'
   // Programs (personal per-user training programs)
-  programs:{},           // { progId: { name, createdAt, days:{dayId:{name,order,blocks}} } }
+  programs:{},           // { progId: { name, folder, createdAt, days:{dayId:{name,order,blocks}} } }
   programView:null,      // null | { progId, dayId? }
-  programForm:null,      // null | { mode:'new'|'edit', progId?, name, dayId?, dayName }
+  programForm:null,      // null | { mode:'new'|'edit', progId?, name, folder, dayId?, dayName }
+  collapsedFolders:{},   // { folderName: true } — collapsed folder headers
+  renamingFolder:null,   // string | null
   // Exercise library
   exercises:{ global:{}, personal:{} },
   // Session plans (loaded for current date)
@@ -5509,21 +5511,46 @@ async function handleAction(e){
     });
   }
   // ── PROGRAMS ──────────────────────────────────────────────────
-  else if(a==='newprog'){S.programForm={mode:'new',name:''};render();}
+  else if(a==='newprog'){S.programForm={mode:'new',name:'',folder:''};render();}
   else if(a==='editprog'){
     const pid=el.dataset.pid;
-    S.programForm={mode:'edit',progId:pid,name:S.programs[pid]?.name||''};
+    S.programForm={mode:'edit',progId:pid,name:S.programs[pid]?.name||'',folder:S.programs[pid]?.folder||''};
     render();
   }
   else if(a==='cancelprogform'){S.programForm=null;render();}
   else if(a==='saveprogform'){
     const name=document.getElementById('prog-name-input')?.value.trim();
     if(!name){showAlert('Ingresá un nombre para el programa.');return;}
+    const folderSel=document.getElementById('prog-folder-select')?.value||'';
+    const folder=folderSel==='__new__'?(document.getElementById('prog-folder-new')?.value.trim()||''):folderSel;
     const isEdit=S.programForm.mode==='edit';
     const pid=isEdit?S.programForm.progId:'prog_'+Date.now();
-    const data=isEdit?{name}:{name,createdAt:Date.now()};
+    const data=isEdit?{name,folder}:{name,folder,createdAt:Date.now()};
     S.programForm=null;
     await saveProgram(pid,data);
+    render();
+  }
+  else if(a==='togglefolder'){
+    const f=el.dataset.folder;
+    S.collapsedFolders[f]=!S.collapsedFolders[f];
+    render();
+  }
+  else if(a==='renamefolder'){S.renamingFolder=el.dataset.folder;render();}
+  else if(a==='cancelfoldername'){S.renamingFolder=null;render();}
+  else if(a==='savefoldername'){
+    const oldName=el.dataset.folder;
+    const newName=document.getElementById('folder-rename-input')?.value.trim();
+    if(!newName){showAlert('Ingresá un nombre para la carpeta.');return;}
+    S.renamingFolder=null;
+    if(newName===oldName){render();return;}
+    const updates={};
+    Object.entries(S.programs||{}).forEach(([pid,p])=>{
+      if((p.folder||'')===oldName){
+        S.programs[pid].folder=newName;
+        updates[`users/${currentUser.uid}/programs/${pid}/folder`]=newName;
+      }
+    });
+    if(Object.keys(updates).length) await db.ref().update(updates);
     render();
   }
   else if(a==='deleteprog'){

@@ -31,42 +31,104 @@ function renderProgramsView(){
 function renderProgramsList(){
   const progs=Object.entries(S.programs||{}).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
   const form=S.programForm;
-  let cards='';
-  if(!progs.length && !form){
-    cards=`<div class="q-empty-state"><div style="font-size:36px;margin-bottom:12px;">📋</div><div style="font-weight:600;margin-bottom:4px;">Sin programas todavía</div><div style="font-size:13px;color:var(--text-2);">Crea tu primer programa de entrenamiento</div></div>`;
-  } else {
-    cards=progs.map(([pid,p])=>{
-      const days=Object.values(p.days||{});
-      return `<div class="q-card q-prog-card" data-action="openprog" data-pid="${pid}" style="cursor:pointer;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:44px;height:44px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📋</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;font-size:15px;color:var(--text);">${p.name||'Sin nombre'}</div>
-            <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${days.length} ${days.length===1?'rutina':'rutinas'}</div>
-          </div>
-          <button class="q-icon-btn" data-action="editprog" data-pid="${pid}" title="Editar nombre" onclick="event.stopPropagation();"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="q-icon-btn" data-action="duplicateprog" data-pid="${pid}" title="Duplicar" onclick="event.stopPropagation();"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-          <button class="q-icon-btn" data-action="deleteprog" data-pid="${pid}" title="Eliminar" onclick="event.stopPropagation();" style="color:var(--bad);opacity:.7;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+
+  // SVG helpers
+  const svgChevronDown=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+  const svgChevronRight=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+  const svgFolder=`<svg width="15" height="15" viewBox="0 0 24 24" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+  const svgFolderGray=`<svg width="15" height="15" viewBox="0 0 24 24" fill="var(--bg-3)" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+  const svgEdit=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  const svgDupe=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  const svgTrash=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+
+  // Group by folder
+  const folderMap={};
+  progs.forEach(([pid,p])=>{const f=p.folder||'';if(!folderMap[f])folderMap[f]=[];folderMap[f].push([pid,p]);});
+  const namedFolders=Object.keys(folderMap).filter(f=>f).sort((a,b)=>a.localeCompare(b));
+  const hasUncategorized=!!(folderMap['']?.length);
+
+  // Program card
+  const progCard=([pid,p])=>{
+    const days=Object.values(p.days||{});
+    return `<div class="q-card q-prog-card" data-action="openprog" data-pid="${pid}" style="cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📋</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:15px;color:var(--text);">${p.name||'Sin nombre'}</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:2px;">${days.length} ${days.length===1?'rutina':'rutinas'}</div>
         </div>
-        ${days.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">`+
-          Object.entries(p.days||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0)).map(([did,d])=>
-            `<span class="q-day-chip" data-action="openprogday" data-pid="${pid}" data-did="${did}" onclick="event.stopPropagation();">${d.name||'Día'}</span>`
-          ).join('')+`</div>`:''}
-      </div>`;
-    }).join('');
+        <button class="q-icon-btn" data-action="editprog" data-pid="${pid}" title="Editar" onclick="event.stopPropagation();">${svgEdit}</button>
+        <button class="q-icon-btn" data-action="duplicateprog" data-pid="${pid}" title="Duplicar" onclick="event.stopPropagation();">${svgDupe}</button>
+        <button class="q-icon-btn" data-action="deleteprog" data-pid="${pid}" title="Eliminar" onclick="event.stopPropagation();" style="color:var(--bad);opacity:.7;">${svgTrash}</button>
+      </div>
+      ${days.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">`+
+        Object.entries(p.days||{}).sort((a,b)=>(a[1].order||0)-(b[1].order||0)).map(([did,d])=>
+          `<span class="q-day-chip" data-action="openprogday" data-pid="${pid}" data-did="${did}" onclick="event.stopPropagation();">${d.name||'Día'}</span>`
+        ).join('')+`</div>`:''}
+    </div>`;
+  };
+
+  // Folder section
+  const folderSection=(folderName,folderProgs,isUncategorized=false)=>{
+    const collapsed=S.collapsedFolders?.[folderName]===true;
+    const isRenaming=!isUncategorized&&S.renamingFolder===folderName;
+    const esc=folderName.replace(/"/g,'&quot;');
+    const header=isRenaming
+      ?`<div style="display:flex;align-items:center;gap:8px;flex:1;" onclick="event.stopPropagation();">
+          ${svgFolder}
+          <input type="text" id="folder-rename-input" value="${esc}" class="q-input" style="flex:1;height:30px;font-size:13px;padding:0 8px;">
+          <button class="q-btn q-btn--primary" style="height:30px;font-size:12px;padding:0 12px;" data-action="savefoldername" data-folder="${esc}" onclick="event.stopPropagation();">Guardar</button>
+          <button class="q-btn" style="height:30px;font-size:12px;padding:0 10px;" data-action="cancelfoldername" onclick="event.stopPropagation();">✕</button>
+        </div>`
+      :`<div style="display:flex;align-items:center;gap:8px;flex:1;">
+          ${collapsed?svgChevronRight:svgChevronDown}
+          ${isUncategorized?svgFolderGray:svgFolder}
+          <span style="font-weight:600;font-size:13px;color:${isUncategorized?'var(--text-2)':'var(--text)'};">${isUncategorized?'Sin carpeta':folderName}</span>
+          <span style="font-size:11px;color:var(--text-3);background:var(--bg-3);padding:1px 7px;border-radius:99px;font-weight:500;">${folderProgs.length}</span>
+          <div style="flex:1;"></div>
+          ${!isUncategorized?`<button class="q-icon-btn" data-action="renamefolder" data-folder="${esc}" title="Renombrar carpeta" onclick="event.stopPropagation();" style="opacity:.5;">${svgEdit}</button>`:''}
+        </div>`;
+    return`<div style="margin-bottom:4px;">
+      <div data-action="${isRenaming?'':'togglefolder'}" data-folder="${esc}"
+           style="display:flex;align-items:center;gap:8px;padding:8px 6px;cursor:${isRenaming?'default':'pointer'};border-radius:8px;transition:background .15s;" onmouseenter="if(!${isRenaming})this.style.background='var(--bg-2)';" onmouseleave="this.style.background='transparent';">
+        ${header}
+      </div>
+      ${!collapsed?`<div style="display:flex;flex-direction:column;gap:10px;padding-left:8px;margin-bottom:12px;">${folderProgs.map(progCard).join('')}</div>`:''}
+    </div>`;
+  };
+
+  // Build main content
+  let mainContent='';
+  if(!progs.length&&!form){
+    mainContent=`<div class="q-empty-state"><div style="font-size:36px;margin-bottom:12px;">📋</div><div style="font-weight:600;margin-bottom:4px;">Sin programas todavía</div><div style="font-size:13px;color:var(--text-2);">Creá tu primer programa de entrenamiento</div></div>`;
+  } else {
+    mainContent=namedFolders.map(f=>folderSection(f,folderMap[f])).join('');
+    if(hasUncategorized) mainContent+=folderSection('',folderMap[''],true);
   }
-  const formHtml=form?`<div class="q-card" style="margin-bottom:12px;">
+
+  // Get all folder names for the form dropdown
+  const allFolders=namedFolders;
+  const formHtml=form?`<div class="q-card" style="margin-bottom:16px;">
     <div class="q-card__h"><h3>${form.mode==='edit'?'Editar programa':'Nuevo programa'}</h3></div>
     <div class="q-card__b" style="padding:12px 16px;">
-      <div class="form-field"><label>Nombre del programa</label>
-        <input type="text" id="prog-name-input" value="${form.name||''}" placeholder="ej: Hipertrofia 4 días" class="q-input">
+      <div class="form-field" style="margin-bottom:10px;"><label>Nombre del programa</label>
+        <input type="text" id="prog-name-input" value="${(form.name||'').replace(/"/g,'&quot;')}" placeholder="ej: Hipertrofia 4 días" class="q-input">
       </div>
-      <div style="display:flex;gap:8px;margin-top:12px;">
+      <div class="form-field" style="margin-bottom:12px;"><label>Carpeta</label>
+        <select id="prog-folder-select" class="q-input" onchange="document.getElementById('prog-folder-new').style.display=this.value==='__new__'?'block':'none';">
+          <option value="" ${!form.folder?'selected':''}>Sin carpeta</option>
+          ${allFolders.map(f=>`<option value="${f.replace(/"/g,'&quot;')}" ${form.folder===f?'selected':''}>${f}</option>`).join('')}
+          <option value="__new__">+ Nueva carpeta...</option>
+        </select>
+        <input type="text" id="prog-folder-new" placeholder="Nombre de la carpeta" class="q-input" style="display:none;margin-top:6px;">
+      </div>
+      <div style="display:flex;gap:8px;">
         <button class="q-btn q-btn--primary" data-action="saveprogform">Guardar</button>
         <button class="q-btn" data-action="cancelprogform">Cancelar</button>
       </div>
     </div>
   </div>`:'';
+
   const templateCards=Object.entries(DEFAULT_PROGRAMS).map(([tid,tpl])=>{
     const dayCount=Object.keys(tpl.days||{}).length;
     const dayChips=Object.values(tpl.days||{}).sort((a,b)=>(a.order||0)-(b.order||0))
@@ -89,6 +151,7 @@ function renderProgramsList(){
       <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;">Rutinas de ejemplo listas para usar. Copiá la que quieras a tus programas y personalizala como necesites.</div>
       <div style="display:flex;flex-direction:column;gap:10px;">${templateCards}</div>
     </div>`:'';
+
   return`<div class="wrap">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div>
@@ -98,7 +161,7 @@ function renderProgramsList(){
       <button class="q-btn q-btn--primary" data-action="newprog">+ Nuevo programa</button>
     </div>
     ${formHtml}
-    <div style="display:flex;flex-direction:column;gap:10px;">${cards}</div>
+    ${mainContent}
     ${templatesSection}
   </div>`;
 }
